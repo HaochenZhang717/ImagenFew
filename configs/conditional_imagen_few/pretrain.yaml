@@ -1,6 +1,6 @@
 # training:
 epochs: 2001
-batch_size: 1024
+batch_size: 2048
 learning_rate: 0.0003 #1e-4
 weight_decay: 0.00001 #1e-5
 
