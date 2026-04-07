@@ -47,6 +47,8 @@ class Handler(generativeHandler):
         return self.model
     
     def train_iter(self, train_dataloader, logger):
+        avg_loss = 0.0
+
         for _, data in enumerate(train_dataloader, 1):
             self.optimizer.zero_grad()
 
@@ -63,12 +65,16 @@ class Handler(generativeHandler):
             output, time_weight = self.model(x_img, x_img_mask, context=context)
             time_loss   = (output - x_img).square()
             loss = ((time_weight * time_loss) * (1 - x_img_mask)).mean()
-            logger.log(f'train/karras loss', loss.detach())
-
+            # logger.log(f'train/karras loss', loss.detach())
+            avg_loss += loss.item()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.)
             self.optimizer.step()
             self._model.on_train_batch_end()
+
+        avg_loss /= len(train_dataloader)
+        logger.log(f'train/karras loss', avg_loss)
+        # logger.log(f'train/train epoch', loss.detach())
 
     def sample(self, n_samples, class_label, class_metadata, test_data):
         generated_set = []
