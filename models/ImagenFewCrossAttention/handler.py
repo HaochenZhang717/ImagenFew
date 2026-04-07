@@ -45,6 +45,7 @@ class Handler(generativeHandler):
     def build_model(self):
         self.model = ImagenFew(self.args, self.args.device)
         if self.args.finetune:
+            breakpoint()
             self._load_model(self.args.model_ckpt, self.args.device)
             if self.args.ema:
                 self.model.setup_finetune(self.args)
@@ -125,6 +126,7 @@ class Handler(generativeHandler):
                             f"Returned the same state as input")
         else:
             loaded_state = torch.load(ckpt_dir, map_location=device)
+            breakpoint()
             model_state = loaded_state['model'] if isinstance(loaded_state, dict) and 'model' in loaded_state else loaded_state
             self.model.load_state_dict(model_state, strict=False)
             if 'ema_model' in loaded_state and self.args.ema is not None:
