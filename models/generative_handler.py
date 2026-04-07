@@ -17,7 +17,7 @@ class generativeHandler(ABC):
         self.global_step = 0
         self._model = self.build_model().to(self.device)
         if self.args.ddp and (rank is not None):
-            self.model = eDDP(self._model, device_ids=[self.device], output_device=self.device, find_unused_parameters=True)
+            self.model = eDDP(self._model, device_ids=[self.device], output_device=self.device, find_unused_parameters=False)
         else:
             self.model = self._model
 
