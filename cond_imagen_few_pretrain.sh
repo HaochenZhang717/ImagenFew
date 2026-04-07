@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=0,1,2,3 python run.py \
+CUDA_VISIBLE_DEVICES=4,5,6,7 python run.py \
 --subset_p 1.0 \
 --ddp \
 --wandb \
