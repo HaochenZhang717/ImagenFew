@@ -58,6 +58,9 @@ class Handler(generativeHandler):
 
         #  scp -r configs/ haochenz@unites2.cs.unc.edu:/playpen-shared/haochenz/ImagenFew/configs/
         #  scp -r models/ haochenz@unites2.cs.unc.edu:/playpen-shared/haochenz/ImagenFew/models/
+        #  scp -r logs haochenz@unites2.cs.unc.edu:/playpen-shared/haochenz/ImagenFew/
+        #  scp -r /Users/zhc/Downloads/data.zip haochenz@unites2.cs.unc.edu:/playpen-shared/haochenz/ImagenFew/
+
     def sample(self, n_samples, class_label, class_metadata):
         generated_set = []
         with self._model.ema_scope():
