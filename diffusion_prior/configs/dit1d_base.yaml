@@ -1,0 +1,31 @@
+latents: ../logs/vae_latents/pretrain_mu.pt
+output_dir: ../logs/diffusion_prior/dit1d_base
+resume: null
+seed: 0
+device: cuda
+wandb: false
+wandb_project: diffusion-prior
+wandb_name: dit1d_base
+wandb_tags: [dit1d, base]
+
+epochs: 200
+batch_size: 256
+num_workers: 0
+learning_rate: 0.0001
+weight_decay: 0.00001
+val_ratio: 0.02
+save_every: 10
+
+hidden_size: 512
+depth: 8
+num_heads: 8
+mlp_ratio: 4.0
+use_qknorm: false
+no_rmsnorm: false
+
+path_type: Linear
+prediction: velocity
+loss_weight: null
+time_dist_type: uniform
+time_dist_shift: 1.0
+ema_decay: 0.9999
