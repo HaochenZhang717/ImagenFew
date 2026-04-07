@@ -51,7 +51,8 @@ class Handler(generativeHandler):
             self.optimizer.zero_grad()
 
             # Time series & mask
-            x_ts = data[0].to(self.args.device)
+            # x_ts = data[0].to(self.args.device)
+            x_ts = data[0].to(self.args.device, dtype=torch.float32)
             context = self._encode_context(x_ts)
             x_ts_mask = torch.zeros_like(x_ts)
 
