@@ -13,8 +13,7 @@ from torch.utils.data import DataLoader, TensorDataset, random_split
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
 
-from diffusion_prior.models import DiT1D
-from diffusion_prior.models.transport import create_transport
+from models import create_transport, DiT1D
 
 
 def atomic_torch_save(state, path):
