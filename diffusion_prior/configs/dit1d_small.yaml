@@ -3,7 +3,7 @@ output_dir: ../logs/diffusion_prior/dit1d_small
 resume: null
 seed: 0
 device: cuda
-wandb: false
+wandb: true
 wandb_project: diffusion-prior
 wandb_name: dit1d_small
 wandb_tags: [dit1d, small]
