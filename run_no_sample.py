@@ -52,8 +52,10 @@ def main(args):
         print_model_params(logger, handler.model)
 
         # --- train model ---
-        best_score = float('inf')  # marginal score for long-range metrics, dice score for short-range metrics
-        for epoch in range(1, args.epochs):
+        start_epoch = getattr(handler, 'resume_epoch', 0) + 1
+        if start_epoch > 1:
+            logging.info(f"Resuming training from epoch {start_epoch}")
+        for epoch in range(start_epoch, args.epochs):
             handler.model.train()
             handler.epoch = epoch
             # logger.log('train/epoch', epoch, step=epoch)
@@ -68,6 +70,7 @@ def main(args):
             handler.train_iter(dataset_loader, logger)
 
             if epoch % args.logging_iter == 0:
+                handler.best_score = getattr(handler, 'best_score', float('inf'))
                 handler.save_model(args.log_dir)
 
             if args.ddp:

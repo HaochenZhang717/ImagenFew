@@ -4,8 +4,10 @@ from ..generative_handler import generativeHandler
 from ..MultiScaleVAE.multiscale_vae import DualVAE
 
 import os
+import random
 import torch
 import logging
+import numpy as np
 
    
 class Handler(generativeHandler):
@@ -26,6 +28,8 @@ class Handler(generativeHandler):
         super().__init__(args, rank)
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.args.learning_rate, weight_decay=self.args.weight_decay)
         self.pretrained_vae = DualVAE(**args.multi_scale_vae).to(self.args.device)
+        self.resume_epoch = 0
+        self.best_score = float("inf")
 
         pretrained_vae_weights = torch.load(args.pretrained_vae_weights, map_location="cpu")
         self.pretrained_vae.load_state_dict(pretrained_vae_weights['model'])
@@ -33,6 +37,7 @@ class Handler(generativeHandler):
         for param in self.pretrained_vae.parameters():
             param.requires_grad = False
         self.pretrained_vae.eval()
+        self._load_optimizer_state(self.args.model_ckpt, self.args.device)
 
 
     def build_model(self):
@@ -96,9 +101,20 @@ class Handler(generativeHandler):
         return torch.concat(generated_set, dim=0)
     
     def save_model(self, ckpt_dir):
-        state = {'model': self._model.state_dict()}
+        state = {
+            'model': self._model.state_dict(),
+            'optimizer': self.optimizer.state_dict(),
+            'epoch': getattr(self, 'epoch', 0),
+            'global_step': self.global_step,
+            'best_score': getattr(self, 'best_score', float("inf")),
+            'torch_rng_state': torch.get_rng_state(),
+            'numpy_rng_state': np.random.get_state(),
+            'python_rng_state': random.getstate(),
+        }
         if self.args.ema is not None:
             state['ema_model'] = self._model.model_ema.state_dict()
+        if torch.cuda.is_available():
+            state['cuda_rng_state_all'] = torch.cuda.get_rng_state_all()
         torch.save(state, ckpt_dir)
 
     def _load_model(self, ckpt_dir, device):
@@ -107,12 +123,36 @@ class Handler(generativeHandler):
                             f"Returned the same state as input")
         else:
             loaded_state = torch.load(ckpt_dir, map_location=device)
-            self.model.load_state_dict(loaded_state['model'], strict=False)
+            model_state = loaded_state['model'] if isinstance(loaded_state, dict) and 'model' in loaded_state else loaded_state
+            self.model.load_state_dict(model_state, strict=False)
             if 'ema_model' in loaded_state and self.args.ema is not None:
                 self.model.model_ema.load_state_dict(loaded_state['ema_model'], strict=False)
+            self.resume_epoch = int(loaded_state.get('epoch', 0))
+            self.global_step = int(loaded_state.get('global_step', 0))
+            self.best_score = float(loaded_state.get('best_score', float("inf")))
             if self.args.finetune and self.args.ema:
                 self.model.setup_finetune(self.args)
             logging.info(f'Successfully loaded previous state')
+
+    def _load_optimizer_state(self, ckpt_dir, device):
+        if ckpt_dir is None or not os.path.exists(ckpt_dir):
+            return
+
+        loaded_state = torch.load(ckpt_dir, map_location=device)
+        if not isinstance(loaded_state, dict):
+            return
+
+        if 'optimizer' in loaded_state:
+            self.optimizer.load_state_dict(loaded_state['optimizer'])
+            logging.info('Successfully restored optimizer state')
+        if 'torch_rng_state' in loaded_state:
+            torch.set_rng_state(loaded_state['torch_rng_state'])
+        if 'cuda_rng_state_all' in loaded_state and torch.cuda.is_available():
+            torch.cuda.set_rng_state_all(loaded_state['cuda_rng_state_all'])
+        if 'numpy_rng_state' in loaded_state:
+            np.random.set_state(loaded_state['numpy_rng_state'])
+        if 'python_rng_state' in loaded_state:
+            random.setstate(loaded_state['python_rng_state'])
 
     def _encode_context(self, x_ts):
         with torch.no_grad():

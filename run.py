@@ -52,10 +52,14 @@ def main(args):
         print_model_params(logger, handler.model)
 
         # --- train model ---
-        best_score = float('inf')  # marginal score for long-range metrics, dice score for short-range metrics
-        for epoch in range(1, args.epochs):
+        best_score = getattr(handler, 'best_score', float('inf'))  # marginal score for long-range metrics, dice score for short-range metrics
+        start_epoch = getattr(handler, 'resume_epoch', 0) + 1
+        if start_epoch > 1:
+            logging.info(f"Resuming training from epoch {start_epoch}")
+        for epoch in range(start_epoch, args.epochs):
             handler.model.train()
             handler.epoch = epoch
+            handler.best_score = best_score
             logger.log('train/epoch', epoch, step=epoch)
 
             if args.ddp:
@@ -98,8 +102,10 @@ def main(args):
                         disc_mean = np.mean(scores_mean['disc_mean'])
                         if disc_mean < best_score:
                             best_score = disc_mean
+                            handler.best_score = best_score
                             handler.save_model(args.log_dir)
                 else:
+                    handler.best_score = best_score
                     handler.save_model(args.log_dir)
 
             if args.ddp:
