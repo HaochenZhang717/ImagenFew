@@ -1,4 +1,4 @@
-latents: ../logs/vae_latents/pretrain_mu.pt
+latents: ../logs/vae_latents/pretrain_latents.pt
 output_dir: ../logs/diffusion_prior/dit1d_large
 resume: null
 seed: 0
