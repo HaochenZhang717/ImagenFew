@@ -3,7 +3,7 @@ CUDA_VISIBLE_DEVICES=4,5,6,7 python run.py \
 --ddp \
 --wandb \
 --wandb_project CondImagenFewPretrain \
---config ./configs/conditional_pretrain/pretrain.yaml \
+--config ./configs/conditional_imagen_few/pretrain.yaml \
 --no_test_model
 
 #CUDA_VISIBLE_DEVICES=4 python run.py \
