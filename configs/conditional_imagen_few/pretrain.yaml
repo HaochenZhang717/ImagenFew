@@ -31,7 +31,7 @@ multi_scale_vae:
   dropout: 0.0
 
 # logging:
-logging_iter: 20
+logging_iter: 2
 tags: [conditional-pretrain, cross-attention]
 run_dir: conditional_pretrain/
 
