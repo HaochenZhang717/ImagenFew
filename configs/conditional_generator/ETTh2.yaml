@@ -1,0 +1,63 @@
+# training:
+epochs: 1001
+batch_size: 2048
+learning_rate: 0.0001 #1e-4
+weight_decay: 0.00001 #1e-5
+# model:
+handler: models.conditional_generator.handler
+seq_len: 24
+n_var: 7                  # ETTh2 has 7 variables (features: M)
+# conditioning:
+cond_dim_in: 64          # = 3 * multi_scale_vae.z_channels (context from DualVAE)
+cond_dim_out: 128          # must match diffusion.channels
+n_classes: 1
+pretrain_path: ""         # optional path to pretrained unconditional VerbalTS weights
+#pretrained_vae_weights: "/work/vb21/haochen/neurips_2026/ImagenFew/logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE_Epoch330"  # path to pretrained DualVAE checkpoint (.pt)
+pretrained_vae_weights: ""
+#sampler: ddim             # ddim | ddpm
+# diffusion backbone:
+diffusion:
+  n_var: 7
+  channels: 128
+  n_scales: 3
+  num_steps: 50
+  beta_start: 0.0001
+  beta_end: 0.5
+  schedule: quad
+  diffusion_embedding_dim: 128
+  nheads: 8
+  layers: 1
+  multipatch_num: 3
+  base_patch: 3
+  L_patch_len: 2
+  condition_type: adaLN     # add | cross_attention | adaLN
+  n_stages: 5             # timestep stages in TextProjectorMVarMScaleMStep
+  side:
+    num_var: 7
+    var_emb: 16
+    time_emb: 16
+# multi-scale VAE (pretrained, frozen) — keys map to DualVAE.__init__ args:
+multi_scale_vae:
+  z_channels: 64
+  ch: 64
+  ch_mult: [1, 2, 4]
+  dynamic_size: 64
+  dropout: 0.0
+
+# logging:
+logging_iter: 100
+tags: [self-conditional-generator]
+run_dir: conditional_generator/ETTh2/
+# Data
+datasets_dir: ./data/
+pretrain: false
+datasets:
+  - name: ETTh2
+    data: ETTh2
+    embed: timeF
+    rel_path: TSF/ETT-small/ETTh2.csv
+    features: M
+    label_len: 7
+    pred_len: 0
+train_on_datasets:
+  - ETTh2

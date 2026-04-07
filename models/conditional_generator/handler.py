@@ -1,0 +1,280 @@
+import os
+import logging
+import math
+import torch
+import torch.nn as nn
+import torch.distributed as tdist
+from tqdm import tqdm
+from torch.optim.lr_scheduler import LambdaLR
+
+from ..generative_handler import generativeHandler
+from .model import SelfConditionalGenerator
+
+
+class Handler(generativeHandler):
+    """
+    Handler for the class-conditional diffusion model (ConditionalGenerator).
+
+    Conditioning signal: integer class label (dataset index) → nn.Embedding →
+    context of shape (B, 1, cond_dim_in), then processed by
+    TextProjectorMVarMScaleMStep inside ConditionalGenerator.
+
+    Required config keys:
+        handler:   models.conditional_generator.handler
+        seq_len:   <int>
+        n_var:     <int>   # number of variables in the target dataset
+        cond_dim_in:  128  # embedding dim fed into the projector
+        cond_dim_out: 64   # projector output dim (should == diffusion.channels)
+        diffusion:
+            n_var:                <int>
+            channels:             64
+            num_steps:            50
+            beta_start:           0.0001
+            beta_end:             0.5
+            schedule:             quad
+            diffusion_embedding_dim: 128
+            nheads:               8
+            layers:               4
+            multipatch_num:       3
+            base_patch:           1
+            L_patch_len:          2
+            condition_type:       add   # add | cross_attention | adaLN
+            n_stages:             5     # timestep stages in TextProjectorMVarMScaleMStep
+            side:
+                num_var:  <int>
+                var_emb:  16
+                time_emb: 16
+        pretrain_path: ""
+        sampler:       ddim   # ddim | ddpm
+    """
+
+    def __init__(self, args, rank=None):
+        super().__init__(args, rank)
+
+        self.optimizer = torch.optim.AdamW(
+            self.model.parameters(),
+            lr=self.args.learning_rate,
+            weight_decay=self.args.weight_decay,
+        )
+        self.scheduler = None
+
+    # ------------------------------------------------------------------
+    # generativeHandler interface
+    # ------------------------------------------------------------------
+
+    def build_model(self):
+        configs = self._build_configs()
+        model = SelfConditionalGenerator(configs)
+        if getattr(self.args, "pretrain_path", None):
+            ckpt_state_dict = torch.load(self.args.pretrain_path, map_location="cpu")
+            pretrained_state = ckpt_state_dict.get("model", ckpt_state_dict)
+
+            diff_model_state = {
+                key[len("diff_model."):]: value
+                for key, value in pretrained_state.items()
+                if key.startswith("diff_model.")
+            }
+            multi_scale_vae_state = {
+                key[len("multi_scale_vae."):]: value
+                for key, value in pretrained_state.items()
+                if key.startswith("multi_scale_vae.")
+            }
+
+            cond_projector_state = {
+                key[len("cond_projector."):]: value
+                for key, value in pretrained_state.items()
+                if key.startswith("cond_projector.")
+            }
+
+            if diff_model_state:
+                model.diff_model.load_state_dict(diff_model_state, strict=True)
+            if multi_scale_vae_state:
+                model.multi_scale_vae.load_state_dict(multi_scale_vae_state, strict=True)
+            if cond_projector_state:
+                model.cond_projector.load_state_dict(cond_projector_state, strict=True)
+            model.reset_ema()
+
+        return model
+
+    def train_iter(self, train_dataloader, logger):
+        if self.scheduler is None:
+            self._init_scheduler(train_dataloader)
+
+        train_loss = 0.0
+        num_batches = 0.0
+        epoch = getattr(self, "epoch", None)
+
+        is_main = not (tdist.is_available() and tdist.is_initialized() and tdist.get_rank() != 0)
+        pbar = tqdm(train_dataloader, desc=f"Epoch {epoch}", leave=False, disable=not is_main)
+        for data, class_indices in pbar:
+            self.optimizer.zero_grad()
+            # data: (B, seq_len, n_var)
+            x = data.to(self.device).float()
+            loss_dict = self.model(x, is_train=True)
+            loss = loss_dict["all"]
+
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+            self.optimizer.step()
+            self._model.on_train_batch_end()
+            self.scheduler.step()
+            self.global_step += 1
+
+            train_loss += loss.item()
+            num_batches += 1
+            current_lr = self.scheduler.get_last_lr()[0]
+            pbar.set_postfix(
+                loss=f"{loss.item():.4f}",
+                avg=f"{train_loss / num_batches:.4f}",
+                lr=f"{current_lr:.2e}",
+            )
+
+        logger.log("train/loss", train_loss / num_batches, step=epoch)
+        logger.log("train/epoch", epoch, step=epoch)
+        logger.log("train/lr", self.scheduler.get_last_lr()[0], step=epoch)
+
+    def sample(self, n_samples, class_label, class_metadata, test_data):
+        """
+        Generate n_samples time series conditioned on class_label (int).
+        Returns: (n_samples, seq_len, n_var) on CPU.
+        """
+        n_var = class_metadata["channels"]
+        seq_len = self.args.seq_len
+        batch_size = getattr(self.args, "batch_size", 128)
+        self._model.eval()
+
+        generated = []
+        remaining = n_samples
+        with self._model.ema_scope(), torch.no_grad():
+            while remaining > 0:
+                bs = min(batch_size, remaining)
+                indices = torch.randperm(test_data.shape[0]).to(test_data.device)
+                test_batch = test_data[indices[:bs]].to(device=self.device, dtype=torch.float32)
+                samples = self._model.generate(bs, test_batch, seq_len, n_var)
+                generated.append(samples)
+                remaining -= bs
+
+        return torch.cat(generated, dim=0)
+
+    def save_model(self, ckpt_dir):
+        os.makedirs(os.path.dirname(ckpt_dir) if os.path.dirname(ckpt_dir) else ".", exist_ok=True)
+        state = {"model": self._model.state_dict()}
+        if self._model.use_ema:
+            state["ema_model"] = self._model.model_ema.state_dict()
+        torch.save(state, ckpt_dir)
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _build_configs(self):
+        args = self.args
+        diff_cfg = dict(getattr(args, "diffusion", {}))
+
+        diff_cfg.setdefault("num_steps",              getattr(args, "num_steps", 50))
+        diff_cfg.setdefault("beta_start",             getattr(args, "beta_start", 1e-4))
+        diff_cfg.setdefault("beta_end",               getattr(args, "beta_end", 0.5))
+        diff_cfg.setdefault("schedule",               getattr(args, "schedule", "quad"))
+        diff_cfg.setdefault("channels",               getattr(args, "channels", 64))
+        diff_cfg.setdefault("diffusion_embedding_dim",getattr(args, "diffusion_embedding_dim", 128))
+        diff_cfg.setdefault("nheads",                 getattr(args, "nheads", 8))
+        diff_cfg.setdefault("layers",                 getattr(args, "layers", 4))
+        diff_cfg.setdefault("multipatch_num",         getattr(args, "multipatch_num", 3))
+        diff_cfg.setdefault("base_patch",             getattr(args, "base_patch", 1))
+        diff_cfg.setdefault("L_patch_len",            getattr(args, "L_patch_len", 2))
+        diff_cfg.setdefault("condition_type",         getattr(args, "condition_type", "add"))
+        diff_cfg.setdefault("n_stages",               getattr(args, "n_stages", 5))
+        diff_cfg.setdefault("n_var",                  getattr(args, "n_var", None))
+
+        side_cfg = dict(diff_cfg.get("side", {}))
+        side_cfg.setdefault("num_var",  diff_cfg["n_var"])
+        side_cfg.setdefault("var_emb",  getattr(args, "var_emb", 16))
+        side_cfg.setdefault("time_emb", getattr(args, "time_emb", 16))
+        side_cfg["device"] = self.device
+        diff_cfg["side"] = side_cfg
+        diff_cfg["device"] = self.device
+
+        cond_dim_in  = getattr(args, "cond_dim_in",  128)
+        cond_dim_out = getattr(args, "cond_dim_out", diff_cfg["channels"])
+
+        configs = {
+            "device":                 self.device,
+            "seq_len":                args.seq_len,
+            "n_classes":              getattr(args, "n_classes", 1),
+            "cond_dim_in":            cond_dim_in,
+            "cond_dim_out":           cond_dim_out,
+            "pretrain_path":          getattr(args, "pretrain_path", ""),
+            "diffusion":              diff_cfg,
+            "multi_scale_vae":        dict(getattr(args, "multi_scale_vae", {})),
+            "pretrained_vae_weights": getattr(args, "pretrained_vae_weights", ""),
+            "ema":                    getattr(args, "ema", False),
+            "ema_warmup":             getattr(args, "ema_warmup", 0),
+            "ema_decay":              getattr(args, "ema_decay", 0.9999),
+        }
+        return configs
+
+    def _load_model(self, ckpt_path):
+        if not os.path.exists(ckpt_path):
+            logging.warning(f"Checkpoint not found at {ckpt_path}. Starting from scratch.")
+            return
+        state = torch.load(ckpt_path, map_location=self.device)
+        self._model.load_state_dict(state.get("model", state), strict=False)
+        if self._model.use_ema and "ema_model" in state:
+            self._model.model_ema.load_state_dict(state["ema_model"], strict=True)
+        logging.info(f"Loaded checkpoint from {ckpt_path}")
+
+    def _init_scheduler(self, train_dataloader):
+        steps_per_epoch = max(1, len(train_dataloader))
+        total_epochs = max(1, getattr(self.args, "epochs", 1) - 1)
+        num_training_steps = steps_per_epoch * total_epochs
+
+        warmup_steps = getattr(self.args, "warmup_steps", None)
+        if warmup_steps is None:
+            warmup_steps = getattr(self.args, "num_warmup_steps", None)
+        if warmup_steps is None:
+            warmup_ratio = getattr(self.args, "warmup_ratio", 0.0)
+            warmup_steps = int(num_training_steps * warmup_ratio)
+
+        min_lr = float(getattr(self.args, "min_lr", 0.0))
+        warmup_steps = min(max(0, int(warmup_steps)), num_training_steps)
+        self.scheduler = self._get_cosine_schedule_with_warmup_min_lr(
+            self.optimizer,
+            num_warmup_steps=warmup_steps,
+            num_training_steps=num_training_steps,
+            min_lr=min_lr,
+        )
+        logging.info(
+            "Initialized cosine LR scheduler with linear warmup: "
+            f"steps_per_epoch={steps_per_epoch}, total_epochs={total_epochs}, "
+            f"num_training_steps={num_training_steps}, num_warmup_steps={warmup_steps}, "
+            f"min_lr={min_lr}"
+        )
+
+    def _get_cosine_schedule_with_warmup_min_lr(
+        self,
+        optimizer,
+        num_warmup_steps,
+        num_training_steps,
+        min_lr=0.0,
+        num_cycles=0.5,
+        last_epoch=-1,
+    ):
+        base_lr = float(getattr(self.args, "learning_rate", 0.0))
+        min_lr = max(0.0, float(min_lr))
+        min_lr_ratio = min_lr / base_lr if base_lr > 0.0 else 0.0
+        min_lr_ratio = min(max(0.0, min_lr_ratio), 1.0)
+
+        def lr_lambda(current_step):
+            if current_step < num_warmup_steps:
+                return float(current_step) / float(max(1, num_warmup_steps))
+
+            progress = float(current_step - num_warmup_steps) / float(
+                max(1, num_training_steps - num_warmup_steps)
+            )
+            cosine_factor = max(
+                0.0,
+                0.5 * (1.0 + math.cos(math.pi * 2.0 * num_cycles * progress)),
+            )
+            return min_lr_ratio + (1.0 - min_lr_ratio) * cosine_factor
+
+        return LambdaLR(optimizer, lr_lambda, last_epoch)
