@@ -70,8 +70,9 @@ def main(args):
             handler.train_iter(dataset_loader, logger)
 
             if epoch % args.logging_iter == 0:
-                handler.best_score = getattr(handler, 'best_score', float('inf'))
-                handler.save_model(args.log_dir)
+                if is_main_process():
+                    handler.best_score = getattr(handler, 'best_score', float('inf'))
+                    handler.save_model(args.log_dir)
 
             if args.ddp:
                 dist.barrier()

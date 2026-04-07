@@ -45,7 +45,6 @@ class Handler(generativeHandler):
     def build_model(self):
         self.model = ImagenFew(self.args, self.args.device)
         if self.args.finetune:
-            breakpoint()
             self._load_model(self.args.model_ckpt, self.args.device)
             if self.args.ema:
                 self.model.setup_finetune(self.args)
@@ -104,10 +103,13 @@ class Handler(generativeHandler):
         return torch.concat(generated_set, dim=0)
     
     def save_model(self, ckpt_dir):
+        ckpt_path = self._resolve_ckpt_path(ckpt_dir, must_exist=False)
+        os.makedirs(os.path.dirname(ckpt_path), exist_ok=True)
+        epoch = int(getattr(self, 'epoch', 0))
         state = {
             'model': self._model.state_dict(),
             'optimizer': self.optimizer.state_dict(),
-            'epoch': getattr(self, 'epoch', 0),
+            'epoch': epoch,
             'global_step': self.global_step,
             'best_score': getattr(self, 'best_score', float("inf")),
             'torch_rng_state': torch.get_rng_state(),
@@ -118,15 +120,32 @@ class Handler(generativeHandler):
             state['ema_model'] = self._model.model_ema.state_dict()
         if torch.cuda.is_available():
             state['cuda_rng_state_all'] = torch.cuda.get_rng_state_all()
-        torch.save(state, ckpt_dir)
+        epoch_ckpt_path = self._epoch_ckpt_path(ckpt_path, epoch)
+        self._atomic_save(state, epoch_ckpt_path)
+        self._atomic_save(state, ckpt_path)
+        logging.info(f"Saved checkpoint to {epoch_ckpt_path} and updated latest checkpoint {ckpt_path}")
+
+    def _atomic_save(self, state, ckpt_path):
+        tmp_path = f"{ckpt_path}.tmp"
+        with open(tmp_path, "wb") as f:
+            torch.save(state, f)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, ckpt_path)
 
     def _load_model(self, ckpt_dir, device):
-        if not os.path.exists(ckpt_dir):
+        ckpt_path = self._resolve_ckpt_path(ckpt_dir, must_exist=True)
+        if ckpt_path is None or not os.path.exists(ckpt_path):
             logging.warning(f"No checkpoint found at {ckpt_dir}. "
                             f"Returned the same state as input")
         else:
-            loaded_state = torch.load(ckpt_dir, map_location=device)
-            breakpoint()
+            try:
+                loaded_state = torch.load(ckpt_path, map_location=device)
+            except RuntimeError as exc:
+                raise RuntimeError(
+                    f"Failed to load checkpoint from {ckpt_path}. The file may be corrupted "
+                    f"or may not be a valid PyTorch checkpoint."
+                ) from exc
             model_state = loaded_state['model'] if isinstance(loaded_state, dict) and 'model' in loaded_state else loaded_state
             self.model.load_state_dict(model_state, strict=False)
             if 'ema_model' in loaded_state and self.args.ema is not None:
@@ -139,10 +158,16 @@ class Handler(generativeHandler):
             logging.info(f'Successfully loaded previous state')
 
     def _load_optimizer_state(self, ckpt_dir, device):
-        if ckpt_dir is None or not os.path.exists(ckpt_dir):
+        ckpt_path = self._resolve_ckpt_path(ckpt_dir, must_exist=True)
+        if ckpt_path is None or not os.path.exists(ckpt_path):
             return
 
-        loaded_state = torch.load(ckpt_dir, map_location=device)
+        try:
+            loaded_state = torch.load(ckpt_path, map_location=device)
+        except RuntimeError as exc:
+            raise RuntimeError(
+                f"Failed to load optimizer state from {ckpt_path}. The checkpoint may be corrupted."
+            ) from exc
         if not isinstance(loaded_state, dict):
             return
 
@@ -200,3 +225,27 @@ class Handler(generativeHandler):
         if ts_channels is not None and tensor.shape[-1] == ts_channels:
             return True
         return True
+
+    def _resolve_ckpt_path(self, ckpt_path, must_exist=True):
+        if ckpt_path is None:
+            return None
+
+        candidates = [ckpt_path]
+        if not ckpt_path.endswith((".pt", ".pth", ".ckpt")):
+            candidates = [f"{ckpt_path}.pt", ckpt_path]
+
+        if must_exist:
+            for candidate in candidates:
+                if os.path.exists(candidate):
+                    return candidate
+            return None
+
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                return candidate
+        return candidates[0]
+
+    def _epoch_ckpt_path(self, ckpt_path, epoch):
+        base, ext = os.path.splitext(ckpt_path)
+        ext = ext or ".pt"
+        return f"{base}_epoch_{epoch:04d}{ext}"

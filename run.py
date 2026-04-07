@@ -105,8 +105,9 @@ def main(args):
                             handler.best_score = best_score
                             handler.save_model(args.log_dir)
                 else:
-                    handler.best_score = best_score
-                    handler.save_model(args.log_dir)
+                    if is_main_process():
+                        handler.best_score = best_score
+                        handler.save_model(args.log_dir)
 
             if args.ddp:
                 dist.barrier()
