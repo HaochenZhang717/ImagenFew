@@ -37,7 +37,9 @@ class Handler(generativeHandler):
         for param in self.pretrained_vae.parameters():
             param.requires_grad = False
         self.pretrained_vae.eval()
-        self._load_optimizer_state(self.args.model_ckpt, self.args.device)
+
+        if not self.args.finetune:
+            self._load_optimizer_state(self.args.model_ckpt, self.args.device)
 
 
     def build_model(self):
