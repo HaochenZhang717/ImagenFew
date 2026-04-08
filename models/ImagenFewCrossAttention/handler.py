@@ -85,16 +85,21 @@ class Handler(generativeHandler):
 
     def sample(self, n_samples, class_label, class_metadata, test_data):
         generated_set = []
+        breakpoint()
         with self._model.ema_scope():
             self.process = DiffusionProcess(self.args, self._model.net, (class_metadata['channels'], self.args.img_resolution, self.args.img_resolution))
             candidate_data = test_data if test_data is not None else class_label
-            context_bank = self._prepare_sample_context(candidate_data, n_samples)
+            context_bank = self._prepare_sample_context(candidate_data)
             for sample_size in [min(self.args.batch_size, n_samples - i) for i in range(0, n_samples, self.args.batch_size)]:
-                if context_bank is None:
-                    batch_context = None
-                else:
-                    indices = torch.randperm(context_bank.shape[0], device=context_bank.device)[:sample_size]
-                    batch_context = context_bank[indices]
+                # if context_bank is None:
+                #     batch_context = None
+                # else:
+                #     indices = torch.randperm(context_bank.shape[0], device=context_bank.device)[:sample_size]
+                #     batch_context = context_bank[indices]
+
+                indices = torch.randperm(context_bank.shape[0], device=context_bank.device)[:sample_size]
+                batch_context = context_bank[indices]
+
                 x_img = torch.zeros(sample_size, class_metadata['channels'], self.args.img_resolution, self.args.img_resolution).to(self.args.device)
                 x_ts_mask = self._model.ts_to_img(torch.zeros(sample_size, self.args.seq_len, class_metadata['channels']).to(self.args.device), pad_val=1)
                 x_img_sampled = self.process.interpolate(x_img, x_ts_mask, context=batch_context)
@@ -192,7 +197,7 @@ class Handler(generativeHandler):
         context = torch.cat([z_low_freq, z_mid_freq, z_high_freq], dim=-1).permute(0, 2, 1).contiguous()
         return context.to(self.args.device, dtype=torch.float32)
 
-    def _prepare_sample_context(self, context_source, n_samples):
+    def _prepare_sample_context(self, context_source):
         if context_source is None:
             return None
 
@@ -203,21 +208,22 @@ class Handler(generativeHandler):
             )
 
         context_source = context_source.to(self.args.device, dtype=torch.float32)
-        breakpoint()
-        if context_source.ndim == 3 and self._looks_like_raw_timeseries(context_source):
-            context = self._encode_context(context_source)
-        else:
-            context = context_source.to(self.args.device, dtype=torch.float32)
-
-        if context.ndim == 2:
-            context = context.unsqueeze(0).expand(n_samples, -1, -1)
-        elif context.ndim == 3:
-            if context.shape[0] == 1 and n_samples > 1:
-                context = context.expand(n_samples, -1, -1)
-        else:
-            raise ValueError(
-                f"Expected sampling context with shape (B, L, C) or (L, C), got {tuple(context.shape)}."
-            )
+        context = self._encode_context(context_source)
+        # breakpoint()
+        # if context_source.ndim == 3 and self._looks_like_raw_timeseries(context_source):
+        #     context = self._encode_context(context_source)
+        # else:
+        #     context = context_source.to(self.args.device, dtype=torch.float32)
+        #
+        # if context.ndim == 2:
+        #     context = context.unsqueeze(0).expand(n_samples, -1, -1)
+        # elif context.ndim == 3:
+        #     if context.shape[0] == 1 and n_samples > 1:
+        #         context = context.expand(n_samples, -1, -1)
+        # else:
+        #     raise ValueError(
+        #         f"Expected sampling context with shape (B, L, C) or (L, C), got {tuple(context.shape)}."
+        #     )
 
         return context
 
