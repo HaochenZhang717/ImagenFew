@@ -22,17 +22,15 @@ def evaluate_model_uncond(real_sig, gen_sig, dataset, device, eval_metrics=['dis
     else:
         context_fid = -1
 
-    # if 'pred' in eval_metrics:
-    #     from metrics.predictive_metrics import predictive_score_metrics
-    #     predictive_score = list()
-    #     for _ in tqdm(range(metric_iteration), desc="Predictive score evaluation"):
-    #         temp_pred = predictive_score_metrics(real_sig, gen_sig)
-    #         predictive_score.append(temp_pred)
-    #     pred_mean, pred_std = np.round(np.mean(predictive_score), 4), np.round(np.std(predictive_score), 4)
-    # else:
-    #     pred_mean, pred_std= -1, -1
-
-    pred_mean, pred_std= -1, -1
+    if 'pred' in eval_metrics:
+        from metrics.predictive_metrics_pytorch import predictive_score_metrics
+        predictive_score = list()
+        for _ in tqdm(range(metric_iteration), desc="Predictive score evaluation"):
+            temp_pred = predictive_score_metrics(real_sig, gen_sig, device=device)
+            predictive_score.append(temp_pred)
+        pred_mean, pred_std = np.round(np.mean(predictive_score), 4), np.round(np.std(predictive_score), 4)
+    else:
+        pred_mean, pred_std= -1, -1
 
     return {
         f'disc_mean':disc_mean,
