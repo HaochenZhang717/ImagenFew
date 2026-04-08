@@ -3,7 +3,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from sklearn.metrics import mean_absolute_error
 
 from utils.utils import extract_time
 
@@ -68,12 +67,19 @@ def predictive_score_metrics(ori_data, generated_data, device=None):
 
     gen_x, gen_y, gen_t = _build_prediction_data(generated_data, dim, max_seq_len)
     ori_x, ori_y, ori_t = _build_prediction_data(ori_data, dim, max_seq_len)
+    gen_x = gen_x.to(device)
+    gen_y = gen_y.to(device)
+    gen_t = gen_t.to(device)
+    ori_x = ori_x.to(device)
+    ori_y = ori_y.to(device)
+    ori_t = ori_t.to(device)
 
     for _ in range(iterations):
         idx = np.random.permutation(len(generated_data))[:batch_size]
-        x_mb = gen_x[idx].to(device)
-        y_mb = gen_y[idx].to(device)
-        t_mb = gen_t[idx].to(device)
+        idx = torch.as_tensor(idx, device=device, dtype=torch.long)
+        x_mb = gen_x[idx]
+        y_mb = gen_y[idx]
+        t_mb = gen_t[idx]
 
         model.train()
         optimizer.zero_grad(set_to_none=True)
@@ -89,16 +95,11 @@ def predictive_score_metrics(ori_data, generated_data, device=None):
 
     model.eval()
     with torch.no_grad():
-        pred_y = model(ori_x.to(device), ori_t.to(device)).cpu().numpy()
+        pred_y = model(ori_x, ori_t)
 
-    mae_total = 0.0
-    for i in range(no):
-        cur_len = ori_time[i] - 1
-        if cur_len <= 0:
-            continue
-        mae_total += mean_absolute_error(
-            ori_y[i, :cur_len].numpy(),
-            pred_y[i, :cur_len],
-        )
-
-    return mae_total / no
+    eval_mask = (
+        torch.arange(max_seq_len - 1, device=device)[None, :] < ori_t[:, None]
+    ).unsqueeze(-1)
+    abs_err = (pred_y - ori_y).abs() * eval_mask
+    per_seq_mae = abs_err.sum(dim=(1, 2)) / eval_mask.sum(dim=(1, 2)).clamp_min(1)
+    return per_seq_mae.mean().item()
