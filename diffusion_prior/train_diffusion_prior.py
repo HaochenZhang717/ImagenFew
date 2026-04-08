@@ -137,6 +137,7 @@ def parse_args():
     parser.add_argument("--latents", type=str)
     parser.add_argument("--output-dir", type=str)
     parser.add_argument("--resume", type=str, default=None)
+    parser.add_argument("--resume-ckpt", type=str, default=None)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--epochs", type=int)
@@ -194,6 +195,9 @@ def parse_args():
         if getattr(args, key) is None:
             setattr(args, key, value)
 
+    if args.resume is None and args.resume_ckpt is not None:
+        args.resume = args.resume_ckpt
+
     if args.latents is None or args.output_dir is None:
         raise ValueError("Both --latents and --output-dir must be provided either via CLI or config.")
 
@@ -243,6 +247,12 @@ def main():
     start_epoch = 1
     best_val = float("inf")
     global_step = 0
+
+    if args.resume is None:
+        auto_resume = os.path.join(args.output_dir, "diffusion_prior_latest.pt")
+        if os.path.exists(auto_resume):
+            args.resume = auto_resume
+            print(f"Auto-resuming from {args.resume}")
 
     if args.resume is not None:
         state = torch.load(args.resume, map_location=args.device)

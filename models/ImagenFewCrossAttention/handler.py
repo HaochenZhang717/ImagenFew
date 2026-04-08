@@ -202,7 +202,8 @@ class Handler(generativeHandler):
                 "or precomputed context tokens (B, L, C) / (L, C)."
             )
 
-        context_source = context_source.to(self.args.device)
+        context_source = context_source.to(self.args.device, dtype=torch.float32)
+        breakpoint()
         if context_source.ndim == 3 and self._looks_like_raw_timeseries(context_source):
             context = self._encode_context(context_source)
         else:
