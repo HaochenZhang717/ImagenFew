@@ -11,7 +11,7 @@ embedding: 8
 
 # model:
 handler: models.ImagenFewCrossAttention.handler
-model_ckpt: "./logs/conditional_pretrain/27dda8d2-003b-497b-a85d-c462dda27a79/ImagenFewCrossAttention.pt"
+model_ckpt: "./logs/conditional_pretrain/da98bb2d-8b28-48ed-9713-cf99654039cd/ImagenFewCrossAttention.pt"
 img_resolution: 8
 unet_channels: 32
 ch_mult: [1,2,2,4]
