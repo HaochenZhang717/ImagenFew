@@ -140,7 +140,7 @@ class Handler(generativeHandler):
                             f"Returned the same state as input")
         else:
             try:
-                loaded_state = torch.load(ckpt_path, map_location=device)
+                loaded_state = torch.load(ckpt_path, map_location=device, weights_only=False)
             except RuntimeError as exc:
                 raise RuntimeError(
                     f"Failed to load checkpoint from {ckpt_path}. The file may be corrupted "
@@ -150,9 +150,12 @@ class Handler(generativeHandler):
             self.model.load_state_dict(model_state, strict=False)
             if 'ema_model' in loaded_state and self.args.ema is not None:
                 self.model.model_ema.load_state_dict(loaded_state['ema_model'], strict=False)
-            self.resume_epoch = int(loaded_state.get('epoch', 0))
-            self.global_step = int(loaded_state.get('global_step', 0))
-            self.best_score = float(loaded_state.get('best_score', float("inf")))
+
+            if not self.args.finetune:
+                self.resume_epoch = int(loaded_state.get('epoch', 0))
+                self.global_step = int(loaded_state.get('global_step', 0))
+                self.best_score = float(loaded_state.get('best_score', float("inf")))
+
             if self.args.finetune and self.args.ema:
                 self.model.setup_finetune(self.args)
             logging.info(f'Successfully loaded previous state')
