@@ -85,7 +85,6 @@ class Handler(generativeHandler):
 
     def sample(self, n_samples, class_label, class_metadata, test_data):
         generated_set = []
-        breakpoint()
         with self._model.ema_scope():
             self.process = DiffusionProcess(self.args, self._model.net, (class_metadata['channels'], self.args.img_resolution, self.args.img_resolution))
             candidate_data = test_data if test_data is not None else class_label
