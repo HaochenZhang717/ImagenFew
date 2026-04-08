@@ -32,7 +32,7 @@ multi_scale_vae:
   dropout: 0.0
 
 # logging:
-logging_iter: 1
+logging_iter: 100
 tags: [conditional-finetune, cross-attention]
 run_dir: CondImagenFewFinetune/ETTh2/
 
