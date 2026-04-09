@@ -54,7 +54,7 @@ class Handler(generativeHandler):
         logger.log(f'train/loss', train_loss / num_batches, step=epoch)
         logger.log(f'train/epoch', epoch, step=epoch)
 
-    def sample(self, n_samples, class_label=None, class_metadata=None):
+    def sample(self, n_samples, class_label=None, class_metadata=None, test_data=None):
         with torch.no_grad():
             with self.ema_scope():
                 return self.model.generate_mts(batch_size=n_samples)
