@@ -1,0 +1,1 @@
+CONDA_ENV=vlm sbatch self_cond_pretrain_slurm.sh
