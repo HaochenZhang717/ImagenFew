@@ -24,6 +24,8 @@ if ! command -v conda >/dev/null 2>&1; then
     source "$HOME/anaconda3/etc/profile.d/conda.sh"
   elif [[ -f "/playpen/haochenz/miniconda3/etc/profile.d/conda.sh" ]]; then
     source "/playpen/haochenz/miniconda3/etc/profile.d/conda.sh"
+  elif [[ -f "/playpen-shared/haochenz/miniconda3/etc/profile.d/conda.sh" ]]; then
+    source "/playpen-shared/haochenz/miniconda3/etc/profile.d/conda.sh"
   fi
 fi
 if [[ -n "${CONDA_ENV:-}" ]]; then
