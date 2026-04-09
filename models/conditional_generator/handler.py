@@ -1,6 +1,7 @@
 import os
 import logging
 import math
+import tempfile
 import torch
 import torch.nn as nn
 import torch.distributed as tdist
@@ -58,6 +59,17 @@ class Handler(generativeHandler):
             weight_decay=self.args.weight_decay,
         )
         self.scheduler = None
+        self.resume_epoch = 0
+        self.best_score = float("inf")
+        self._pending_resume_state = None
+
+        resume_ckpt = getattr(self.args, "resume_ckpt", None)
+        if getattr(self.args, "pretrain", False) and resume_ckpt is None:
+            # Backward-compatible fallback for older pretrain configs that used model_ckpt.
+            resume_ckpt = getattr(self.args, "model_ckpt", None)
+
+        if resume_ckpt:
+            self._load_checkpoint(resume_ckpt)
 
     # ------------------------------------------------------------------
     # generativeHandler interface
@@ -165,10 +177,18 @@ class Handler(generativeHandler):
 
     def save_model(self, ckpt_dir):
         os.makedirs(os.path.dirname(ckpt_dir) if os.path.dirname(ckpt_dir) else ".", exist_ok=True)
-        state = {"model": self._model.state_dict()}
+        state = {
+            "model": self._model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "epoch": int(getattr(self, "epoch", 0)),
+            "global_step": int(getattr(self, "global_step", 0)),
+            "best_score": float(getattr(self, "best_score", float("inf"))),
+        }
+        if self.scheduler is not None:
+            state["scheduler"] = self.scheduler.state_dict()
         if self._model.use_ema:
             state["ema_model"] = self._model.model_ema.state_dict()
-        torch.save(state, ckpt_dir)
+        self._atomic_torch_save(state, ckpt_dir)
 
     # ------------------------------------------------------------------
     # Helpers
@@ -230,6 +250,29 @@ class Handler(generativeHandler):
             self._model.model_ema.load_state_dict(state["ema_model"], strict=True)
         logging.info(f"Loaded checkpoint from {ckpt_path}")
 
+    def _load_checkpoint(self, ckpt_path):
+        if not os.path.exists(ckpt_path):
+            logging.warning(f"Checkpoint not found at {ckpt_path}. Starting from scratch.")
+            return
+
+        state = torch.load(ckpt_path, map_location=self.device)
+        model_state = state.get("model", state)
+        self._model.load_state_dict(model_state, strict=False)
+
+        if "optimizer" in state:
+            self.optimizer.load_state_dict(state["optimizer"])
+        if self._model.use_ema and "ema_model" in state:
+            self._model.model_ema.load_state_dict(state["ema_model"], strict=True)
+
+        self.resume_epoch = int(state.get("epoch", 0))
+        self.global_step = int(state.get("global_step", 0))
+        self.best_score = float(state.get("best_score", float("inf")))
+        self._pending_resume_state = state
+        logging.info(
+            f"Resumed checkpoint from {ckpt_path} "
+            f"(epoch={self.resume_epoch}, global_step={self.global_step}, best_score={self.best_score})"
+        )
+
     def _init_scheduler(self, train_dataloader):
         steps_per_epoch = max(1, len(train_dataloader))
         accumulation_steps = max(1, int(getattr(self.args, "gradient_accumulation_steps", 1)))
@@ -252,6 +295,9 @@ class Handler(generativeHandler):
             num_training_steps=num_training_steps,
             min_lr=min_lr,
         )
+        if self._pending_resume_state is not None and "scheduler" in self._pending_resume_state:
+            self.scheduler.load_state_dict(self._pending_resume_state["scheduler"])
+            self._pending_resume_state = None
         logging.info(
             "Initialized cosine LR scheduler with linear warmup: "
             f"steps_per_epoch={steps_per_epoch}, optimizer_steps_per_epoch={optimizer_steps_per_epoch}, "
@@ -259,6 +305,17 @@ class Handler(generativeHandler):
             f"num_training_steps={num_training_steps}, num_warmup_steps={warmup_steps}, "
             f"min_lr={min_lr}"
         )
+
+    def _atomic_torch_save(self, state, ckpt_path):
+        ckpt_dir = os.path.dirname(ckpt_path) if os.path.dirname(ckpt_path) else "."
+        fd, tmp_path = tempfile.mkstemp(dir=ckpt_dir, prefix=".tmp_conditional_generator_", suffix=".pt")
+        os.close(fd)
+        try:
+            torch.save(state, tmp_path)
+            os.replace(tmp_path, ckpt_path)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
     def _get_cosine_schedule_with_warmup_min_lr(
         self,
