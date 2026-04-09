@@ -35,11 +35,11 @@ if [[ -n "${CONDA_ENV:-}" ]]; then
   conda activate "$CONDA_ENV"
 fi
 
-python run.py \
---subset_p 1.0 \
---wandb \
---wandb_project ImagenTime \
---config ./configs/ImagenTime/ETTm1.yaml
+#python run.py \
+#--subset_p 1.0 \
+#--wandb \
+#--wandb_project ImagenTime \
+#--config ./configs/ImagenTime/ETTm1.yaml
 
 python run.py \
 --subset_p 1.0 \

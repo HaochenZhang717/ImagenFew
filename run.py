@@ -90,13 +90,13 @@ def main(args):
                         scores_mean['pred_std'].append(scores[f'pred_std'])
                         scores_mean['context_fid'].append(scores[f'context_fid'])
                         for key, value in scores.items():
-                            logger.log(f'test/{dataset}_{key}', value)
+                            logger.log(f'test/{dataset}_{key}', value, step=epoch)
                     if is_main_process():
-                        logger.log(f'test/disc_mean', np.mean(scores_mean['disc_mean']))
-                        logger.log(f'test/disc_std', np.mean(scores_mean['disc_std']))
-                        logger.log(f'test/pred_mean', np.mean(scores_mean['pred_mean']))
-                        logger.log(f'test/pred_std', np.mean(scores_mean['pred_std']))
-                        logger.log(f'test/context_fid', np.mean(scores_mean['context_fid']))
+                        logger.log(f'test/disc_mean', np.mean(scores_mean['disc_mean']), step=epoch)
+                        logger.log(f'test/disc_std', np.mean(scores_mean['disc_std']), step=epoch)
+                        logger.log(f'test/pred_mean', np.mean(scores_mean['pred_mean']), step=epoch)
+                        logger.log(f'test/pred_std', np.mean(scores_mean['pred_std']), step=epoch)
+                        logger.log(f'test/context_fid', np.mean(scores_mean['context_fid']), step=epoch)
 
                         # --- save checkpoint ---
                         disc_mean = np.mean(scores_mean['disc_mean'])

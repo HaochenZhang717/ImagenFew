@@ -35,19 +35,19 @@ if [[ -n "${CONDA_ENV:-}" ]]; then
   conda activate "$CONDA_ENV"
 fi
 
-python run.py \
---subset_p 1.0 \
---wandb \
---wandb_project ImagenFew \
---model_ckpt ./ImagenFew_ckpts/ImagenFew_24.ckpt \
---config ./configs/finetune/ECG200.yaml
-
-python run.py \
---subset_p 1.0 \
---wandb \
---wandb_project ImagenFew \
---model_ckpt ./ImagenFew_ckpts/ImagenFew_24.ckpt \
---config ./configs/finetune/ETTm1.yaml
+#python run.py \
+#--subset_p 1.0 \
+#--wandb \
+#--wandb_project ImagenFew \
+#--model_ckpt ./ImagenFew_ckpts/ImagenFew_24.ckpt \
+#--config ./configs/finetune/ECG200.yaml
+#
+#python run.py \
+#--subset_p 1.0 \
+#--wandb \
+#--wandb_project ImagenFew \
+#--model_ckpt ./ImagenFew_ckpts/ImagenFew_24.ckpt \
+#--config ./configs/finetune/ETTm1.yaml
 
 python run.py \
 --subset_p 1.0 \
