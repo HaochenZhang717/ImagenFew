@@ -133,6 +133,8 @@ class Trainer(object):
         step = 0
 
         for epoch in range(step, self.epochs):
+            epoch_loss = 0.0
+            num_batches = 0
             for i, data in enumerate(self.train_loader, 1):
                 # data = next(self.train_loader).to(device)
                 x = data[0].to(device).float()
@@ -141,8 +143,8 @@ class Trainer(object):
                 loss = self.model(x, class_indices, self.args.n_classes, target=x)
                     # loss = loss / self.gradient_accumulate_every
                 loss.backward()
-
-                self.logger.log('train/loss', loss.item(), self.step)
+                epoch_loss += loss.item()
+                num_batches += 1
 
                 clip_grad_norm_(self.model.parameters(), 1.0)
                 self.opt.step()
@@ -151,6 +153,7 @@ class Trainer(object):
                 self.step += 1
                 step += 1
                 self.ema(self.model) #
+            self.logger.log('train/loss', epoch_loss / num_batches, epoch)
             if self.logger is not None and epoch % self.log_frequency == 0:
                 self.model.eval()
                 scores_mean = []
@@ -289,7 +292,7 @@ class Trainer(object):
                         self.save(self.milestone_classifier)
                                             
                     if self.logger is not None and self.step_classifier % self.log_frequency == 0:
-                        self.logger.add_scalar(tag='train/loss', scalar_value=total_loss, global_step=self.step)
+                        self.logger.add_scalar(tag='train/loss', scalar_value=total_loss, global_step=epoch)
 
                 pbar.update(1)
 
@@ -298,4 +301,3 @@ class Trainer(object):
             self.logger.log_info('Training done, time: {:.2f}'.format(time.time() - tic))
 
         # return classifier
-

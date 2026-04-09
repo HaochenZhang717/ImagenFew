@@ -55,6 +55,7 @@ class Handler(generativeHandler):
     
     def train_iter(self, train_dataloader, logger):
         avg_loss = 0.0
+        epoch = getattr(self, "epoch", None)
 
         for _, data in enumerate(train_dataloader, 1):
             self.optimizer.zero_grad()
@@ -80,7 +81,7 @@ class Handler(generativeHandler):
             self._model.on_train_batch_end()
 
         avg_loss /= len(train_dataloader)
-        logger.log(f'train/karras loss', avg_loss)
+        logger.log(f'train/karras loss', avg_loss, step=epoch)
         # logger.log(f'train/train epoch', loss.detach())
 
     def sample(self, n_samples, class_label, class_metadata, test_data):

@@ -32,13 +32,17 @@ class Handler(generativeHandler):
         return instantiate_from_config(self.config['model'])
 
     def train_iter(self, train_dataloader, logger):
+        epoch = getattr(self, "epoch", None)
+        train_loss = 0
+        num_batches = 0
         for _, data in enumerate(train_dataloader, 1):
             x = data[0].to(self.device).float()
 
             loss = self.model(x, target=x)
             loss.backward()
 
-            logger.log(f'train/loss', loss.item())
+            train_loss += loss.item()
+            num_batches += 1
 
             clip_grad_norm_(self._model.parameters(), 1.0)
             self.optimizer.step()
@@ -46,6 +50,9 @@ class Handler(generativeHandler):
             self.optimizer.zero_grad()
             self.step += 1
             self.ema(self.model)
+
+        logger.log(f'train/loss', train_loss / num_batches, step=epoch)
+        logger.log(f'train/epoch', epoch, step=epoch)
 
     def sample(self, n_samples, class_label=None, class_metadata=None):
         with torch.no_grad():
