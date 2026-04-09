@@ -35,6 +35,11 @@ if [[ -n "${CONDA_ENV:-}" ]]; then
   conda activate "$CONDA_ENV"
 fi
 
+python -m pip install gluonts
+python -m pip install sktime
+python -m pip install omegaconf
+python -m pip install wandb
+
 python run.py \
 --subset_p 1.0 \
 --no_test_model \
