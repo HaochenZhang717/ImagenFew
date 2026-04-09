@@ -49,6 +49,7 @@ class Handler(generativeHandler):
     """
 
     def __init__(self, args, rank=None):
+        args.find_unused_parameters = True
         super().__init__(args, rank)
 
         self.optimizer = torch.optim.AdamW(
