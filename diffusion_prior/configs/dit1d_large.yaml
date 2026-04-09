@@ -1,5 +1,5 @@
-latents: ../logs/vae_latents/pretrain_latents.pt
-output_dir: ../logs/diffusion_prior/dit1d_large
+latents: /work/vb21/haochen/neurips_2026/ImagenFew/logs/vae_latents/pretrain_latents.pt
+output_dir: /work/vb21/haochen/neurips_2026/ImagenFew/logs/diffusion_prior/dit1d_large
 resume: null
 resume_ckpt: null
 seed: 0
@@ -10,7 +10,7 @@ wandb_name: dit1d_large
 wandb_tags: [dit1d, large]
 
 epochs: 2000
-batch_size: 512
+batch_size: 2048
 num_workers: 0
 learning_rate: 0.0001
 weight_decay: 0.00001

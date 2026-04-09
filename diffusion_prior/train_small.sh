@@ -4,7 +4,6 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --gres=gpu:1
 #SBATCH --mem=64G
 #SBATCH --time=2-00:00:00
 #SBATCH --output=logs/slurm/%x_%j.out
@@ -22,6 +21,11 @@ if [[ -n "${CONDA_ENV:-}" ]]; then
 fi
 
 echo "Running diffusion prior small on host $(hostname)"
-python -u "$ROOT_DIR/diffusion_prior/train_diffusion_prior.py" \
+NPROC_PER_NODE="${NPROC_PER_NODE:-${SLURM_GPUS_ON_NODE:-1}}"
+if [[ "$NPROC_PER_NODE" == *"("* ]]; then
+  NPROC_PER_NODE="${NPROC_PER_NODE%%(*}"
+fi
+
+torchrun --standalone --nproc_per_node="$NPROC_PER_NODE" "$ROOT_DIR/diffusion_prior/train_diffusion_prior.py" \
   --config "$ROOT_DIR/diffusion_prior/configs/dit1d_small.yaml" \
   "$@"

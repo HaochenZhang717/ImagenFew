@@ -6,8 +6,11 @@ from contextlib import contextmanager
 
 import numpy as np
 import torch
+import torch.distributed as dist
 from omegaconf import OmegaConf
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, TensorDataset, random_split
+from torch.utils.data.distributed import DistributedSampler
 
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,18 +29,78 @@ def atomic_torch_save(state, path):
     os.replace(tmp_path, path)
 
 
+def is_distributed():
+    return int(os.environ.get("WORLD_SIZE", "1")) > 1
+
+
+def is_main_process():
+    return (not dist.is_available()) or (not dist.is_initialized()) or dist.get_rank() == 0
+
+
+def unwrap_model(model):
+    return model.module if isinstance(model, DDP) else model
+
+
+def setup_distributed(args):
+    args.ddp = is_distributed()
+    if not args.ddp:
+        device = torch.device(args.device)
+        return device, 0, 1
+
+    local_rank = int(os.environ["LOCAL_RANK"])
+    rank = int(os.environ["RANK"])
+    world_size = int(os.environ["WORLD_SIZE"])
+    backend = "nccl" if torch.cuda.is_available() else "gloo"
+    dist.init_process_group(backend=backend)
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_rank)
+        device = torch.device(f"cuda:{local_rank}")
+    else:
+        device = torch.device("cpu")
+    return device, rank, world_size
+
+
+def cleanup_distributed():
+    if dist.is_available() and dist.is_initialized():
+        dist.destroy_process_group()
+
+
+def get_rng_state():
+    state = {
+        "python": random.getstate(),
+        "numpy": np.random.get_state(),
+        "torch": torch.get_rng_state(),
+    }
+    if torch.cuda.is_available():
+        state["torch_cuda"] = torch.cuda.get_rng_state_all()
+    return state
+
+
+def set_rng_state(state):
+    if not state:
+        return
+    if "python" in state:
+        random.setstate(state["python"])
+    if "numpy" in state:
+        np.random.set_state(state["numpy"])
+    if "torch" in state:
+        torch.set_rng_state(state["torch"])
+    if torch.cuda.is_available() and "torch_cuda" in state:
+        torch.cuda.set_rng_state_all(state["torch_cuda"])
+
+
 class EMA:
     def __init__(self, model, decay):
         self.decay = decay
         self.shadow = {
             name: param.detach().clone()
-            for name, param in model.state_dict().items()
+            for name, param in unwrap_model(model).state_dict().items()
         }
         self.backup = None
 
     @torch.no_grad()
     def update(self, model):
-        for name, param in model.state_dict().items():
+        for name, param in unwrap_model(model).state_dict().items():
             self.shadow[name].mul_(self.decay).add_(param.detach(), alpha=1.0 - self.decay)
 
     def state_dict(self):
@@ -48,6 +111,7 @@ class EMA:
 
     @contextmanager
     def average_parameters(self, model):
+        model = unwrap_model(model)
         self.backup = {
             name: tensor.detach().clone()
             for name, tensor in model.state_dict().items()
@@ -93,30 +157,37 @@ def make_loaders(latents, batch_size, num_workers, val_ratio, seed):
     else:
         train_dataset, val_dataset = dataset, None
 
+    train_sampler = DistributedSampler(train_dataset, shuffle=True) if is_distributed() else None
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=train_sampler is None,
+        sampler=train_sampler,
         num_workers=num_workers,
         drop_last=False,
     )
     val_loader = None
+    val_sampler = None
     if val_dataset is not None:
+        val_sampler = DistributedSampler(val_dataset, shuffle=False) if is_distributed() else None
         val_loader = DataLoader(
             val_dataset,
             batch_size=batch_size,
             shuffle=False,
+            sampler=val_sampler,
             num_workers=num_workers,
             drop_last=False,
         )
-    return train_loader, val_loader
+    return train_loader, val_loader, train_sampler, val_sampler
 
 
 def run_epoch(model, loader, transport, optimizer, device, ema=None, train=True):
     model.train(train)
-    losses = []
+    loss_sum = torch.zeros(1, device=device)
+    sample_count = torch.zeros(1, device=device)
     for (x,) in loader:
         x = x.to(device)
+        batch_size = x.shape[0]
         if train:
             optimizer.zero_grad(set_to_none=True)
         terms = transport.training_losses(model, x)
@@ -127,8 +198,14 @@ def run_epoch(model, loader, transport, optimizer, device, ema=None, train=True)
             optimizer.step()
             if ema is not None:
                 ema.update(model)
-        losses.append(loss.detach().item())
-    return float(np.mean(losses)) if losses else float("nan")
+        loss_sum += loss.detach() * batch_size
+        sample_count += batch_size
+    if dist.is_available() and dist.is_initialized():
+        dist.all_reduce(loss_sum, op=dist.ReduceOp.SUM)
+        dist.all_reduce(sample_count, op=dist.ReduceOp.SUM)
+    if sample_count.item() == 0:
+        return float("nan")
+    return (loss_sum / sample_count).item()
 
 
 def parse_args():
@@ -206,6 +283,8 @@ def parse_args():
 
 def main():
     args = parse_args()
+    device, rank, world_size = setup_distributed(args)
+    args.device = str(device)
 
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -214,7 +293,7 @@ def main():
         torch.cuda.manual_seed_all(args.seed)
 
     wandb_run = None
-    if args.wandb:
+    if args.wandb and is_main_process():
         import wandb
         wandb_run = wandb.init(
             project=args.wandb_project,
@@ -225,15 +304,22 @@ def main():
 
     latents = load_latents(args.latents)
     seq_len, token_dim = latents.shape[1], latents.shape[2]
-    train_loader, val_loader = make_loaders(
+    if args.batch_size % world_size != 0:
+        raise ValueError(
+            f"Global batch size {args.batch_size} must be divisible by world_size {world_size}."
+        )
+    per_rank_batch_size = args.batch_size // world_size
+    train_loader, val_loader, train_sampler, val_sampler = make_loaders(
         latents=latents,
-        batch_size=args.batch_size,
+        batch_size=per_rank_batch_size,
         num_workers=args.num_workers,
         val_ratio=args.val_ratio,
         seed=args.seed,
     )
 
-    model = build_model(args, seq_len, token_dim, args.device)
+    model = build_model(args, seq_len, token_dim, device)
+    if args.ddp:
+        model = DDP(model, device_ids=[device.index] if device.type == "cuda" else None)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     ema = EMA(model, decay=args.ema_decay)
     transport = create_transport(
@@ -252,36 +338,52 @@ def main():
         auto_resume = os.path.join(args.output_dir, "diffusion_prior_latest.pt")
         if os.path.exists(auto_resume):
             args.resume = auto_resume
-            print(f"Auto-resuming from {args.resume}")
+            if is_main_process():
+                print(f"Auto-resuming from {args.resume}")
 
     if args.resume is not None:
-        state = torch.load(args.resume, map_location=args.device)
-        model.load_state_dict(state["model"])
+        state = torch.load(args.resume, map_location=device)
+        unwrap_model(model).load_state_dict(state["model"])
         optimizer.load_state_dict(state["optimizer"])
         if "ema_model" in state:
             ema.load_state_dict(state["ema_model"])
+        if "rng_state" in state:
+            set_rng_state(state["rng_state"])
         start_epoch = int(state.get("epoch", 0)) + 1
         best_val = float(state.get("best_val", float("inf")))
         global_step = int(state.get("global_step", 0))
-        print(f"Resumed from {args.resume} at epoch {start_epoch}")
+        if is_main_process():
+            print(f"Resumed from {args.resume} at epoch {start_epoch}")
 
-    os.makedirs(args.output_dir, exist_ok=True)
+    if is_main_process():
+        os.makedirs(args.output_dir, exist_ok=True)
     train_size = len(train_loader.dataset)
     val_size = len(val_loader.dataset) if val_loader is not None else 0
-    print(f"Dataset split: train={train_size}, valid={val_size}")
+    if is_main_process():
+        print(
+            f"Dataset split: train={train_size}, valid={val_size}, "
+            f"world_size={world_size}, global_batch_size={args.batch_size}, "
+            f"per_rank_batch_size={per_rank_batch_size}"
+        )
 
     for epoch in range(start_epoch, args.epochs + 1):
-        train_loss = run_epoch(model, train_loader, transport, optimizer, args.device, ema=ema, train=True)
+        if train_sampler is not None:
+            train_sampler.set_epoch(epoch)
+        if val_sampler is not None:
+            val_sampler.set_epoch(epoch)
+
+        train_loss = run_epoch(model, train_loader, transport, optimizer, device, ema=ema, train=True)
         global_step += len(train_loader)
 
         val_loss = float("nan")
         if val_loader is not None:
             with ema.average_parameters(model):
                 with torch.no_grad():
-                    val_loss = run_epoch(model, val_loader, transport, optimizer, args.device, train=False)
+                    val_loss = run_epoch(model, val_loader, transport, optimizer, device, train=False)
 
-        print(f"epoch {epoch:04d} train_loss={train_loss:.6f} val_loss={val_loss:.6f}")
-        if wandb_run is not None:
+        if is_main_process():
+            print(f"epoch {epoch:04d} train_loss={train_loss:.6f} val_loss={val_loss:.6f}")
+        if wandb_run is not None and is_main_process():
             wandb_run.log(
                 {
                     "epoch": epoch,
@@ -298,12 +400,13 @@ def main():
             best_val = val_loss
 
         state = {
-            "model": model.state_dict(),
+            "model": unwrap_model(model).state_dict(),
             "optimizer": optimizer.state_dict(),
             "ema_model": ema.state_dict(),
             "epoch": epoch,
             "global_step": global_step,
             "best_val": best_val,
+            "rng_state": get_rng_state(),
             "seq_len": seq_len,
             "token_dim": token_dim,
             "model_args": {
@@ -325,15 +428,17 @@ def main():
 
         latest_path = os.path.join(args.output_dir, "diffusion_prior_latest.pt")
         epoch_path = os.path.join(args.output_dir, f"diffusion_prior_epoch_{epoch:04d}.pt")
-        if epoch % args.save_every == 0:
-            atomic_torch_save(state, epoch_path)
-        atomic_torch_save(state, latest_path)
+        if is_main_process():
+            if epoch % args.save_every == 0:
+                atomic_torch_save(state, epoch_path)
+            atomic_torch_save(state, latest_path)
 
-        if improved:
-            atomic_torch_save(state, os.path.join(args.output_dir, "diffusion_prior_best.pt"))
+            if improved:
+                atomic_torch_save(state, os.path.join(args.output_dir, "diffusion_prior_best.pt"))
 
-    if wandb_run is not None:
+    if wandb_run is not None and is_main_process():
         wandb_run.finish()
+    cleanup_distributed()
 
 
 if __name__ == "__main__":

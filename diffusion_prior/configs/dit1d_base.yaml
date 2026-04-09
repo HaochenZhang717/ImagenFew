@@ -1,5 +1,5 @@
-latents: ../logs/vae_latents/pretrain_latents.pt
-output_dir: ../logs/diffusion_prior/dit1d_base
+latents: /work/vb21/haochen/neurips_2026/ImagenFew/logs/vae_latents/pretrain_latents.pt
+output_dir: /work/vb21/haochen/neurips_2026/ImagenFew/logs/diffusion_prior/dit1d_base
 resume: null
 resume_ckpt: null
 seed: 0
@@ -10,9 +10,9 @@ wandb_name: dit1d_base
 wandb_tags: [dit1d, base]
 
 epochs: 2000
-batch_size: 512
+batch_size: 2048
 num_workers: 0
-learning_rate: 0.0001
+learning_rate: 0.0003
 weight_decay: 0.00001
 val_ratio: 0.02
 save_every: 100
@@ -27,6 +27,6 @@ no_rmsnorm: false
 path_type: Linear
 prediction: velocity
 loss_weight: null
-time_dist_type: uniform
+time_dist_type: 'logit-normal_0.0_1.0'
 time_dist_shift: 1.0
 ema_decay: 0.9999

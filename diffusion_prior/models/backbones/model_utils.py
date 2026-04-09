@@ -7,7 +7,6 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 from typing import *
 from math import pi
-from timm.models.vision_transformer import Attention
 from functools import partial
 from einops import rearrange, repeat
 from collections.abc import Callable
