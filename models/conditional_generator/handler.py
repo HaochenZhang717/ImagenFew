@@ -104,22 +104,19 @@ class Handler(generativeHandler):
         train_loss = 0.0
         num_batches = 0.0
         epoch = getattr(self, "epoch", None)
+        accumulation_steps = max(1, int(getattr(self.args, "gradient_accumulation_steps", 1)))
 
         is_main = not (tdist.is_available() and tdist.is_initialized() and tdist.get_rank() != 0)
         pbar = tqdm(train_dataloader, desc=f"Epoch {epoch}", leave=False, disable=not is_main)
-        for data, class_indices in pbar:
-            self.optimizer.zero_grad()
+        self.optimizer.zero_grad()
+        for batch_idx, (data, class_indices) in enumerate(pbar, 1):
             # data: (B, seq_len, n_var)
             x = data.to(self.device).float()
             loss_dict = self.model(x, is_train=True)
             loss = loss_dict["all"]
+            loss_for_backward = loss / accumulation_steps
 
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
-            self.optimizer.step()
-            self._model.on_train_batch_end()
-            self.scheduler.step()
-            self.global_step += 1
+            loss_for_backward.backward()
 
             train_loss += loss.item()
             num_batches += 1
@@ -129,6 +126,15 @@ class Handler(generativeHandler):
                 avg=f"{train_loss / num_batches:.4f}",
                 lr=f"{current_lr:.2e}",
             )
+
+            should_step = (batch_idx % accumulation_steps == 0) or (batch_idx == len(train_dataloader))
+            if should_step:
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                self.optimizer.step()
+                self._model.on_train_batch_end()
+                self.scheduler.step()
+                self.optimizer.zero_grad()
+                self.global_step += 1
 
         logger.log("train/loss", train_loss / num_batches, step=epoch)
         logger.log("train/epoch", epoch, step=epoch)
@@ -226,8 +232,10 @@ class Handler(generativeHandler):
 
     def _init_scheduler(self, train_dataloader):
         steps_per_epoch = max(1, len(train_dataloader))
+        accumulation_steps = max(1, int(getattr(self.args, "gradient_accumulation_steps", 1)))
+        optimizer_steps_per_epoch = math.ceil(steps_per_epoch / accumulation_steps)
         total_epochs = max(1, getattr(self.args, "epochs", 1) - 1)
-        num_training_steps = steps_per_epoch * total_epochs
+        num_training_steps = optimizer_steps_per_epoch * total_epochs
 
         warmup_steps = getattr(self.args, "warmup_steps", None)
         if warmup_steps is None:
@@ -246,7 +254,8 @@ class Handler(generativeHandler):
         )
         logging.info(
             "Initialized cosine LR scheduler with linear warmup: "
-            f"steps_per_epoch={steps_per_epoch}, total_epochs={total_epochs}, "
+            f"steps_per_epoch={steps_per_epoch}, optimizer_steps_per_epoch={optimizer_steps_per_epoch}, "
+            f"gradient_accumulation_steps={accumulation_steps}, total_epochs={total_epochs}, "
             f"num_training_steps={num_training_steps}, num_warmup_steps={warmup_steps}, "
             f"min_lr={min_lr}"
         )
