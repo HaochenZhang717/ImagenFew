@@ -1,6 +1,6 @@
 # training:
-epochs: 1001
-batch_size: 256
+epochs: 2001
+batch_size: 2048
 learning_rate: 0.0001 #1e-4
 weight_decay: 0.00001 #1e-5
 # model:
@@ -11,7 +11,7 @@ cond_dim_in: 64          # = 3 * multi_scale_vae.z_channels (context from DualVA
 cond_dim_out: 128          # must match diffusion.channels
 #n_classes: 1
 pretrain_path: ""         # optional path to pretrained unconditional VerbalTS weights
-pretrained_vae_weights: "/work/vb21/haochen/neurips_2026/ImagenFew/logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE_Epoch330"  # path to pretrained DualVAE checkpoint (.pt)
+pretrained_vae_weights: "./logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE"  # path to pretrained DualVAE checkpoint (.pt)
 #pretrained_vae_weights: ""
 #sampler: ddim             # ddim | ddpm
 # diffusion backbone:
