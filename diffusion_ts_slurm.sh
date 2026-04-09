@@ -17,6 +17,15 @@ cd "$ROOT_DIR"
 mkdir -p "$ROOT_DIR/logs/slurm"
 
 source ~/.zshrc >/dev/null 2>&1 || true
+if ! command -v conda >/dev/null 2>&1; then
+  if [[ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+  elif [[ -f "$HOME/anaconda3/etc/profile.d/conda.sh" ]]; then
+    source "$HOME/anaconda3/etc/profile.d/conda.sh"
+  elif [[ -f "/playpen/haochenz/miniconda3/etc/profile.d/conda.sh" ]]; then
+    source "/playpen/haochenz/miniconda3/etc/profile.d/conda.sh"
+  fi
+fi
 if [[ -n "${CONDA_ENV:-}" ]]; then
   conda activate "$CONDA_ENV"
 fi
