@@ -53,7 +53,7 @@ def predictive_score_metrics(ori_data, generated_data, device=None):
     generated_time, generated_max_seq_len = extract_time(generated_data)
     max_seq_len = max([ori_max_seq_len, generated_max_seq_len])
 
-    hidden_dim = int(dim / 2)
+    hidden_dim = max(1, int(dim / 2))
     iterations = 5000
     batch_size = 128
 

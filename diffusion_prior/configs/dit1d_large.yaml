@@ -1,5 +1,5 @@
-latents: /work/vb21/haochen/neurips_2026/ImagenFew/logs/vae_latents/pretrain_latents.pt
-output_dir: /work/vb21/haochen/neurips_2026/ImagenFew/logs/diffusion_prior/dit1d_large
+latents: ../logs/vae_latents/pretrain_latents.pt
+output_dir: ../logs/diffusion_prior/dit1d_large
 resume: null
 resume_ckpt: null
 seed: 0
