@@ -35,6 +35,9 @@ if [[ -n "${CONDA_ENV:-}" ]]; then
   conda activate "$CONDA_ENV"
 fi
 
+export TORCH_DISTRIBUTED_DEBUG=DETAIL
+export NCCL_DEBUG=INFO
+
 #python run.py \
 #--subset_p 1.0 \
 #--wandb \

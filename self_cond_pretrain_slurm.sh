@@ -35,6 +35,9 @@ if [[ -n "${CONDA_ENV:-}" ]]; then
   conda activate "$CONDA_ENV"
 fi
 
+export TORCH_DISTRIBUTED_DEBUG=DETAIL
+export NCCL_DEBUG=INFO
+
 python -m pip install gluonts
 python -m pip install sktime
 python -m pip install omegaconf
