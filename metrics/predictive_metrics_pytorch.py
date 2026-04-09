@@ -49,6 +49,11 @@ def predictive_score_metrics(ori_data, generated_data, device=None):
     """Report the performance of Post-hoc RNN one-step ahead prediction."""
 
     no, _, dim = np.asarray(ori_data).shape
+    if dim < 2:
+        # The original TimeGAN predictive metric uses the first dim-1 channels
+        # to predict the last channel. That definition is not valid for
+        # univariate series, so skip cleanly instead of constructing GRU(0, ...).
+        return float("nan")
     ori_time, ori_max_seq_len = extract_time(ori_data)
     generated_time, generated_max_seq_len = extract_time(generated_data)
     max_seq_len = max([ori_max_seq_len, generated_max_seq_len])
