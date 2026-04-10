@@ -139,7 +139,7 @@ def build_model(args, seq_len, token_dim, device):
 
 
 def load_latents(path):
-    latents = torch.load(path, map_location="cpu")
+    latents = torch.load(path, map_location="cpu", weights_only=False)
     if not torch.is_tensor(latents):
         raise TypeError(f"Expected latent file to contain a tensor, got {type(latents)}")
     if latents.ndim != 3:
@@ -343,7 +343,7 @@ def main():
                 print(f"Auto-resuming from {args.resume}")
 
     if args.resume is not None:
-        state = torch.load(args.resume, map_location=device)
+        state = torch.load(args.resume, map_location=device, weights_only=False)
         unwrap_model(model).load_state_dict(state["model"])
         optimizer.load_state_dict(state["optimizer"])
         if "ema_model" in state:
@@ -356,7 +356,7 @@ def main():
         if is_main_process():
             print(f"Resumed from {args.resume} at epoch {start_epoch}")
     elif args.finetune_ckpt is not None:
-        state = torch.load(args.finetune_ckpt, map_location=device)
+        state = torch.load(args.finetune_ckpt, map_location=device, weights_only=False)
         unwrap_model(model).load_state_dict(state["model"])
         if "ema_model" in state:
             ema.load_state_dict(state["ema_model"])

@@ -1,5 +1,5 @@
-latents: /work/vb21/haochen/neurips_2026/ImagenFew/logs/vae_latents/finetune_dataset/ETTh2_mu.pt
-output_dir: /work/vb21/haochen/neurips_2026/ImagenFew/logs/diffusion_prior/dit1d_base_finetune/ETTh2
+latents: /work/vb21/haochen/neurips_2026/ImagenFew/logs/vae_latents/finetune_dataset/SaugeenRiverFlow_mu.pt
+output_dir: /work/vb21/haochen/neurips_2026/ImagenFew/logs/diffusion_prior/dit1d_base_finetune/SaugeenRiverFlow
 resume: null
 resume_ckpt: null
 finetune_ckpt: /work/vb21/haochen/neurips_2026/ImagenFew/logs/diffusion_prior/dit1d_base/diffusion_prior_best.pt
@@ -7,8 +7,8 @@ seed: 0
 device: cuda
 wandb: true
 wandb_project: diffusion-prior
-wandb_name: dit1d_base_finetune_etth2
-wandb_tags: [dit1d, base, finetune, ETTh2]
+wandb_name: dit1d_base_finetune_saugeenriverflow
+wandb_tags: [dit1d, base, finetune, SaugeenRiverFlow]
 
 epochs: 2000
 batch_size: 2048
