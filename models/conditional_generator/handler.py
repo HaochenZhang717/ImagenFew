@@ -10,6 +10,8 @@ from torch.optim.lr_scheduler import LambdaLR
 
 from ..generative_handler import generativeHandler
 from .model import SelfConditionalGenerator
+from diffusion_prior.models import DiT1D
+from diffusion_prior.models.transport import Sampler, create_transport
 
 
 class Handler(generativeHandler):
@@ -62,6 +64,10 @@ class Handler(generativeHandler):
         self.resume_epoch = 0
         self.best_score = float("inf")
         self._pending_resume_state = None
+        self._prior_model = None
+        self._prior_sample_fn = None
+        self._prior_seq_len = None
+        self._prior_token_dim = None
 
         resume_ckpt = getattr(self.args, "resume_ckpt", None)
         if getattr(self.args, "pretrain", False) and resume_ckpt is None:
@@ -80,6 +86,7 @@ class Handler(generativeHandler):
         model = SelfConditionalGenerator(configs)
         if getattr(self.args, "pretrain_path", None):
             ckpt_state_dict = torch.load(self.args.pretrain_path, map_location="cpu")
+            # todo: here I use the old checkpoint, and I forgot to save ema_model. I can only use "model"
             pretrained_state = ckpt_state_dict.get("model", ckpt_state_dict)
 
             diff_model_state = {
@@ -101,11 +108,22 @@ class Handler(generativeHandler):
 
             if diff_model_state:
                 model.diff_model.load_state_dict(diff_model_state, strict=True)
+            else:
+                raise ValueError("model.diff_model checkpoint not found.")
+
             if multi_scale_vae_state:
                 model.multi_scale_vae.load_state_dict(multi_scale_vae_state, strict=True)
+            else:
+                raise ValueError("model.multi_scale_vae checkpoint not found.")
+
             if cond_projector_state:
                 model.cond_projector.load_state_dict(cond_projector_state, strict=True)
+            else:
+                raise ValueError("model.cond_projector checkpoint not found.")
+
             model.reset_ema()
+
+            print(f"Loaded pretrained conditional diffusion model from {self.args.pretrain_path}")
 
         return model
 
@@ -167,9 +185,13 @@ class Handler(generativeHandler):
         with self._model.ema_scope(), torch.no_grad():
             while remaining > 0:
                 bs = min(batch_size, remaining)
-                indices = torch.randperm(test_data.shape[0]).to(test_data.device)
-                test_batch = test_data[indices[:bs]].to(device=self.device, dtype=torch.float32)
-                samples = self._model.generate(bs, test_batch, seq_len, n_var)
+                if getattr(self.args, "prior_ckpt", None):
+                    context = self._sample_prior_context(bs)
+                    samples = self._model.generate_from_context(context, seq_len, n_var)
+                else:
+                    indices = torch.randperm(test_data.shape[0]).to(test_data.device)
+                    test_batch = test_data[indices[:bs]].to(device=self.device, dtype=torch.float32)
+                    samples = self._model.generate(bs, test_batch, seq_len, n_var)
                 generated.append(samples)
                 remaining -= bs
 
@@ -245,6 +267,7 @@ class Handler(generativeHandler):
             logging.warning(f"Checkpoint not found at {ckpt_path}. Starting from scratch.")
             return
         state = torch.load(ckpt_path, map_location=self.device)
+        breakpoint()
         self._model.load_state_dict(state.get("model", state), strict=False)
         if self._model.use_ema and "ema_model" in state:
             self._model.model_ema.load_state_dict(state["ema_model"], strict=True)
@@ -272,6 +295,93 @@ class Handler(generativeHandler):
             f"Resumed checkpoint from {ckpt_path} "
             f"(epoch={self.resume_epoch}, global_step={self.global_step}, best_score={self.best_score})"
         )
+
+    def _init_diffusion_prior(self):
+        if self._prior_model is not None:
+            return
+
+        prior_ckpt = getattr(self.args, "prior_ckpt", None)
+        if not prior_ckpt:
+            raise ValueError("prior_ckpt must be provided to sample latent contexts from diffusion prior.")
+        if not os.path.exists(prior_ckpt):
+            raise FileNotFoundError(f"Diffusion prior checkpoint not found: {prior_ckpt}")
+
+        state = torch.load(prior_ckpt, map_location=self.device, weights_only=False)
+
+        model_args = state["model_args"]
+        self._prior_seq_len = state["seq_len"]
+        self._prior_token_dim = state["token_dim"]
+        self._prior_model = DiT1D(
+            seq_len=self._prior_seq_len,
+            token_dim=self._prior_token_dim,
+            hidden_size=model_args["hidden_size"],
+            depth=model_args["depth"],
+            num_heads=model_args["num_heads"],
+            mlp_ratio=model_args["mlp_ratio"],
+            use_qknorm=model_args["use_qknorm"],
+            use_rmsnorm=model_args["use_rmsnorm"],
+        ).to(self.device)
+
+        # prior_state = state["ema_model"] if getattr(self.args, "prior_use_ema", True) and "ema_model" in state else state["model"]
+        prior_state = state["ema_model"]
+        self._prior_model.load_state_dict(prior_state, strict=True)
+        self._prior_model.eval()
+
+        expected_cond_dim = getattr(self.args, "cond_dim_in", None)
+        if expected_cond_dim is not None and self._prior_token_dim != expected_cond_dim:
+            raise ValueError(
+                f"Diffusion prior token_dim ({self._prior_token_dim}) does not match cond_dim_in ({expected_cond_dim})."
+            )
+
+        transport = create_transport(**state["transport_args"])
+        sampler = Sampler(transport)
+        sampler_cfg = self._get_prior_sampler_config()
+        if sampler_cfg["mode"].upper() != "ODE":
+            raise ValueError(f"Unsupported prior sampler mode: {sampler_cfg['mode']}. Only ODE is supported.")
+        self._prior_sample_fn = sampler.sample_ode(
+            sampling_method=sampler_cfg["sampling_method"],
+            num_steps=sampler_cfg["num_steps"],
+            atol=sampler_cfg["atol"],
+            rtol=sampler_cfg["rtol"],
+            reverse=sampler_cfg["reverse"],
+        )
+        logging.info(
+            f"Loaded diffusion prior from {prior_ckpt} "
+            f"with latent shape (L={self._prior_seq_len}, D={self._prior_token_dim})"
+        )
+
+    def _sample_prior_context(self, batch_size):
+        self._init_diffusion_prior()
+        init = torch.randn(
+            batch_size,
+            self._prior_seq_len,
+            self._prior_token_dim,
+            device=self.device,
+        )
+        xs = self._prior_sample_fn(init, self._prior_model)
+        return xs[-1]
+
+    def _get_prior_sampler_config(self):
+        sampler_cfg = getattr(self.args, "sampler", None)
+        if isinstance(sampler_cfg, dict):
+            params = dict(sampler_cfg.get("params", {}))
+            return {
+                "mode": sampler_cfg.get("mode", "ODE"),
+                "sampling_method": params.get("sampling_method", "euler"),
+                "num_steps": int(params.get("num_steps", 50)),
+                "atol": float(params.get("atol", 1e-6)),
+                "rtol": float(params.get("rtol", 1e-3)),
+                "reverse": bool(params.get("reverse", False)),
+            }
+
+        return {
+            "mode": "ODE",
+            "sampling_method": getattr(self.args, "prior_method", "dopri5"),
+            "num_steps": int(getattr(self.args, "prior_num_steps", 50)),
+            "atol": float(getattr(self.args, "prior_atol", 1e-6)),
+            "rtol": float(getattr(self.args, "prior_rtol", 1e-3)),
+            "reverse": bool(getattr(self.args, "prior_reverse", False)),
+        }
 
     def _init_scheduler(self, train_dataloader):
         steps_per_epoch = max(1, len(train_dataloader))

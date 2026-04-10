@@ -215,6 +215,7 @@ def parse_args():
     parser.add_argument("--output-dir", type=str)
     parser.add_argument("--resume", type=str, default=None)
     parser.add_argument("--resume-ckpt", type=str, default=None)
+    parser.add_argument("--finetune-ckpt", type=str, default=None)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--epochs", type=int)
@@ -354,6 +355,13 @@ def main():
         global_step = int(state.get("global_step", 0))
         if is_main_process():
             print(f"Resumed from {args.resume} at epoch {start_epoch}")
+    elif args.finetune_ckpt is not None:
+        state = torch.load(args.finetune_ckpt, map_location=device)
+        unwrap_model(model).load_state_dict(state["model"])
+        if "ema_model" in state:
+            ema.load_state_dict(state["ema_model"])
+        if is_main_process():
+            print(f"Initialized finetuning from {args.finetune_ckpt}")
 
     if is_main_process():
         os.makedirs(args.output_dir, exist_ok=True)

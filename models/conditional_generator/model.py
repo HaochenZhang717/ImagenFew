@@ -293,14 +293,9 @@ class SelfConditionalGenerator(nn.Module):
             self.model_ema(self.diff_model)
 
     @torch.no_grad()
-    def generate(self, n_samples, test_batch, seq_len, n_var, sampler="ddim"):
-        B = n_samples
+    def generate_from_context(self, context, seq_len, n_var, sampler="ddim"):
+        B = context.shape[0]
         tp = self._make_tp(B, seq_len)
-
-        context_trend, context_coarse_seasonal, context_seasonal = self.multi_scale_vae.ts_to_z(test_batch, sample=False)
-        context = torch.cat([context_trend, context_coarse_seasonal, context_seasonal], dim=-1) # (B, C, L)
-        context = context.permute(0, 2, 1)
-
         x = torch.randn(B, n_var, seq_len, device=self.device)
         for t_idx in range(self.num_steps - 1, -1, -1):
             t = (torch.ones(B, device=self.device) * t_idx).long()
@@ -311,3 +306,10 @@ class SelfConditionalGenerator(nn.Module):
 
         # (B, n_var, L) -> (B, L, n_var)
         return x.permute(0, 2, 1).cpu()
+
+    @torch.no_grad()
+    def generate(self, n_samples, test_batch, seq_len, n_var, sampler="ddim"):
+        context_trend, context_coarse_seasonal, context_seasonal = self.multi_scale_vae.ts_to_z(test_batch, sample=False)
+        context = torch.cat([context_trend, context_coarse_seasonal, context_seasonal], dim=-1) # (B, C, L)
+        context = context.permute(0, 2, 1)
+        return self.generate_from_context(context, seq_len, n_var, sampler=sampler)

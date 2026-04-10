@@ -2,6 +2,7 @@ latents: ../logs/vae_latents/pretrain_latents.pt
 output_dir: ../logs/diffusion_prior/dit1d_small
 resume: null
 resume_ckpt: null
+finetune_ckpt: null
 seed: 0
 device: cuda
 wandb: true

@@ -1,22 +1,22 @@
 latents: /work/vb21/haochen/neurips_2026/ImagenFew/logs/vae_latents/pretrain_latents.pt
-output_dir: /work/vb21/haochen/neurips_2026/ImagenFew/logs/diffusion_prior/dit1d_base
+output_dir: /work/vb21/haochen/neurips_2026/ImagenFew/logs/diffusion_prior/dit1d_base_finetune/etth2
 resume: null
 resume_ckpt: null
-finetune_ckpt: null
+finetune_ckpt: /work/vb21/haochen/neurips_2026/ImagenFew/logs/diffusion_prior/dit1d_base/diffusion_prior_best.pt
 seed: 0
 device: cuda
 wandb: true
 wandb_project: diffusion-prior
-wandb_name: dit1d_base
-wandb_tags: [dit1d, base]
+wandb_name: dit1d_base_finetune
+wandb_tags: [dit1d, base, finetune]
 
-epochs: 2000
+epochs: 500
 batch_size: 2048
 num_workers: 0
-learning_rate: 0.0003
+learning_rate: 0.0001
 weight_decay: 0.00001
 val_ratio: 0.02
-save_every: 100
+save_every: 50
 
 hidden_size: 512
 depth: 8

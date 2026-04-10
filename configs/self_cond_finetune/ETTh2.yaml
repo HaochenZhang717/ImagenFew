@@ -5,14 +5,28 @@ learning_rate: 0.0001 #1e-4
 min_lr: 0.00001 #1e-6
 weight_decay: 0.00001 #1e-5
 warmup_steps: 500
+resume_ckpt: null   # optional full training-state checkpoint for finetune resume
+ema: true
+ema_warmup: 0
+ema_decay: 0.9999
 # model:
 handler: models.conditional_generator.handler
 seq_len: 24
 # conditioning:
 cond_dim_in: 64          # = 3 * multi_scale_vae.z_channels (context from DualVAE)
 cond_dim_out: 128          # must match diffusion.channels
-pretrain_path: "/work/vb21/haochen/neurips_2026/ImagenFew/logs/self_conditional_generator/pretrain/68304107-9e61-48cb-939c-a55f0e94af97/conditional_generator"         # optional path to pretrained unconditional VerbalTS weights
+pretrain_path: "/work/vb21/haochen/neurips_2026/ImagenFew/logs/self_conditional_generator/pretrain/68304107-9e61-48cb-939c-a55f0e94af97/conditional_generator"         # pretrained weights only for finetune init
 pretrained_vae_weights: "/work/vb21/haochen/neurips_2026/ImagenFew/logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE_Epoch330"  # path to pretrained DualVAE checkpoint (.pt)
+prior_ckpt: null
+prior_use_ema: true
+sampler:
+  mode: ODE
+  params:
+    sampling_method: euler
+    num_steps: 50
+    atol: 1.0e-6
+    rtol: 1.0e-3
+    reverse: false
 # diffusion backbone:
 diffusion:
   channels: 128
@@ -47,7 +61,7 @@ tags: [self-conditional-generator]
 run_dir: self_conditional_generator/finetune/ETTh2
 # Data
 datasets_dir: ./data/
-pretrain: true
+pretrain: false
 datasets:
   - name: stock
     data: stock
