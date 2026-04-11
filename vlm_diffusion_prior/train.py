@@ -209,6 +209,21 @@ def main():
 
     experiment_dir, checkpoint_dir, logger = configure_experiment_dirs(args, rank)
 
+    if args.wandb and rank == 0:
+        entity = os.environ.get("ENTITY", None)
+        project_name = os.environ.get("PROJECT", "VLM-Diffusion-Prior")
+        exp_name = os.environ.get("EXPERIMENT_NAME", os.path.basename(experiment_dir))
+        wandb_utils.initialize(
+            args=args,
+            entity=entity,
+            exp_name=exp_name,
+            project_name=project_name,
+        )
+        logger.info(
+            f"Initialized Weights & Biases with entity={entity}, "
+            f"project={project_name}, run={exp_name}."
+        )
+
     print("creating model")
     model: Stage2ModelProtocol = instantiate_from_config(model_config).to(device)
     if args.compile:
