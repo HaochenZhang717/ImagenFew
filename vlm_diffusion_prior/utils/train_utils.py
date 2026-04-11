@@ -377,17 +377,35 @@ class PrecomputedVisionEmbeddingDatasetOnePerChannel(Dataset):
 
         self.shard_paths = shard_paths
         self.embedding_dict = {}
+        duplicate_keys = []
         for shard_path in self.shard_paths:
             shard = torch.load(shard_path, map_location="cpu")
             if not isinstance(shard, dict):
                 raise TypeError(f"Expected dict shard at {shard_path}, got {type(shard)}")
-            duplicate_keys = set(self.embedding_dict).intersection(shard)
-            if duplicate_keys:
-                raise ValueError(
-                    f"Found duplicate precomputed embedding keys across shards. "
-                    f"Example duplicates: {list(sorted(duplicate_keys))[:5]}"
-                )
-            self.embedding_dict.update(shard)
+            shared_keys = set(self.embedding_dict).intersection(shard)
+            if shared_keys:
+                for key in sorted(shared_keys):
+                    existing = self.embedding_dict[key]
+                    incoming = shard[key]
+                    if existing.shape != incoming.shape:
+                        raise ValueError(
+                            f"Duplicate key {key} has mismatched shapes across shards: "
+                            f"{tuple(existing.shape)} vs {tuple(incoming.shape)}"
+                        )
+                    if not torch.equal(existing, incoming):
+                        raise ValueError(
+                            f"Duplicate key {key} has non-identical embeddings across shards."
+                        )
+                    duplicate_keys.append(key)
+            for key, value in shard.items():
+                self.embedding_dict.setdefault(key, value)
+
+        if duplicate_keys:
+            unique_dup_count = len(set(duplicate_keys))
+            print(
+                f"[INFO] Found {unique_dup_count} duplicated image keys across precomputed shards. "
+                f"These are expected padding duplicates from DistributedSampler and were deduplicated."
+            )
 
         data_by_image = defaultdict(dict)
         pattern = re.compile(r"image(\d+)_ch(\d+)\.png$")
