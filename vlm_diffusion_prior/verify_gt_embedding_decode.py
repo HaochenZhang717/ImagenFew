@@ -160,6 +160,27 @@ def load_precomputed_latent(precomputed_dir: str, image_name: str) -> torch.Tens
     return latent
 
 
+def compare_latents(reference: torch.Tensor, candidate: torch.Tensor):
+    if reference.shape != candidate.shape:
+        return {
+            "same_shape": False,
+            "shape_ref": tuple(reference.shape),
+            "shape_candidate": tuple(candidate.shape),
+        }
+
+    ref = reference.float().reshape(-1)
+    cand = candidate.float().reshape(-1)
+    cosine = torch.nn.functional.cosine_similarity(ref.unsqueeze(0), cand.unsqueeze(0)).item()
+    abs_diff = (ref - cand).abs()
+    return {
+        "same_shape": True,
+        "exact_equal": bool(torch.equal(reference, candidate)),
+        "max_abs_diff": float(abs_diff.max().item()),
+        "mean_abs_diff": float(abs_diff.mean().item()),
+        "cosine_similarity": float(cosine),
+    }
+
+
 def encode_image_online(
     image_path: str,
     processor: Qwen3VLProcessor,
@@ -278,6 +299,20 @@ def main():
     print(f"latent_shape: {tuple(latent.shape)} dtype={latent.dtype}")
     print(f"exact_match: {exact_match}")
     print(f"normalized_match: {normalized_match}")
+
+    if args.precomputed_dir:
+        vision_encoder = Qwen3VisionEncoder(MODEL_NAME).eval().to(device)
+        online_latent = encode_image_online(
+            image_path=args.image_path,
+            processor=processor,
+            vision_encoder=vision_encoder,
+            device=device,
+        )
+        latent_stats = compare_latents(online_latent.cpu(), latent.cpu())
+        print("\n=== Online vs Precomputed Latent ===")
+        for key, value in latent_stats.items():
+            print(f"{key}: {value}")
+
     print("\n=== Direct image caption ===")
     print(direct_text)
     print("\n=== GT embedding decode caption ===")
