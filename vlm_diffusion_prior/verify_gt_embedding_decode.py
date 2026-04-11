@@ -9,8 +9,8 @@ from stage1_model import Qwen3VisionEncoder, Stage1_Qwen3VLForConditionalGenerat
 
 
 MODEL_NAME = "Qwen/Qwen3-VL-8B-Instruct"
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DUMMY_IMAGE_PATH = os.path.join(SCRIPT_DIR, "dummy_image.png")
+MIN_PIXELS = 0
+MAX_PIXELS = 32 * 14 * 14
 
 PROMPT_TEXT = r"""
 You are given one time-series image for a single channel.
@@ -62,8 +62,8 @@ def build_message(image_path: str):
                 {
                     "type": "image",
                     "image": image_path,
-                    "min_pixels": 0,
-                    "max_pixels": 64 * 14 * 14,
+                    "min_pixels": MIN_PIXELS,
+                    "max_pixels": MAX_PIXELS,
                 },
                 {
                     "type": "text",
@@ -74,31 +74,12 @@ def build_message(image_path: str):
     ]]
 
 
-def build_dummy_inputs(
+def build_generation_inputs(
     processor: Qwen3VLProcessor,
-    batch_size: int,
+    image_path: str,
     device: torch.device,
 ):
-    prompt_messages = []
-    for _ in range(batch_size):
-        prompt_messages.append(
-            [{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "image": DUMMY_IMAGE_PATH,
-                        "min_pixels": 0,
-                        "max_pixels": 64 * 14 * 14,
-                    },
-                    {
-                        "type": "text",
-                        "text": PROMPT_TEXT,
-                    },
-                ],
-            }]
-        )
-
+    prompt_messages = build_message(image_path)
     texts = [
         processor.apply_chat_template(message, tokenize=False, add_generation_prompt=True)
         for message in prompt_messages
@@ -205,23 +186,28 @@ def encode_image_online(
 def decode_from_latent(
     stage1_model: Stage1_Qwen3VLForConditionalGeneration,
     processor: Qwen3VLProcessor,
+    image_path: str,
     latent_2d: torch.Tensor,
     device: torch.device,
     max_new_tokens: int,
 ) -> str:
     c, h, w = latent_2d.shape
     latent_tokens = latent_2d.unsqueeze(0).permute(0, 2, 3, 1).reshape(h * w, c).to(device)
-    dummy_batch = build_dummy_inputs(processor=processor, batch_size=1, device=device)
+    generation_inputs = build_generation_inputs(
+        processor=processor,
+        image_path=image_path,
+        device=device,
+    )
     with torch.no_grad():
         generated_ids = stage1_model.generate(
-            **dummy_batch,
+            **generation_inputs,
             shallow_visual_latent=latent_tokens,
             max_new_tokens=max_new_tokens,
             do_sample=False,
         )
 
     generated_ids_trimmed = [
-        out_ids[len(in_ids):] for in_ids, out_ids in zip(dummy_batch.input_ids, generated_ids)
+        out_ids[len(in_ids):] for in_ids, out_ids in zip(generation_inputs.input_ids, generated_ids)
     ]
     decoded = processor.batch_decode(
         generated_ids_trimmed,
@@ -277,6 +263,7 @@ def main():
     decoded_text = decode_from_latent(
         stage1_model=stage1_model,
         processor=processor,
+        image_path=args.image_path,
         latent_2d=latent,
         device=device,
         max_new_tokens=args.max_new_tokens,
