@@ -85,6 +85,7 @@ def main(args):
                         testset, class_label = dataset_loader.gen_dataloader(dataset)
                         handler.model.eval()
 
+
                         with torch.no_grad():
                             generated_sets = handler.sample_variants(len(testset), class_label, metadatas[dataset], testset)
                         real_set = testset.cpu().detach().numpy()
