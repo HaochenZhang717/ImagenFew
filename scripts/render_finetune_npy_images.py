@@ -45,10 +45,11 @@ def plot_one(task):
 
     for seg_idx, ax in enumerate(axes):
         ax.plot(t, segments[seg_idx], linewidth=line_width)
-        ax.margins(x=0.08, y=0.12)
+        ax.margins(x=0.15, y=0.22)
+        ax.set_xlim(0, 24)
         ax.set_yticks([])
         if x_tick_step and x_tick_step > 0:
-            ax.set_xticks(np.arange(0, segment_len, x_tick_step))
+            ax.set_xticks(np.arange(0, 25, x_tick_step))
             ax.tick_params(axis="x", labelsize=8, width=1, length=3, pad=1)
         elif not x_label:
             ax.set_xticks([])
@@ -59,7 +60,7 @@ def plot_one(task):
             spine.set_linewidth(1)
             spine.set_color("black")
 
-    plt.subplots_adjust(left=0.08, right=0.92, top=0.90, bottom=0.22, wspace=0.02, hspace=0)
+    plt.subplots_adjust(left=0.14, right=0.86, top=0.84, bottom=0.28, wspace=0.02, hspace=0)
     plt.savefig(
         os.path.join(save_dir, f"image{sample_idx}_ch{channel_idx}.png"),
         dpi=dpi,
