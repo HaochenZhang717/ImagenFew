@@ -383,14 +383,15 @@ class Qwen3VisionEncoder(nn.Module):
         image_embeds, deepstack_embeds = get_narrow_latent(self.visual, pixel_values, grid_thw=image_grid_thw)
         # image_embeds, deepstack_embeds = self.visual(pixel_values, grid_thw=image_grid_thw)
 
-        split_sizes = (image_grid_thw.prod(-1) // self.visual.spatial_merge_size ** 2).tolist()
+        grid_thw_cpu = image_grid_thw.to(device="cpu", dtype=torch.long).contiguous()
+        split_sizes = (grid_thw_cpu.prod(-1) // self.visual.spatial_merge_size ** 2).tolist()
         image_embeds = torch.split(image_embeds, split_sizes)
 
         image_embeds = torch.stack(image_embeds, dim=0)  # (B, L, D)
 
         merge = self.visual.spatial_merge_size
-        H = image_grid_thw[0, 1].item() // merge
-        W = image_grid_thw[0, 2].item() // merge
+        H = grid_thw_cpu[0, 1].item() // merge
+        W = grid_thw_cpu[0, 2].item() // merge
 
         B, L, D = image_embeds.shape
         image_embeds = image_embeds.reshape(B, H, W, D).permute(0, 3, 1, 2)
@@ -841,4 +842,3 @@ if __name__ == "__main__":
     latents = test_narrow_latent()
     test_same_text_output(latents)
     test_same_text_output(None)
-
