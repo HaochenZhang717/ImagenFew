@@ -63,9 +63,8 @@ def load_existing_image_set(jsonl_path):
     return existing
 
 
-@torch.no_grad()
-def caption_one_image(dataset_name: str, image_path: str) -> str:
-    messages = [
+def build_message(image_path: str):
+    return [
         {
             "role": "user",
             "content": [
@@ -84,6 +83,9 @@ def caption_one_image(dataset_name: str, image_path: str) -> str:
     ]
 
 
+@torch.no_grad()
+def caption_one_image(dataset_name: str, image_path: str) -> str:
+    messages = build_message(image_path)
     text = processor.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
@@ -119,6 +121,43 @@ def caption_one_image(dataset_name: str, image_path: str) -> str:
     return output_text[0].strip()
 
 
+@torch.no_grad()
+def caption_image_batch(image_paths):
+    messages_batch = [build_message(image_path) for image_path in image_paths]
+    texts = [
+        processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        for messages in messages_batch
+    ]
+
+    image_inputs, video_inputs = process_vision_info(messages_batch)
+    inputs = processor(
+        text=texts,
+        images=image_inputs,
+        videos=video_inputs,
+        padding=True,
+        return_tensors="pt",
+    ).to(device)
+
+    generated_ids = model.generate(
+        **inputs,
+        max_new_tokens=max_new_tokens,
+        do_sample=True,
+        temperature=1.0,
+        top_p=1.0,
+    )
+
+    generated_ids_trimmed = [
+        out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+    ]
+
+    output_texts = processor.batch_decode(
+        generated_ids_trimmed,
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=False,
+    )
+    return [text.strip() for text in output_texts]
+
+
 def split_range(total, part_id, num_parts):
     """
     Split [0, total) into num_parts nearly-equal contiguous chunks.
@@ -138,6 +177,8 @@ def main():
     parser.add_argument("--split", type=str, required=True,)
     parser.add_argument("--dataset_name", type=str, required=True,)
     parser.add_argument("--save_dir", type=str, required=True,)
+    parser.add_argument("--quiet", action="store_true", help="Reduce per-image stdout logging")
+    parser.add_argument("--batch-size", type=int, default=4, help="Number of images to caption per forward pass")
 
     args = parser.parse_args()
 
@@ -166,56 +207,65 @@ def main():
     num_success = 0
     num_fail = 0
 
-    for img_path in tqdm(png_files, desc=f"Captioning part {args.part_id}"):
+    pending_png_files = []
+    for img_path in png_files:
         img_name = os.path.basename(img_path)
-        if img_name in processed_images:
-            continue
+        if img_name not in processed_images:
+            pending_png_files.append(img_path)
 
-        caption = caption_one_image(dataset_name=args.dataset_name, image_path=img_path)
-        print(f"[INFO] Processing {img_path}")
-        print(caption)
-        record = {
-            "image": img_name,
-            "image_path": img_path,
-            "caption": caption,
-            "model": model_name,
-            "part_id": args.part_id,
-        }
+    for start in tqdm(range(0, len(pending_png_files), args.batch_size), desc=f"Captioning part {args.part_id}"):
+        batch_paths = pending_png_files[start:start + args.batch_size]
+        batch_names = [os.path.basename(path) for path in batch_paths]
 
-        fout.write(json.dumps(record, ensure_ascii=False) + "\n")
-        fout.flush()
-        num_success += 1
+        try:
+            captions = caption_image_batch(batch_paths)
+            for img_path, img_name, caption in zip(batch_paths, batch_names, captions):
+                if not args.quiet:
+                    print(f"[INFO] Processing {img_path}")
+                    print(caption)
+                record = {
+                    "image": img_name,
+                    "image_path": img_path,
+                    "caption": caption,
+                    "model": model_name,
+                    "part_id": args.part_id,
+                }
+                fout.write(json.dumps(record, ensure_ascii=False) + "\n")
+                fout.flush()
+                num_success += 1
 
+        except Exception as batch_error:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
-        # try:
-        #     caption = caption_one_image(dataset_name=args.dataset_name, image_path=img_path)
-        #     print(f"[INFO] Processing {img_path}")
-        #     print(caption)
-        #     record = {
-        #         "image": img_name,
-        #         "image_path": img_path,
-        #         "caption": caption,
-        #         "model": model_name,
-        #         "part_id": args.part_id,
-        #     }
-        #
-        #     fout.write(json.dumps(record, ensure_ascii=False) + "\n")
-        #     fout.flush()
-        #     num_success += 1
-        #
-        # except Exception as e:
-        #     err_record = {
-        #         "image": img_name,
-        #         "image_path": img_path,
-        #         "error": str(e),
-        #         "part_id": args.part_id,
-        #     }
-        #     ferr.write(json.dumps(err_record, ensure_ascii=False) + "\n")
-        #     ferr.flush()
-        #     num_fail += 1
-        #
-        #     if torch.cuda.is_available():
-        #         torch.cuda.empty_cache()
+            for img_path, img_name in zip(batch_paths, batch_names):
+                try:
+                    caption = caption_one_image(dataset_name=args.dataset_name, image_path=img_path)
+                    if not args.quiet:
+                        print(f"[INFO] Processing {img_path}")
+                        print(caption)
+                    record = {
+                        "image": img_name,
+                        "image_path": img_path,
+                        "caption": caption,
+                        "model": model_name,
+                        "part_id": args.part_id,
+                    }
+                    fout.write(json.dumps(record, ensure_ascii=False) + "\n")
+                    fout.flush()
+                    num_success += 1
+                except Exception as image_error:
+                    err_record = {
+                        "image": img_name,
+                        "image_path": img_path,
+                        "error": f"batch_error={str(batch_error)} | image_error={str(image_error)}",
+                        "part_id": args.part_id,
+                    }
+                    ferr.write(json.dumps(err_record, ensure_ascii=False) + "\n")
+                    ferr.flush()
+                    num_fail += 1
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
 
     fout.close()
     ferr.close()
