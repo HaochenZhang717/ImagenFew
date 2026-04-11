@@ -36,9 +36,9 @@ case "${DATASET}" in
     ;;
 esac
 
-USE_PRECOMPUTED="${USE_PRECOMPUTED:-1}"
+USE_PRECOMPUTED="${USE_PRECOMPUTED:-0}"
 
-export HF_HOME="${HF_HOME:-/playpen/haochenz/hf_cache}"
+export HF_HOME="${HF_HOME:-/playpen-shared/haochenz/hf_cache}"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-$GPU_ID}"
 export TOKENIZERS_PARALLELISM=false
 export EXPERIMENT_NAME="${EXPERIMENT_NAME:-DiTDH-S-${DATASET}-debug}"

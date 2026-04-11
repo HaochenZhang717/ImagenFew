@@ -9,7 +9,7 @@ CONFIG="${CONFIG:-DiTDH-S-mujoco.yaml}"
 IMAGE_PATH="${IMAGE_PATH:-$ROOT_DIR/../logs/finetune_dataset_images/mujoco/train}"
 RESULTS_DIR="${RESULTS_DIR:-$ROOT_DIR/../logs/vlm_diffusion_prior/mujoco/DiTDH-S}"
 PRECOMPUTED_DIR="${PRECOMPUTED_DIR:-$ROOT_DIR/../logs/vlm_diffusion_prior/mujoco/precomputed_vision_embeds}"
-USE_PRECOMPUTED="${USE_PRECOMPUTED:-1}"
+USE_PRECOMPUTED="${USE_PRECOMPUTED:-0}"
 NUM_CH="${NUM_CH:-14}"
 
 export HF_HOME="${HF_HOME:-/playpen-shared/haochenz/hf_cache}"
