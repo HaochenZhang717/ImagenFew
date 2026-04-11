@@ -338,13 +338,7 @@ def main():
             #     scheduler,
             # )
         for step, batch in tqdm(enumerate(loader)):
-            # print(batch.shape)
-            # batch = batch.to(device)
-
             z = batch_to_latents(batch, device, vision_encoder)
-            # print(z.shape)
-            print(f"z.shape = {z.shape}")
-            breakpoint()
             optimizer.zero_grad(set_to_none=True)
             with autocast(**autocast_kwargs):
                 loss = transport.training_losses(ddp_model, z)["loss"].mean()
