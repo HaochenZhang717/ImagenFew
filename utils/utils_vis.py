@@ -1,8 +1,11 @@
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import seaborn as sns
+from pathlib import Path
 
 from scipy.spatial import distance
 
@@ -116,5 +119,133 @@ def jensen_shannon_divergence(prep_ori, prep_gen,logger):
     logger.log('JSD', distance.jensenshannon(p, q))
 
 
+def save_sample_channel_plots(
+    data,
+    save_dir,
+    max_samples=None,
+    dpi=100,
+    figsize=(2, 2),
+    prefix="sample",
+):
+    """
+    Save one figure per sample/channel pair.
+
+    Expected sample shape is (seq_len, channels) or (channels, seq_len).
+    Supported inputs:
+        - torch.Tensor / np.ndarray with shape (N, L, C) or (N, C, L)
+        - dataset object where dataset[idx] returns a sample tensor/array or (sample, label)
+
+    Files are saved as:
+        save_dir/
+            sample_00000/
+                channel_000.png
+                channel_001.png
+                ...
+    """
+    try:
+        import torch
+    except ImportError:  # pragma: no cover
+        torch = None
+
+    save_dir = Path(save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    def _to_numpy(sample):
+        if isinstance(sample, (tuple, list)):
+            sample = sample[0]
+        if torch is not None and isinstance(sample, torch.Tensor):
+            sample = sample.detach().cpu().numpy()
+        else:
+            sample = np.asarray(sample)
+        if sample.ndim != 2:
+            raise ValueError(f"Each sample must be 2D, but got shape {sample.shape}.")
+        return sample
+
+    def _normalize_shape(sample):
+        # We expect (seq_len, channels); if channels-first is more likely, transpose it.
+        if sample.shape[0] < sample.shape[1]:
+            sample = sample
+        else:
+            sample = sample.T
+        return sample
+
+    if torch is not None and isinstance(data, torch.Tensor):
+        total_samples = data.shape[0]
+        get_sample = lambda idx: data[idx]
+    elif isinstance(data, np.ndarray):
+        total_samples = data.shape[0]
+        get_sample = lambda idx: data[idx]
+    else:
+        total_samples = len(data)
+        get_sample = lambda idx: data[idx]
+
+    if max_samples is not None:
+        total_samples = min(total_samples, int(max_samples))
+
+    for sample_idx in range(total_samples):
+        sample = _normalize_shape(_to_numpy(get_sample(sample_idx)))
+        sample_dir = save_dir / f"{prefix}_{sample_idx:05d}"
+        sample_dir.mkdir(parents=True, exist_ok=True)
+
+        seq_len, channels = sample.shape
+        x_axis = np.arange(seq_len)
+
+        for channel_idx in range(channels):
+            fig, ax = plt.subplots(figsize=figsize)
+            ax.plot(x_axis, sample[:, channel_idx], linewidth=1.2)
+            # ax.set_title(f"{prefix} {sample_idx} | channel {channel_idx}")
+            ax.set_xlabel("time")
+            ax.set_ylabel("value")
+            ax.grid(alpha=0.3)
+            fig.tight_layout()
+            fig.savefig(sample_dir / f"channel_{channel_idx:03d}.png", dpi=dpi)
+            plt.close(fig)
+
+
+def sample_to_numpy_2d(sample):
+    try:
+        import torch
+    except ImportError:  # pragma: no cover
+        torch = None
+
+    if isinstance(sample, (tuple, list)):
+        sample = sample[0]
+    if torch is not None and isinstance(sample, torch.Tensor):
+        sample = sample.detach().cpu().numpy()
+    else:
+        sample = np.asarray(sample)
+    if sample.ndim != 2:
+        raise ValueError(f"Each sample must be 2D, but got shape {sample.shape}.")
+    if sample.shape[0] >= sample.shape[1]:
+        return sample
+    return sample.T
+
+
+def save_one_sample_channel_plots(
+    sample,
+    sample_idx,
+    save_dir,
+    dpi=150,
+    figsize=(8, 3),
+    prefix="sample",
+):
+    sample = sample_to_numpy_2d(sample)
+    save_dir = Path(save_dir)
+    sample_dir = save_dir / f"{prefix}_{sample_idx:05d}"
+    sample_dir.mkdir(parents=True, exist_ok=True)
+
+    seq_len, channels = sample.shape
+    x_axis = np.arange(seq_len)
+
+    for channel_idx in range(channels):
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.plot(x_axis, sample[:, channel_idx], linewidth=1.2)
+        ax.set_title(f"{prefix} {sample_idx} | channel {channel_idx}")
+        ax.set_xlabel("time")
+        ax.set_ylabel("value")
+        ax.grid(alpha=0.3)
+        fig.tight_layout()
+        fig.savefig(sample_dir / f"channel_{channel_idx:03d}.png", dpi=dpi)
+        plt.close(fig)
 
 

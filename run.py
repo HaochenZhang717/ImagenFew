@@ -74,33 +74,41 @@ def main(args):
             # --- evaluation loop ---
             if epoch % args.logging_iter == 0:
                 if not args.no_test_model:
-                    scores_mean = {'disc_mean': [], 'disc_std': [], 'pred_mean': [], 'pred_std': [], 'context_fid': []}
+                    sample_source = str(getattr(args, "sample_source", "prior" if getattr(args, "prior_ckpt", None) else "posterior")).lower()
+                    eval_variants = ["prior", "posterior"] if sample_source == "both" else [sample_source]
+                    scores_mean = {
+                        variant: {'disc_mean': [], 'disc_std': [], 'pred_mean': [], 'pred_std': [], 'context_fid': []}
+                        for variant in eval_variants
+                    }
                     for dataset in args.train_on_datasets:
                         args.dataset = dataset
                         testset, class_label = dataset_loader.gen_dataloader(dataset)
                         handler.model.eval()
 
                         with torch.no_grad():
-                            generated_set = handler.sample(len(testset), class_label, metadatas[dataset], testset)
-                        generated_set = generated_set.cpu().detach().numpy()
+                            generated_sets = handler.sample_variants(len(testset), class_label, metadatas[dataset], testset)
                         real_set = testset.cpu().detach().numpy()
-                        scores = evaluate_model_uncond(real_set, generated_set, dataset, args.device, args.eval_metrics, base_path=args.ts2vec_dir)
-                        scores_mean['disc_mean'].append(scores[f'disc_mean'])
-                        scores_mean['disc_std'].append(scores[f'disc_std'])
-                        scores_mean['pred_mean'].append(scores[f'pred_mean'])
-                        scores_mean['pred_std'].append(scores[f'pred_std'])
-                        scores_mean['context_fid'].append(scores[f'context_fid'])
-                        for key, value in scores.items():
-                            logger.log(f'test/{dataset}_{key}', value, step=epoch)
+                        for variant_name, generated_set in generated_sets.items():
+                            generated_set = generated_set.cpu().detach().numpy()
+                            scores = evaluate_model_uncond(real_set, generated_set, dataset, args.device, args.eval_metrics, base_path=args.ts2vec_dir)
+                            scores_mean[variant_name]['disc_mean'].append(scores[f'disc_mean'])
+                            scores_mean[variant_name]['disc_std'].append(scores[f'disc_std'])
+                            scores_mean[variant_name]['pred_mean'].append(scores[f'pred_mean'])
+                            scores_mean[variant_name]['pred_std'].append(scores[f'pred_std'])
+                            scores_mean[variant_name]['context_fid'].append(scores[f'context_fid'])
+                            for key, value in scores.items():
+                                logger.log(f'test/{variant_name}/{dataset}_{key}', value, step=epoch)
                     if is_main_process():
-                        logger.log(f'test/disc_mean', np.mean(scores_mean['disc_mean']), step=epoch)
-                        logger.log(f'test/disc_std', np.mean(scores_mean['disc_std']), step=epoch)
-                        logger.log(f'test/pred_mean', np.mean(scores_mean['pred_mean']), step=epoch)
-                        logger.log(f'test/pred_std', np.mean(scores_mean['pred_std']), step=epoch)
-                        logger.log(f'test/context_fid', np.mean(scores_mean['context_fid']), step=epoch)
+                        for variant_name, variant_scores in scores_mean.items():
+                            logger.log(f'test/{variant_name}/disc_mean', np.mean(variant_scores['disc_mean']), step=epoch)
+                            logger.log(f'test/{variant_name}/disc_std', np.mean(variant_scores['disc_std']), step=epoch)
+                            logger.log(f'test/{variant_name}/pred_mean', np.mean(variant_scores['pred_mean']), step=epoch)
+                            logger.log(f'test/{variant_name}/pred_std', np.mean(variant_scores['pred_std']), step=epoch)
+                            logger.log(f'test/{variant_name}/context_fid', np.mean(variant_scores['context_fid']), step=epoch)
 
                         # --- save checkpoint ---
-                        disc_mean = np.mean(scores_mean['disc_mean'])
+                        save_variant = "prior" if "prior" in scores_mean else eval_variants[0]
+                        disc_mean = np.mean(scores_mean[save_variant]['disc_mean'])
                         if disc_mean < best_score:
                             best_score = disc_mean
                             handler.best_score = best_score

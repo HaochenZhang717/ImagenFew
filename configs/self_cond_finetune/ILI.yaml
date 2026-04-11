@@ -16,6 +16,7 @@ pretrain_path: ./logs/self_conditional_generator/pretrain/2133314a-ddb0-4f5f-b1e
 pretrained_vae_weights: ./logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE
 prior_ckpt: ./logs/diffusion_prior/dit1d_base_finetune/ILI/diffusion_prior_latest.pt
 prior_use_ema: true
+sample_source: both
 sampler:
   mode: ODE
   params:

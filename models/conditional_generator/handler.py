@@ -188,6 +188,27 @@ class Handler(generativeHandler):
         Generate n_samples time series conditioned on class_label (int).
         Returns: (n_samples, seq_len, n_var) on CPU.
         """
+        sample_source = self._get_sample_source()
+        if sample_source == "prior":
+            return self._sample_with_prior(n_samples, class_metadata)
+        if sample_source == "posterior":
+            return self._sample_with_posterior(n_samples, class_metadata, test_data)
+        if sample_source == "both":
+            return self._sample_with_prior(n_samples, class_metadata)
+        raise ValueError(f"Unsupported sample_source: {sample_source}")
+
+    def sample_variants(self, n_samples, class_label, class_metadata, test_data):
+        sample_source = self._get_sample_source()
+        if sample_source == "both":
+            return {
+                "prior": self._sample_with_prior(n_samples, class_metadata),
+                "posterior": self._sample_with_posterior(n_samples, class_metadata, test_data),
+            }
+        return {
+            sample_source: self.sample(n_samples, class_label, class_metadata, test_data),
+        }
+
+    def _sample_with_prior(self, n_samples, class_metadata):
         n_var = class_metadata["channels"]
         seq_len = self.args.seq_len
         batch_size = getattr(self.args, "batch_size", 128)
@@ -201,13 +222,30 @@ class Handler(generativeHandler):
 
             while remaining > 0:
                 bs = min(batch_size, remaining)
-                if getattr(self.args, "prior_ckpt", None):
-                    context = self._sample_prior_context(bs)
-                    samples = self._model.generate_from_context(context, seq_len, n_var)
-                else:
-                    indices = torch.randperm(test_data.shape[0]).to(test_data.device)
-                    test_batch = test_data[indices[:bs]].to(device=self.device, dtype=torch.float32)
-                    samples = self._model.generate(bs, test_batch, seq_len, n_var)
+                context = self._sample_prior_context(bs)
+                samples = self._model.generate_from_context(context, seq_len, n_var)
+                generated.append(samples)
+                remaining -= bs
+
+        return torch.cat(generated, dim=0)
+
+    def _sample_with_posterior(self, n_samples, class_metadata, test_data):
+        n_var = class_metadata["channels"]
+        seq_len = self.args.seq_len
+        batch_size = getattr(self.args, "batch_size", 128)
+        self._model.eval()
+
+        generated = []
+        remaining = n_samples
+        if test_data is None:
+            raise ValueError("test_data must be provided for posterior sampling.")
+
+        with self._model.ema_scope(), torch.no_grad():
+            while remaining > 0:
+                bs = min(batch_size, remaining)
+                indices = torch.randperm(test_data.shape[0], device=test_data.device)[:bs]
+                test_batch = test_data[indices].to(device=self.device, dtype=torch.float32)
+                samples = self._model.generate(bs, test_batch, seq_len, n_var)
                 generated.append(samples)
                 remaining -= bs
 
@@ -430,6 +468,18 @@ class Handler(generativeHandler):
             "rtol": float(getattr(self.args, "prior_rtol", 1e-3)),
             "reverse": bool(getattr(self.args, "prior_reverse", False)),
         }
+
+    def _get_sample_source(self):
+        sample_source = getattr(self.args, "sample_source", None)
+        if sample_source is None:
+            return "prior" if getattr(self.args, "prior_ckpt", None) else "posterior"
+
+        sample_source = str(sample_source).lower()
+        if sample_source == "prior" and not getattr(self.args, "prior_ckpt", None):
+            raise ValueError("sample_source='prior' requires prior_ckpt to be set.")
+        if sample_source not in {"prior", "posterior", "both"}:
+            raise ValueError("sample_source must be one of {'prior', 'posterior', 'both'}.")
+        return sample_source
 
     def _init_scheduler(self, train_dataloader):
         steps_per_epoch = max(1, len(train_dataloader))
