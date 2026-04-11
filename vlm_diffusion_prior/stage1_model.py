@@ -142,11 +142,13 @@ def build_template_inputs(
 
 def get_narrow_latent(model, hidden_states, grid_thw, **kwargs):
     hidden_states = model.patch_embed(hidden_states)
+    grid_thw_cpu = grid_thw.to(device="cpu", dtype=torch.long).contiguous()
+    hidden_device = hidden_states.device
 
-    pos_embeds = model.fast_pos_embed_interpolate(grid_thw)
+    pos_embeds = model.fast_pos_embed_interpolate(grid_thw_cpu).to(hidden_device)
     hidden_states = hidden_states + pos_embeds
 
-    rotary_pos_emb = model.rot_pos_emb(grid_thw)
+    rotary_pos_emb = model.rot_pos_emb(grid_thw_cpu).to(hidden_device)
 
     seq_len, _ = hidden_states.size()
     # print(f"seq_len: {seq_len}")
@@ -156,15 +158,17 @@ def get_narrow_latent(model, hidden_states, grid_thw, **kwargs):
     emb = torch.cat((rotary_pos_emb, rotary_pos_emb), dim=-1)
     position_embeddings = (emb.cos(), emb.sin())
 
-    cu_seqlens = torch.repeat_interleave(grid_thw[:, 1] * grid_thw[:, 2], grid_thw[:, 0]).cumsum(
+    cu_seqlens = torch.repeat_interleave(
+        grid_thw_cpu[:, 1] * grid_thw_cpu[:, 2], grid_thw_cpu[:, 0]
+    ).cumsum(
         dim=0,
         # Select dtype based on the following factors:
         #  - FA2 requires that cu_seqlens_q must have dtype int32
         #  - torch.onnx.export requires that cu_seqlens_q must have same dtype as grid_thw
         # See https://github.com/huggingface/transformers/pull/34852 for more information
-        dtype=grid_thw.dtype if torch.jit.is_tracing() else torch.int32,
+        dtype=grid_thw_cpu.dtype if torch.jit.is_tracing() else torch.int32,
     )
-    cu_seqlens = F.pad(cu_seqlens, (1, 0), value=0)
+    cu_seqlens = F.pad(cu_seqlens, (1, 0), value=0).to(hidden_device)
 
     deepstack_feature_lists = []
     # print(f"grid_thw.shape={grid_thw.shape}")
@@ -199,23 +203,28 @@ def generated_latent_feed_visual_encoder(
         **kwargs
 ):
     hidden_states = model.patch_embed(hidden_states)
-    pos_embeds = model.fast_pos_embed_interpolate(grid_thw)
+    grid_thw_cpu = grid_thw.to(device="cpu", dtype=torch.long).contiguous()
+    hidden_device = hidden_states.device
+
+    pos_embeds = model.fast_pos_embed_interpolate(grid_thw_cpu).to(hidden_device)
     hidden_states = hidden_states + pos_embeds
-    rotary_pos_emb = model.rot_pos_emb(grid_thw)
+    rotary_pos_emb = model.rot_pos_emb(grid_thw_cpu).to(hidden_device)
     seq_len, _ = hidden_states.size()
     hidden_states = hidden_states.reshape(seq_len, -1)
     rotary_pos_emb = rotary_pos_emb.reshape(seq_len, -1)
     emb = torch.cat((rotary_pos_emb, rotary_pos_emb), dim=-1)
     position_embeddings = (emb.cos(), emb.sin())
-    cu_seqlens = torch.repeat_interleave(grid_thw[:, 1] * grid_thw[:, 2], grid_thw[:, 0]).cumsum(
+    cu_seqlens = torch.repeat_interleave(
+        grid_thw_cpu[:, 1] * grid_thw_cpu[:, 2], grid_thw_cpu[:, 0]
+    ).cumsum(
         dim=0,
         # Select dtype based on the following factors:
         #  - FA2 requires that cu_seqlens_q must have dtype int32
         #  - torch.onnx.export requires that cu_seqlens_q must have same dtype as grid_thw
         # See https://github.com/huggingface/transformers/pull/34852 for more information
-        dtype=grid_thw.dtype if torch.jit.is_tracing() else torch.int32,
+        dtype=grid_thw_cpu.dtype if torch.jit.is_tracing() else torch.int32,
     )
-    cu_seqlens = F.pad(cu_seqlens, (1, 0), value=0)
+    cu_seqlens = F.pad(cu_seqlens, (1, 0), value=0).to(hidden_device)
 
 
     # print(f"position_embeddings.shape: {position_embeddings[0].shape}; position_embeddings.shape: {position_embeddings[1].shape}")
@@ -832,5 +841,4 @@ if __name__ == "__main__":
     latents = test_narrow_latent()
     test_same_text_output(latents)
     test_same_text_output(None)
-
 
