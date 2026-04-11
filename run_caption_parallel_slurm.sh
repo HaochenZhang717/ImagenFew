@@ -43,5 +43,7 @@ export SAVE_ROOT="${SAVE_ROOT:-./logs/finetune_captions}"
 export LOG_ROOT="${LOG_ROOT:-./logs/finetune_caption_logs}"
 export QUIET="${QUIET:-1}"
 export BATCH_SIZE="${BATCH_SIZE:-4}"
+export MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-64}"
+export DO_SAMPLE="${DO_SAMPLE:-0}"
 
 bash scripts/run_caption_parallel.sh

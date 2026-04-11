@@ -15,6 +15,8 @@ GPU_IDS=(${GPU_IDS:-0 1 2 3})
 NUM_PARTS="${NUM_PARTS:-${#GPU_IDS[@]}}"
 QUIET="${QUIET:-1}"
 BATCH_SIZE="${BATCH_SIZE:-4}"
+MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-64}"
+DO_SAMPLE="${DO_SAMPLE:-0}"
 
 if [[ "$NUM_PARTS" -lt 1 ]]; then
   echo "NUM_PARTS must be >= 1" >&2
@@ -79,7 +81,11 @@ for ((start=0; start<${#TASKS[@]}; start+=${#GPU_IDS[@]})); do
       --dataset_name "$dataset"
       --save_dir "$save_dir"
       --batch-size "$BATCH_SIZE"
+      --max-new-tokens "$MAX_NEW_TOKENS"
     )
+    if [[ "$DO_SAMPLE" == "1" ]]; then
+      cmd+=(--do-sample)
+    fi
     if [[ "$QUIET" == "1" ]]; then
       cmd+=(--quiet)
     fi

@@ -13,10 +13,7 @@ from qwen_vl_utils import process_vision_info
 # ==============================
 model_name = "Qwen/Qwen3-VL-8B-Instruct"
 device = "cuda" if torch.cuda.is_available() else "cpu"
-
-
-
-max_new_tokens = 1024
+DEFAULT_MAX_NEW_TOKENS = 64
 
 # MIN_PIXELS = 16 * 14 * 14
 MIN_PIXELS = 0
@@ -65,6 +62,18 @@ processor = AutoProcessor.from_pretrained(model_name)
 print("[INFO] Model loaded successfully.")
 
 
+def get_generation_kwargs(max_new_tokens: int, do_sample: bool):
+    generation_kwargs = {
+        "max_new_tokens": max_new_tokens,
+        "do_sample": do_sample,
+        "use_cache": True,
+    }
+    if do_sample:
+        generation_kwargs["temperature"] = 1.0
+        generation_kwargs["top_p"] = 1.0
+    return generation_kwargs
+
+
 def load_existing_image_set(jsonl_path):
     existing = set()
     if not os.path.exists(jsonl_path):
@@ -101,8 +110,13 @@ def build_message(image_path: str):
     ]
 
 
-@torch.no_grad()
-def caption_one_image(dataset_name: str, image_path: str) -> str:
+@torch.inference_mode()
+def caption_one_image(
+    dataset_name: str,
+    image_path: str,
+    max_new_tokens: int,
+    do_sample: bool,
+) -> str:
     messages = build_message(image_path)
     text = processor.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
@@ -115,16 +129,8 @@ def caption_one_image(dataset_name: str, image_path: str) -> str:
         videos=video_inputs,
         padding=True,
         return_tensors="pt",
-    ).to(device)
-    # breakpoint()
-    generated_ids = model.generate(
-        **inputs,
-        max_new_tokens=max_new_tokens,
-        do_sample=True,
-        temperature=1.0,
-        top_p=1.0,
-
-    )
+    ).to(device, non_blocking=True)
+    generated_ids = model.generate(**inputs, **get_generation_kwargs(max_new_tokens, do_sample))
 
     generated_ids_trimmed = [
         out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
@@ -139,8 +145,8 @@ def caption_one_image(dataset_name: str, image_path: str) -> str:
     return output_text[0].strip()
 
 
-@torch.no_grad()
-def caption_image_batch(image_paths):
+@torch.inference_mode()
+def caption_image_batch(image_paths, max_new_tokens: int, do_sample: bool):
     messages_batch = [build_message(image_path) for image_path in image_paths]
     texts = [
         processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
@@ -154,15 +160,9 @@ def caption_image_batch(image_paths):
         videos=video_inputs,
         padding=True,
         return_tensors="pt",
-    ).to(device)
+    ).to(device, non_blocking=True)
 
-    generated_ids = model.generate(
-        **inputs,
-        max_new_tokens=max_new_tokens,
-        do_sample=True,
-        temperature=1.0,
-        top_p=1.0,
-    )
+    generated_ids = model.generate(**inputs, **get_generation_kwargs(max_new_tokens, do_sample))
 
     generated_ids_trimmed = [
         out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
@@ -197,6 +197,17 @@ def main():
     parser.add_argument("--save_dir", type=str, required=True,)
     parser.add_argument("--quiet", action="store_true", help="Reduce per-image stdout logging")
     parser.add_argument("--batch-size", type=int, default=4, help="Number of images to caption per forward pass")
+    parser.add_argument(
+        "--max-new-tokens",
+        type=int,
+        default=DEFAULT_MAX_NEW_TOKENS,
+        help="Maximum number of newly generated tokens per caption",
+    )
+    parser.add_argument(
+        "--do-sample",
+        action="store_true",
+        help="Use stochastic decoding. Default is greedy decoding for faster, more stable captions.",
+    )
 
     args = parser.parse_args()
 
@@ -236,7 +247,11 @@ def main():
         batch_names = [os.path.basename(path) for path in batch_paths]
 
         try:
-            captions = caption_image_batch(batch_paths)
+            captions = caption_image_batch(
+                batch_paths,
+                max_new_tokens=args.max_new_tokens,
+                do_sample=args.do_sample,
+            )
             for img_path, img_name, caption in zip(batch_paths, batch_names, captions):
                 if not args.quiet:
                     print(f"[INFO] Processing {img_path}")
@@ -249,8 +264,8 @@ def main():
                     "part_id": args.part_id,
                 }
                 fout.write(json.dumps(record, ensure_ascii=False) + "\n")
-                fout.flush()
                 num_success += 1
+            fout.flush()
 
         except Exception as batch_error:
             if torch.cuda.is_available():
@@ -258,7 +273,12 @@ def main():
 
             for img_path, img_name in zip(batch_paths, batch_names):
                 try:
-                    caption = caption_one_image(dataset_name=args.dataset_name, image_path=img_path)
+                    caption = caption_one_image(
+                        dataset_name=args.dataset_name,
+                        image_path=img_path,
+                        max_new_tokens=args.max_new_tokens,
+                        do_sample=args.do_sample,
+                    )
                     if not args.quiet:
                         print(f"[INFO] Processing {img_path}")
                         print(caption)
@@ -280,10 +300,10 @@ def main():
                         "part_id": args.part_id,
                     }
                     ferr.write(json.dumps(err_record, ensure_ascii=False) + "\n")
-                    ferr.flush()
                     num_fail += 1
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
+            ferr.flush()
 
     fout.close()
     ferr.close()
