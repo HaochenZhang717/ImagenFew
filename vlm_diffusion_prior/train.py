@@ -338,7 +338,7 @@ def main():
             #     scheduler,
             # )
         for step, batch in tqdm(enumerate(loader)):
-            print(batch.shape)
+            # print(batch.shape)
             # batch = batch.to(device)
 
             z = batch_to_latents(batch, device, vision_encoder)
