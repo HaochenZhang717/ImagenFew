@@ -69,7 +69,7 @@ def main(args):
                 dist.barrier()
 
             # --- train loop ---
-            # handler.train_iter(dataset_loader, logger)
+            handler.train_iter(dataset_loader, logger)
 
             # --- evaluation loop ---
             if epoch % args.logging_iter == 0:

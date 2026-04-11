@@ -68,6 +68,8 @@ class Handler(generativeHandler):
         self._prior_sample_fn = None
         self._prior_seq_len = None
         self._prior_token_dim = None
+        self._prior_context_cache = None
+        self._prior_context_cursor = 0
 
         resume_ckpt = getattr(self.args, "resume_ckpt", None)
         if getattr(self.args, "pretrain", False) and resume_ckpt is None:
@@ -86,7 +88,7 @@ class Handler(generativeHandler):
         model = SelfConditionalGenerator(configs)
         if getattr(self.args, "pretrain_path", None):
             ckpt_state_dict = torch.load(self.args.pretrain_path, map_location="cpu")
-            # todo: here I use the old checkpoint, and I forgot to save ema_model. I can only use "model"
+
             pretrained_state = ckpt_state_dict.get("model", ckpt_state_dict)
 
             diff_model_state = {
@@ -94,6 +96,14 @@ class Handler(generativeHandler):
                 for key, value in pretrained_state.items()
                 if key.startswith("diff_model.")
             }
+
+            ema_diff_model_state = ckpt_state_dict.get("ema_model")
+
+            print(f"diff_model_state: {len(diff_model_state.keys())}")
+            if ema_diff_model_state:
+                print(f"ema_diff_model_state: {len(ema_diff_model_state.keys())}")
+
+
             multi_scale_vae_state = {
                 key[len("multi_scale_vae."):]: value
                 for key, value in pretrained_state.items()
@@ -121,7 +131,10 @@ class Handler(generativeHandler):
             else:
                 raise ValueError("model.cond_projector checkpoint not found.")
 
-            model.reset_ema()
+            if model.use_ema:
+                if ema_diff_model_state:
+                    model.model_ema.load_state_dict(ema_diff_model_state, strict=True)
+
 
             print(f"Loaded pretrained conditional diffusion model from {self.args.pretrain_path}")
 
@@ -183,6 +196,9 @@ class Handler(generativeHandler):
         generated = []
         remaining = n_samples
         with self._model.ema_scope(), torch.no_grad():
+            if getattr(self.args, "prior_ckpt", None):
+                self._ensure_prior_context_cache(n_samples)
+
             while remaining > 0:
                 bs = min(batch_size, remaining)
                 if getattr(self.args, "prior_ckpt", None):
@@ -267,7 +283,6 @@ class Handler(generativeHandler):
             logging.warning(f"Checkpoint not found at {ckpt_path}. Starting from scratch.")
             return
         state = torch.load(ckpt_path, map_location=self.device)
-        breakpoint()
         self._model.load_state_dict(state.get("model", state), strict=False)
         if self._model.use_ema and "ema_model" in state:
             self._model.model_ema.load_state_dict(state["ema_model"], strict=True)
@@ -322,8 +337,7 @@ class Handler(generativeHandler):
             use_rmsnorm=model_args["use_rmsnorm"],
         ).to(self.device)
 
-        # prior_state = state["ema_model"] if getattr(self.args, "prior_use_ema", True) and "ema_model" in state else state["model"]
-        prior_state = state["ema_model"]
+        prior_state = state["ema_model"] if getattr(self.args, "prior_use_ema", True) and "ema_model" in state else state["model"]
         self._prior_model.load_state_dict(prior_state, strict=True)
         self._prior_model.eval()
 
@@ -351,15 +365,49 @@ class Handler(generativeHandler):
         )
 
     def _sample_prior_context(self, batch_size):
+        if self._prior_context_cache is None:
+            self._ensure_prior_context_cache(batch_size)
+
+        start = self._prior_context_cursor
+        end = start + batch_size
+        if end > self._prior_context_cache.shape[0]:
+            self._prior_context_cursor = 0
+            start = 0
+            end = batch_size
+
+        self._prior_context_cursor = end
+        return self._prior_context_cache[start:end].to(self.device, non_blocking=True)
+
+    def _ensure_prior_context_cache(self, num_samples):
+        requested_cache_size = getattr(self.args, "prior_cache_size", None)
+        cache_size = num_samples if requested_cache_size is None else int(requested_cache_size)
+        cache_size = max(num_samples, cache_size)
+        if self._prior_context_cache is not None and self._prior_context_cache.shape[0] >= cache_size:
+            self._prior_context_cursor = 0
+            return
+
+        self._prior_context_cache = self._draw_prior_contexts(cache_size)
+        self._prior_context_cursor = 0
+        logging.info(f"Cached {cache_size} diffusion-prior latent contexts on CPU.")
+
+    def _draw_prior_contexts(self, num_samples):
         self._init_diffusion_prior()
-        init = torch.randn(
-            batch_size,
-            self._prior_seq_len,
-            self._prior_token_dim,
-            device=self.device,
-        )
-        xs = self._prior_sample_fn(init, self._prior_model)
-        return xs[-1]
+        sample_batch_size = max(1, int(getattr(self.args, "prior_cache_batch_size", getattr(self.args, "batch_size", 128))))
+        chunks = []
+        remaining = num_samples
+        while remaining > 0:
+            bs = min(sample_batch_size, remaining)
+            init = torch.randn(
+                bs,
+                self._prior_seq_len,
+                self._prior_token_dim,
+                device=self.device,
+            )
+            with torch.no_grad():
+                xs = self._prior_sample_fn(init, self._prior_model)
+            chunks.append(xs[-1].detach().cpu())
+            remaining -= bs
+        return torch.cat(chunks, dim=0)
 
     def _get_prior_sampler_config(self):
         sampler_cfg = getattr(self.args, "sampler", None)

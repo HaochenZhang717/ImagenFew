@@ -14,7 +14,7 @@ cond_dim_in: 64
 cond_dim_out: 128
 pretrain_path: ./logs/self_conditional_generator/pretrain/2133314a-ddb0-4f5f-b1eb-f0de9beb101a/conditional_generator.pt
 pretrained_vae_weights: ./logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE
-prior_ckpt: ./logs/diffusion_prior/dit1d_base_finetune/AirQuality/diffusion_prior_latest.pt
+prior_ckpt: ./logs/diffusion_prior/dit1d_base_finetune/ILI/diffusion_prior_latest.pt
 prior_use_ema: true
 sampler:
   mode: ODE
@@ -55,7 +55,7 @@ multi_scale_vae:
 logging_iter: 100
 tags:
 - self-conditional-generator
-run_dir: self_conditional_generator/finetune/AirQuality
+run_dir: self_conditional_generator/finetune/ILI
 datasets_dir: ./data/
 pretrain: false
 datasets:
@@ -122,8 +122,12 @@ datasets:
 - name: SharePriceIncrease
   data: UEA
   rel_path: UEA/SharePriceIncrease
-- name: AirQuality
-  data: AirQuality
-  path: TSG/AirQuality/AirQualityUCI.csv
+- name: ILI
+  data: custom
+  embed: timeF
+  rel_path: TSF/illness/national_illness.csv
+  features: M
+  label_len: 7
+  pred_len: 0
 train_on_datasets:
-- AirQuality
+- ILI
