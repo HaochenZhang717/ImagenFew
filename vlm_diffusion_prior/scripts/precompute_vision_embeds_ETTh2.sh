@@ -9,7 +9,7 @@ CONFIG="${CONFIG:-DiTDH-S-ETTh2.yaml}"
 IMAGE_PATH="${IMAGE_PATH:-$ROOT_DIR/../logs/finetune_dataset_images/ETTh2/train}"
 SAVE_PATH="${SAVE_PATH:-$ROOT_DIR/../logs/vlm_diffusion_prior/ETTh2/precomputed_vision_embeds/train.pt}"
 NUM_CH="${NUM_CH:-7}"
-RESULTS_DIR="${RESULTS_DIR:-none}"
+RESULTS_DIR="${RESULTS_DIR:-$ROOT_DIR/../logs/vlm_diffusion_prior/ETTh2/precompute_runs}"
 
 export HF_HOME="${HF_HOME:-/playpen/haochenz/hf_cache}"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1}"

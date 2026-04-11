@@ -209,11 +209,8 @@ def main():
     )
 
     loader_batches = len(loader)
-    if loader_batches % grad_accum_steps != 0:
-        raise ValueError("Number of loader batches must be divisible by grad_accum_steps when drop_last=True.")
-    steps_per_epoch = loader_batches // grad_accum_steps
-    if steps_per_epoch <= 0:
-        raise ValueError("Gradient accumulation configuration results in zero optimizer steps per epoch.")
+    if loader_batches <= 0:
+        raise ValueError("No batches were produced by the dataloader.")
 
 
 
