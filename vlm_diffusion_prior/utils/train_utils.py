@@ -15,6 +15,8 @@ import json
 from transformers import AutoProcessor, Qwen3VLProcessor
 from collections import defaultdict
 
+MIN_PIXELS = 0
+MAX_PIXELS = 32 * 14 * 14
 
 
 
@@ -131,8 +133,8 @@ def build_timeseries_collate_fn(processor, num_seg=4, num_ch=2):
                             {
                                 "type": "image",
                                 "image": path,
-                                "min_pixels": 0,
-                                "max_pixels": 64 * 14 * 14,
+                                "min_pixels": MIN_PIXELS,
+                                "max_pixels": MAX_PIXELS,
                             }
                         ],
                     }]
@@ -184,8 +186,8 @@ def build_timeseries_collate_fn_one_per_channel(processor, num_ch=2):
                             {
                                 "type": "image",
                                 "image": path,
-                                "min_pixels": 0,
-                                "max_pixels": 64 * 14 * 14,
+                                "min_pixels": MIN_PIXELS,
+                                "max_pixels": MAX_PIXELS,
                             }
                         ],
                     }]
@@ -507,8 +509,8 @@ def prepare_dataloader(
         processor=Qwen3VLProcessor.from_pretrained(
             vlm_name,
             images_kwargs={
-        "min_pixels": 0,
-        "max_pixels": 64 * 14 * 14}),
+        "min_pixels": MIN_PIXELS,
+        "max_pixels": MAX_PIXELS}),
         num_seg=4,
         num_ch=2,
     )
@@ -551,8 +553,8 @@ def prepare_dataloader_one_per_channel(
         processor=Qwen3VLProcessor.from_pretrained(
             vlm_name,
             images_kwargs={
-        "min_pixels": 0,
-        "max_pixels": 32 * 14 * 14}),
+        "min_pixels": MIN_PIXELS,
+        "max_pixels": MAX_PIXELS}),
         num_ch=num_ch,
     )
 
