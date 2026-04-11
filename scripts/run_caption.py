@@ -24,7 +24,25 @@ MAX_PIXELS = 32 * 14 * 14
 
 
 TIME_SERIES_CAPTION_PROMPT_SINGLE_CHANNEL = r"""
-Describe the baseline behavior of the time series within two short sentence.
+You are given one time-series image for a single channel.
+
+Describe the time series in exactly three stages:
+1. early stage
+2. middle stage
+3. late stage
+
+For each stage, briefly describe the trend, level change, or stability pattern.
+If there is a clear local event such as a spike, dip, abrupt rise, abrupt drop, or sharp fluctuation, explicitly mention it.
+
+Rules:
+- Keep each line concise and factual.
+- Description of each stage should be a short sentence.
+- Local event description should also be a short sentence.
+- If clear local event does not exist, just put <not exist>
+
+Use exactly the following output format:
+Output exactly:
+Early: <description>; Middle: <description>; Late: <description>; Local Event: <description>
 """.strip()
 
 
