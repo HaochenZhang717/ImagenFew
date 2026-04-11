@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=cond_mujoco
-#SBATCH --partition=blackwell
+#SBATCH --partition=all
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
