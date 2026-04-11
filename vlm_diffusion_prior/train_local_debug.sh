@@ -18,6 +18,7 @@ case "${DATASET}" in
     CONFIG="${CONFIG:-DiTDH-S-ETTh2.yaml}"
     IMAGE_PATH="${IMAGE_PATH:-$ROOT_DIR/../logs/finetune_dataset_images/ETTh2/train}"
     RESULTS_DIR="${RESULTS_DIR:-$ROOT_DIR/../logs/vlm_diffusion_prior/ETTh2/DiTDH-S-debug}"
+    PRECOMPUTED_DIR="${PRECOMPUTED_DIR:-$ROOT_DIR/../logs/vlm_diffusion_prior/ETTh2/precomputed_vision_embeds}"
     NUM_CH="${NUM_CH:-7}"
     MASTER_PORT="${MASTER_PORT:-29678}"
     ;;
@@ -25,6 +26,7 @@ case "${DATASET}" in
     CONFIG="${CONFIG:-DiTDH-S-mujoco.yaml}"
     IMAGE_PATH="${IMAGE_PATH:-$ROOT_DIR/../logs/finetune_dataset_images/mujoco/train}"
     RESULTS_DIR="${RESULTS_DIR:-$ROOT_DIR/../logs/vlm_diffusion_prior/mujoco/DiTDH-S-debug}"
+    PRECOMPUTED_DIR="${PRECOMPUTED_DIR:-$ROOT_DIR/../logs/vlm_diffusion_prior/mujoco/precomputed_vision_embeds}"
     NUM_CH="${NUM_CH:-14}"
     MASTER_PORT="${MASTER_PORT:-29679}"
     ;;
@@ -33,6 +35,8 @@ case "${DATASET}" in
     exit 1
     ;;
 esac
+
+USE_PRECOMPUTED="${USE_PRECOMPUTED:-1}"
 
 export HF_HOME="${HF_HOME:-/playpen/haochenz/hf_cache}"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-$GPU_ID}"
@@ -48,6 +52,10 @@ CMD="torchrun --master_port=${MASTER_PORT} --nproc_per_node=${NUM_GPUS} train.py
   --results-dir ${RESULTS_DIR} \
   --precision ${PRECISION} \
   --global-seed ${GLOBAL_SEED}"
+
+if [[ "${USE_PRECOMPUTED}" == "1" ]]; then
+  CMD="${CMD} --precomputed-dir ${PRECOMPUTED_DIR}"
+fi
 
 if [[ "${WANDB}" == "1" ]]; then
   CMD="${CMD} --wandb"

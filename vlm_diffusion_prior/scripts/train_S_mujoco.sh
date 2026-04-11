@@ -8,6 +8,8 @@ NUM_GPUS="${NUM_GPUS:-2}"
 CONFIG="${CONFIG:-DiTDH-S-mujoco.yaml}"
 IMAGE_PATH="${IMAGE_PATH:-$ROOT_DIR/../logs/finetune_dataset_images/mujoco/train}"
 RESULTS_DIR="${RESULTS_DIR:-$ROOT_DIR/../logs/vlm_diffusion_prior/mujoco/DiTDH-S}"
+PRECOMPUTED_DIR="${PRECOMPUTED_DIR:-$ROOT_DIR/../logs/vlm_diffusion_prior/mujoco/precomputed_vision_embeds}"
+USE_PRECOMPUTED="${USE_PRECOMPUTED:-1}"
 NUM_CH="${NUM_CH:-14}"
 
 export HF_HOME="${HF_HOME:-/playpen-shared/haochenz/hf_cache}"
@@ -30,6 +32,10 @@ CMD="torchrun --master_port=${MASTER_PORT:-29659} --nproc_per_node=${NUM_GPUS} t
   --results-dir ${RESULTS_DIR} \
   --precision ${PRECISION} \
   --global-seed ${GLOBAL_SEED}"
+
+if [[ "${USE_PRECOMPUTED}" == "1" ]]; then
+  CMD="${CMD} --precomputed-dir ${PRECOMPUTED_DIR}"
+fi
 
 if [[ "${WANDB}" == "1" ]]; then
   CMD="${CMD} --wandb"
