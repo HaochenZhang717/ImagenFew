@@ -52,7 +52,7 @@ multi_scale_vae:
   - 4
   dynamic_size: 64
   dropout: 0.0
-logging_iter: 100
+logging_iter: 1
 tags:
 - self-conditional-generator
 run_dir: self_conditional_generator/finetune/ETTh2
