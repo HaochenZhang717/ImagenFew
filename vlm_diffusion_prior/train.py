@@ -77,6 +77,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", type=str, required=True,
                         help="YAML config containing stage_1 and stage_2 sections.")
     parser.add_argument("--image-path", type=str, required=True)
+    parser.add_argument("--precomputed-dir", type=str, default=None,
+                        help="Optional directory containing precomputed vision embedding shards like train_rank0.pt.")
     # parser.add_argument("--jsonl-path", type=str, required=True)
     # parser.add_argument("--num-seg", type=int, required=True)
     parser.add_argument("--num-ch", type=int, required=True)
@@ -90,6 +92,33 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--global-seed", type=int, default=None, help="Override training.global_seed from the config.")
     args = parser.parse_args()
     return args
+
+
+def batch_to_latents(batch, device, vision_encoder=None):
+    if "z_per_channel" in batch:
+        z = batch["z_per_channel"].to(device=device, dtype=torch.float32, non_blocking=True)
+    else:
+        if vision_encoder is None:
+            raise ValueError("vision_encoder must be provided when using raw images.")
+        batch = {
+            k: v.to(device) if k in ["pixel_values", "image_grid_thw"] else v
+            for k, v in batch.items()
+        }
+        with torch.no_grad():
+            z = vision_encoder.encode_images(batch["pixel_values"], batch["image_grid_thw"])
+            z = z.to(torch.float32)
+
+        B_ts = batch["batch_size_ts"]
+        C = batch["num_ch"]
+        D, H, W = z.shape[1:]
+        z = z.view(B_ts, C, D, H, W)
+
+    B_ts = batch["batch_size_ts"]
+    C = batch["num_ch"]
+    D, H, W = z.shape[2], z.shape[3], z.shape[4]
+    z = z.permute(0, 2, 1, 3, 4)
+    z = z.reshape(B_ts, D, C * H, W)
+    return z
 
 
 def main():
@@ -172,11 +201,11 @@ def main():
     transport_params = dict(transport_cfg.get("params", {}))
     transport_params.pop("time_dist_shift", None)
 
-    def guidance_value(key: str, default: float) -> float:
-        if key in guidance_cfg:
-            return guidance_cfg[key]
-        dashed_key = key.replace("_", "-")
-        return guidance_cfg.get(dashed_key, default)
+    # def guidance_value(key: str, default: float) -> float:
+    #     if key in guidance_cfg:
+    #         return guidance_cfg[key]
+    #     dashed_key = key.replace("_", "-")
+    #     return guidance_cfg.get(dashed_key, default)
 
     experiment_dir, checkpoint_dir, logger = configure_experiment_dirs(args, rank)
 
@@ -207,22 +236,33 @@ def main():
     scaler, autocast_kwargs = get_autocast_scaler(args)
 
     print("preparing data")
-    loader, sampler = prepare_dataloader_one_per_channel(
-        image_path=args.image_path,
-        # jsonl_path=args.jsonl_path,
-        vlm_name=misc['vlm_name'],
-        # num_seg=args.num_seg,
-        num_ch=args.num_ch,
-        batch_size=micro_batch_size,
-        workers=num_workers, rank=rank,
-        world_size=world_size
-    )
-    print("finish preparing data")
-    print("preparing vision encoder")
-    vision_encoder = Qwen3VisionEncoder(
-        model_name=misc['vlm_name'],
-    ).eval().to(device)
-    print("finish preparing vision encoder")
+    if args.precomputed_dir:
+        loader, sampler = prepare_precomputed_dataloader_one_per_channel(
+            precomputed_dir=args.precomputed_dir,
+            num_ch=args.num_ch,
+            batch_size=micro_batch_size,
+            workers=num_workers,
+            rank=rank,
+            world_size=world_size,
+            shuffle=True,
+        )
+        vision_encoder = None
+        print(f"finish preparing precomputed data from {args.precomputed_dir}")
+    else:
+        loader, sampler = prepare_dataloader_one_per_channel(
+            image_path=args.image_path,
+            vlm_name=misc['vlm_name'],
+            num_ch=args.num_ch,
+            batch_size=micro_batch_size,
+            workers=num_workers, rank=rank,
+            world_size=world_size
+        )
+        print("finish preparing data")
+        print("preparing vision encoder")
+        vision_encoder = Qwen3VisionEncoder(
+            model_name=misc['vlm_name'],
+        ).eval().to(device)
+        print("finish preparing vision encoder")
 
 
 
@@ -278,7 +318,8 @@ def main():
 
     for epoch in range(start_epoch, num_epochs):
         model.train()
-        sampler.set_epoch(epoch)
+        if sampler is not None:
+            sampler.set_epoch(epoch)
         epoch_metrics: Dict[str, torch.Tensor] = defaultdict(lambda: torch.zeros(1, device=device))
         num_batches = 0
         # optimizer.zero_grad()
@@ -301,19 +342,7 @@ def main():
             # breakpoint()
             # batch = batch.to(device)
 
-            batch = {k: v.to(device) if k in ["pixel_values", "image_grid_thw"] else v for k, v in batch.items()}
-            with torch.no_grad():  # TODO: wrap this in autocast?
-                z = vision_encoder.encode_images(batch["pixel_values"], batch["image_grid_thw"])
-                z = z.to(torch.float32)
-
-            B_ts = batch["batch_size_ts"]
-            C = batch["num_ch"]
-
-            D, H, W = z.shape[1:]
-
-            z = z.view(B_ts, C, D, H, W) #(bs, C, D, H, W)
-            z = z.permute(0,2,1,3,4) # (bs, D, C, H, W)
-            z = z.reshape(B_ts, D, C*H, W)
+            z = batch_to_latents(batch, device, vision_encoder)
             # print(z.shape)
             # print(f"z.shape = {z.shape}")
             optimizer.zero_grad(set_to_none=True)
@@ -365,20 +394,7 @@ def main():
 
         for step, batch in tqdm(enumerate(loader), total=len(loader)):
 
-            batch = {k: v.to(device) if k in ["pixel_values", "image_grid_thw"] else v
-                     for k, v in batch.items()}
-
-            with torch.no_grad():
-                z = vision_encoder.encode_images(batch["pixel_values"], batch["image_grid_thw"])
-                z = z.float()
-
-            B_ts = batch["batch_size_ts"]
-            C = batch["num_ch"]
-            D, H, W = z.shape[1:]
-
-            z = z.view(B_ts, C, D, H, W)
-            z = z.permute(0, 2, 1, 3, 4)
-            z = z.reshape(B_ts, D, C * H, W)
+            z = batch_to_latents(batch, device, vision_encoder)
 
             do_step = (step + 1) % grad_accum_steps == 0
             sync_context = nullcontext() if do_step else ddp_model.no_sync()

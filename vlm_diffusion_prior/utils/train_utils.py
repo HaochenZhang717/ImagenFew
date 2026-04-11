@@ -3,6 +3,8 @@ from typing import List, Tuple, Union
 from PIL import Image
 import numpy as np
 from collections import OrderedDict
+import glob
+import re
 import torch
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
@@ -363,6 +365,64 @@ class LatentDataset(Dataset):
         return self.data[idx]
 
 
+class PrecomputedVisionEmbeddingDatasetOnePerChannel(Dataset):
+    def __init__(self, precomputed_dir: str, num_ch: int):
+        super().__init__()
+        self.precomputed_dir = precomputed_dir
+        self.num_ch = num_ch
+
+        shard_paths = sorted(glob.glob(os.path.join(precomputed_dir, "*_rank*.pt")))
+        if not shard_paths:
+            raise ValueError(f"No precomputed embedding shards found in {precomputed_dir}.")
+
+        self.shard_paths = shard_paths
+        self.embedding_dict = {}
+        for shard_path in self.shard_paths:
+            shard = torch.load(shard_path, map_location="cpu")
+            if not isinstance(shard, dict):
+                raise TypeError(f"Expected dict shard at {shard_path}, got {type(shard)}")
+            duplicate_keys = set(self.embedding_dict).intersection(shard)
+            if duplicate_keys:
+                raise ValueError(
+                    f"Found duplicate precomputed embedding keys across shards. "
+                    f"Example duplicates: {list(sorted(duplicate_keys))[:5]}"
+                )
+            self.embedding_dict.update(shard)
+
+        data_by_image = defaultdict(dict)
+        pattern = re.compile(r"image(\d+)_ch(\d+)\.png$")
+
+        for image_name, embedding in self.embedding_dict.items():
+            match = pattern.match(image_name)
+            if match is None:
+                continue
+            image_id = int(match.group(1))
+            ch_id = int(match.group(2))
+            data_by_image[image_id][ch_id] = embedding
+
+        self.data = []
+        for image_id, items in data_by_image.items():
+            if len(items) != num_ch:
+                continue
+
+            channel_embeddings = [items[ch] for ch in range(num_ch)]
+            self.data.append({
+                "image_id": image_id,
+                "z_per_channel": torch.stack(channel_embeddings, dim=0),
+            })
+
+        print(
+            f"[INFO] Loaded {len(self.data)} complete precomputed time-series samples "
+            f"from {len(self.shard_paths)} shards under {self.precomputed_dir}"
+        )
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]
+
+
 def prepare_latent_dataloader(
     batch_size: int,
     workers: int,
@@ -388,6 +448,18 @@ def prepare_latent_dataloader(
         # collate_fn=collate_fn,
     )
     return loader, sampler
+
+
+def collate_precomputed_one_per_channel(batch):
+    z = torch.stack([sample["z_per_channel"] for sample in batch], dim=0)
+    image_ids = [sample["image_id"] for sample in batch]
+    num_ch = z.shape[1]
+    return {
+        "z_per_channel": z,
+        "image_ids": image_ids,
+        "batch_size_ts": len(batch),
+        "num_ch": num_ch,
+    }
 
 
 def prepare_dataloader(
@@ -474,6 +546,39 @@ def prepare_dataloader_one_per_channel(
         pin_memory=True,
         drop_last=True if shuffle else False,
         collate_fn=collate_fn_,
+    )
+    return loader, sampler
+
+
+def prepare_precomputed_dataloader_one_per_channel(
+    precomputed_dir: str,
+    num_ch: int,
+    batch_size: int,
+    workers: int,
+    rank: int,
+    world_size: int,
+    shuffle: bool = True,
+) -> Tuple[DataLoader, DistributedSampler]:
+    dataset = PrecomputedVisionEmbeddingDatasetOnePerChannel(
+        precomputed_dir=precomputed_dir,
+        num_ch=num_ch,
+    )
+
+    sampler = DistributedSampler(
+        dataset,
+        num_replicas=world_size,
+        rank=rank,
+        shuffle=shuffle,
+    )
+
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        sampler=sampler,
+        num_workers=workers,
+        pin_memory=True,
+        drop_last=True if shuffle else False,
+        collate_fn=collate_precomputed_one_per_channel,
     )
     return loader, sampler
 

@@ -1,7 +1,7 @@
 stage_2:
   target: stage2.models.DDT.DiTwDDTHeadRectangle
   params:
-    input_size: [56, 32]
+    input_size: [112, 16]
     patch_size: 1
     in_channels: 1152
     hidden_size: [384, 2048]
@@ -40,7 +40,7 @@ guidance:
   t_max: 1.0
 
 misc:
-  latent_size: [1152, 56, 32]
+  latent_size: [1152, 112, 16]
   time_dist_shift_dim: 2064384
   time_dist_shift_base: 1152
   vlm_name: "Qwen/Qwen3-VL-8B-Instruct"

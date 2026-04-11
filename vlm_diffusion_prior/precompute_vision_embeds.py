@@ -213,37 +213,6 @@ def main():
         raise ValueError("No batches were produced by the dataloader.")
 
 
-
-    # dist.barrier()
-
-    # all_z = []
-    # print(f"[RANK {rank}] loader length = {len(loader)}")
-    #
-    # for step, batch in enumerate(loader):
-    #     if rank == 0:
-    #         print(f"[Rank0] Step {step}/{len(loader)}")
-    #     batch = {
-    #         k: v.to(device) if k not in ["raw_image_path"] else v
-    #         for k, v in batch.items()
-    #     }
-    #
-    #     with torch.no_grad():
-    #         z = vision_encoder.encode_images(
-    #             batch["pixel_values"],
-    #             batch["image_grid_thw"]
-    #         )
-    #
-    #     all_z.append(z.cpu())  # 先存到CPU，避免显存爆
-    #
-    # # ===== 拼接本 rank 的结果 =====
-    # local_z = torch.cat(all_z, dim=0)  # shape: (local_samples, N, C)
-    #
-    # # 每张卡单独保存
-    # save_path = args.save_path.replace(".pt", f"_rank{rank}.pt")
-    # torch.save(local_z, save_path)
-    #
-    # print(f"[RANK {rank}] Saved {local_z.shape} to {save_path}")
-
     embedding_dict = {}
 
     for step, batch in enumerate(loader):
