@@ -4,8 +4,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
-#SBATCH --gres=gpu:4
-#SBATCH --mem=240G
+#SBATCH --gres=gpu:8
+#SBATCH --mem=480G
 #SBATCH --time=4-00:00:00
 #SBATCH --output=/playpen-shared/haochenz/logs/slurm/%x_%j.out
 #SBATCH --error=/playpen-shared/haochenz/logs/slurm/%x_%j.err
@@ -38,7 +38,7 @@ fi
 export HF_HOME="${HF_HOME:-/playpen-shared/haochenz/hf_cache}"
 export TOKENIZERS_PARALLELISM=false
 export NUM_GPUS="${NUM_GPUS:-4}"
-export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3}"
+export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3,4,5,6,7}"
 export WANDB="${WANDB:-1}"
 export COMPILE="${COMPILE:-1}"
 export USE_PRECOMPUTED="${USE_PRECOMPUTED:-0}"
