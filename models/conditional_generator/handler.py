@@ -207,6 +207,7 @@ class Handler(generativeHandler):
                 else:
                     indices = torch.randperm(test_data.shape[0]).to(test_data.device)
                     test_batch = test_data[indices[:bs]].to(device=self.device, dtype=torch.float32)
+                    brealpoint()
                     samples = self._model.generate(bs, test_batch, seq_len, n_var)
                 generated.append(samples)
                 remaining -= bs
