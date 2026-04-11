@@ -88,7 +88,6 @@ class Handler(generativeHandler):
         model = SelfConditionalGenerator(configs)
         if getattr(self.args, "pretrain_path", None):
             ckpt_state_dict = torch.load(self.args.pretrain_path, map_location="cpu")
-
             pretrained_state = ckpt_state_dict.get("model", ckpt_state_dict)
 
             diff_model_state = {
@@ -96,13 +95,6 @@ class Handler(generativeHandler):
                 for key, value in pretrained_state.items()
                 if key.startswith("diff_model.")
             }
-
-            ema_diff_model_state = ckpt_state_dict.get("ema_model")
-
-            print(f"diff_model_state: {len(diff_model_state.keys())}")
-            if ema_diff_model_state:
-                print(f"ema_diff_model_state: {len(ema_diff_model_state.keys())}")
-
 
             multi_scale_vae_state = {
                 key[len("multi_scale_vae."):]: value
@@ -131,11 +123,15 @@ class Handler(generativeHandler):
             else:
                 raise ValueError("model.cond_projector checkpoint not found.")
 
+            # Newer alternative kept for future comparison:
+            # if model.use_ema:
+            #     if ema_diff_model_state:
+            #         model.model_ema.load_state_dict(ema_diff_model_state, strict=True)
+
             if model.use_ema:
-                if ema_diff_model_state:
-                    model.model_ema.load_state_dict(ema_diff_model_state, strict=True)
-
-
+                # Match the previous behavior: initialize EMA from the finetune-start weights
+                # instead of inheriting a stale EMA state from the pretrain checkpoint.
+                model.reset_ema()
             print(f"Loaded pretrained conditional diffusion model from {self.args.pretrain_path}")
 
         return model
