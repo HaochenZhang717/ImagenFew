@@ -47,6 +47,12 @@ def to_args_namespace(config_dict):
     args.subset_n = getattr(args, "subset_n", None)
     args.find_unused_parameters = getattr(args, "find_unused_parameters", False)
     args.train_on_datasets = [dataset for dataset in dataset_list if dataset in args.train_on_datasets]
+    args.learning_rate = getattr(args, "learning_rate", 1e-4)
+    args.weight_decay = getattr(args, "weight_decay", 1e-5)
+    args.epochs = getattr(args, "epochs", 1)
+    args.warmup_steps = getattr(args, "warmup_steps", 0)
+    args.min_lr = getattr(args, "min_lr", 0.0)
+    args.gradient_accumulation_steps = getattr(args, "gradient_accumulation_steps", 1)
     return args
 
 
