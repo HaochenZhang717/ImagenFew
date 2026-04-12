@@ -340,7 +340,7 @@ def main():
     best_val = float("inf")
     global_step = 0
 
-    if args.resume is None:
+    if args.resume is None and args.finetune_ckpt is None:
         auto_resume = os.path.join(args.output_dir, "diffusion_prior_latest.pt")
         if os.path.exists(auto_resume):
             args.resume = auto_resume
