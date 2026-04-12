@@ -10,13 +10,14 @@ wandb_project: diffusion-prior
 wandb_name: dit1d_base_finetune_etth2
 wandb_tags: [dit1d, base, finetune, ETTh2]
 
-epochs: 2000
+epochs: 8000
 batch_size: 2048
-num_workers: 0
+num_workers: 16
 learning_rate: 0.0001
 weight_decay: 0.00001
 val_ratio: 0.0
 save_every: 200
+ema_eval_every: 200
 
 hidden_size: 512
 depth: 8

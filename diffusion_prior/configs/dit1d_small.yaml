@@ -12,7 +12,7 @@ wandb_tags: [dit1d, small]
 
 epochs: 2000
 batch_size: 512
-num_workers: 0
+num_workers: 16
 learning_rate: 0.0001
 weight_decay: 0.00001
 val_ratio: 0.02
@@ -28,6 +28,6 @@ no_rmsnorm: false
 path_type: Linear
 prediction: velocity
 loss_weight: null
-time_dist_type: uniform
+time_dist_type: "logit-normal_0_1"
 time_dist_shift: 1.0
 ema_decay: 0.9999

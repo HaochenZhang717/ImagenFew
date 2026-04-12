@@ -241,6 +241,7 @@ def parse_args():
     parser.add_argument("--wandb-name", type=str)
     parser.add_argument("--wandb-tags", nargs="+", type=str)
     parser.add_argument("--ema-decay", type=float)
+    parser.add_argument("--ema-eval-every", type=int)
     args = parser.parse_args()
 
     if args.config is not None:
@@ -268,6 +269,7 @@ def parse_args():
         "wandb_name": None,
         "wandb_tags": [],
         "ema_decay": 0.9999,
+        "ema_eval_every": None,
     }
     for key, value in defaults.items():
         if getattr(args, key) is None:
@@ -278,6 +280,9 @@ def parse_args():
 
     if args.latents is None or args.output_dir is None:
         raise ValueError("Both --latents and --output-dir must be provided either via CLI or config.")
+
+    if args.ema_eval_every is None:
+        args.ema_eval_every = args.save_every
 
     return args
 
@@ -358,8 +363,9 @@ def main():
     elif args.finetune_ckpt is not None:
         state = torch.load(args.finetune_ckpt, map_location=device, weights_only=False)
         unwrap_model(model).load_state_dict(state["model"])
-        if "ema_model" in state:
-            ema.load_state_dict(state["ema_model"])
+        # For finetuning we want EMA to start from the same weights as the loaded model
+        # instead of inheriting a potentially stale EMA from the source checkpoint.
+        ema.load_state_dict(unwrap_model(model).state_dict())
         if is_main_process():
             print(f"Initialized finetuning from {args.finetune_ckpt}")
 
@@ -389,19 +395,34 @@ def main():
                 with torch.no_grad():
                     val_loss = run_epoch(model, val_loader, transport, optimizer, device, train=False)
 
+        ema_train_loss = float("nan")
+        should_eval_ema_train = (
+            val_loader is None
+            and args.ema_eval_every is not None
+            and int(args.ema_eval_every) > 0
+            and (epoch % int(args.ema_eval_every) == 0)
+        )
+        if should_eval_ema_train:
+            with ema.average_parameters(model):
+                with torch.no_grad():
+                    ema_train_loss = run_epoch(model, train_loader, transport, optimizer, device, train=False)
+
         if is_main_process():
-            print(f"epoch {epoch:04d} train_loss={train_loss:.6f} val_loss={val_loss:.6f}")
+            msg = f"epoch {epoch:04d} train_loss={train_loss:.6f} val_loss={val_loss:.6f}"
+            if should_eval_ema_train:
+                msg += f" ema_train_loss={ema_train_loss:.6f}"
+            print(msg)
         if wandb_run is not None and is_main_process():
-            wandb_run.log(
-                {
-                    "epoch": epoch,
-                    "train/loss": train_loss,
-                    "valid/loss": val_loss,
-                    "train/size": train_size,
-                    "valid/size": val_size,
-                },
-                step=epoch,
-            )
+            log_dict = {
+                "epoch": epoch,
+                "train/loss": train_loss,
+                "valid/loss": val_loss,
+                "train/size": train_size,
+                "valid/size": val_size,
+            }
+            if should_eval_ema_train:
+                log_dict["ema_train/loss"] = ema_train_loss
+            wandb_run.log(log_dict, step=epoch)
 
         improved = val_loader is not None and val_loss < best_val
         if improved:
