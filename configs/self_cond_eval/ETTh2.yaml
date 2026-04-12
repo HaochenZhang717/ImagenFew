@@ -1,0 +1,63 @@
+seed: 0
+batch_size: 256
+num_workers: 0
+handler: models.conditional_generator.handler
+seq_len: 24
+cond_dim_in: 64
+cond_dim_out: 128
+resume_ckpt: ./logs/self_conditional_generator/finetune/ETTh2/a55579f5-1158-4b44-9dc3-5f3ecd476996/conditional_generator.pt
+pretrain_path: ""
+pretrained_vae_weights: ./logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE
+prior_ckpt: ./logs/diffusion_prior/time_shift_sweep/ETTh2/tds_1p0/diffusion_prior_latest.pt
+prior_use_ema: true
+sample_source: both
+eval_metrics:
+  - disc
+  - contextFID
+  - pred
+diffusion:
+  channels: 128
+  n_scales: 3
+  num_steps: 50
+  beta_start: 0.0001
+  beta_end: 0.5
+  schedule: quad
+  diffusion_embedding_dim: 128
+  nheads: 8
+  layers: 10
+  multipatch_num: 3
+  base_patch: 3
+  L_patch_len: 2
+  condition_type: adaLN
+  n_stages: 5
+  side:
+    seq_len: 24
+    var_emb: 16
+    time_emb: 128
+multi_scale_vae:
+  z_channels: 64
+  ch: 64
+  ch_mult:
+    - 1
+    - 2
+    - 4
+  dynamic_size: 64
+  dropout: 0.0
+logging_iter: 100
+tags:
+  - self-conditional-generator
+  - eval
+  - ETTh2
+run_dir: self_conditional_generator/eval/ETTh2
+datasets_dir: ./data/
+pretrain: false
+datasets:
+  - name: ETTh2
+    data: ETTh2
+    embed: timeF
+    rel_path: TSF/ETT-small/ETTh2.csv
+    features: M
+    label_len: 7
+    pred_len: 0
+train_on_datasets:
+  - ETTh2

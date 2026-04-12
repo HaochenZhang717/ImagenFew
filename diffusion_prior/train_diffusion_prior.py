@@ -147,12 +147,14 @@ def load_latents(path):
     return latents.to(torch.float32)
 
 
-def make_loaders(latents, batch_size, num_workers, val_ratio, seed):
+def make_loaders(latents, batch_size, num_workers, val_ratio, seed, use_train_as_val=False):
     dataset = TensorDataset(latents)
     val_size = int(len(dataset) * val_ratio)
     train_size = len(dataset) - val_size
     generator = torch.Generator().manual_seed(seed)
-    if val_size > 0:
+    if use_train_as_val:
+        train_dataset, val_dataset = dataset, dataset
+    elif val_size > 0:
         train_dataset, val_dataset = random_split(dataset, [train_size, val_size], generator=generator)
     else:
         train_dataset, val_dataset = dataset, None
@@ -242,6 +244,7 @@ def parse_args():
     parser.add_argument("--wandb-tags", nargs="+", type=str)
     parser.add_argument("--ema-decay", type=float)
     parser.add_argument("--ema-eval-every", type=int)
+    parser.add_argument("--use-train-as-val", action="store_true")
     args = parser.parse_args()
 
     if args.config is not None:
@@ -270,6 +273,7 @@ def parse_args():
         "wandb_tags": [],
         "ema_decay": 0.9999,
         "ema_eval_every": None,
+        "use_train_as_val": False,
     }
     for key, value in defaults.items():
         if getattr(args, key) is None:
@@ -321,6 +325,7 @@ def main():
         num_workers=args.num_workers,
         val_ratio=args.val_ratio,
         seed=args.seed,
+        use_train_as_val=bool(getattr(args, "use_train_as_val", False)),
     )
 
     model = build_model(args, seq_len, token_dim, device)

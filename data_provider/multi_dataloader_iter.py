@@ -18,7 +18,8 @@ class MultiDataloaderIter:
     def __next__(self):
         sample, metadata = self.__get_next()
         self.iteration += 1
-        return sample, torch.full((sample.size(0),), fill_value=dataset_list.index(metadata['name']))
+        base_sample = sample[0] if isinstance(sample, (tuple, list)) else sample
+        return sample, torch.full((base_sample.size(0),), fill_value=dataset_list.index(metadata['name']))
     
     def __get_next(self):
         index = np.random.randint(0, len(self.active_iters))

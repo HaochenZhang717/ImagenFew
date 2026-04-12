@@ -1,6 +1,6 @@
 from data_provider.datasets import ETTh, ETTm, Custom, UEA, GLUONTS, Sine, Stock, Energy, Mujoco, PSM, MSL, SMAP, SMD, SWAT, AirQuality
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Subset, TensorDataset
 from .multi_dataloader_iter import MultiDataloaderIter
 import functools
 import torch
@@ -64,14 +64,40 @@ def data_provider(args):
         if (subset_n is not None or subset_p is not None) and (not 'subset_n' in config.keys()):
             trainset, testset = random_subset(trainset, subset_p, subset_n), trainset
         trainset, testset = dataset_to_tensor(trainset, args), dataset_to_tensor(testset, args)
+
+        caption_embeddings_path = getattr(args, "caption_embeddings_path", None)
+        if caption_embeddings_path and config["name"] in args.train_on_datasets:
+            caption_embeddings = torch.load(caption_embeddings_path, map_location="cpu", weights_only=False)
+            if not torch.is_tensor(caption_embeddings):
+                raise TypeError(
+                    f"caption_embeddings_path must point to a tensor, got {type(caption_embeddings)}"
+                )
+            if caption_embeddings.ndim != 3:
+                raise ValueError(
+                    f"Expected caption embeddings with shape (N, C, D), got {tuple(caption_embeddings.shape)}"
+                )
+            if caption_embeddings.shape[0] != trainset.shape[0]:
+                raise ValueError(
+                    f"Caption embedding count ({caption_embeddings.shape[0]}) does not match "
+                    f"train set size ({trainset.shape[0]}) for dataset {config['name']}."
+                )
+            trainset = TensorDataset(trainset, caption_embeddings.to(torch.float32))
+
         if args.finetune:
-            assert trainset.size(1) == args.seq_len, f"{config['name']} Does not output proper sequence length"
+            train_seq_tensor = trainset.tensors[0] if isinstance(trainset, TensorDataset) else trainset
+            assert train_seq_tensor.size(1) == args.seq_len, f"{config['name']} Does not output proper sequence length"
         else:
-            trainset = trainset if trainset.size(1) == args.seq_len else torch.nn.functional.pad(trainset, (0, 0, 0, args.seq_len - trainset.size(1)))
+            train_seq_tensor = trainset.tensors[0] if isinstance(trainset, TensorDataset) else trainset
+            if train_seq_tensor.size(1) != args.seq_len:
+                train_seq_tensor = torch.nn.functional.pad(train_seq_tensor, (0, 0, 0, args.seq_len - train_seq_tensor.size(1)))
+                if isinstance(trainset, TensorDataset):
+                    trainset = TensorDataset(train_seq_tensor, trainset.tensors[1])
+                else:
+                    trainset = train_seq_tensor
         print(f"{config['name']} Contains: {len(trainset)} train datapoints; {len(testset)} test datapoints;")
 
         metadata['name'] = config['name']
-        metadata['channels'] = trainset.size(-1)
+        metadata['channels'] = (trainset.tensors[0] if isinstance(trainset, TensorDataset) else trainset).size(-1)
 
         if args.input_channels is not None:
             trainset = torch.nn.functional.pad(trainset, (0, args.input_channels - trainset.size(2), 0, 0))
