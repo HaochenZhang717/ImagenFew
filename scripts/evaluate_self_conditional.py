@@ -2,12 +2,17 @@ import argparse
 import json
 import logging
 import os
+import sys
 from importlib import import_module
 from types import SimpleNamespace
 
 import numpy as np
 import torch
 from omegaconf import OmegaConf
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 from data_provider.combined_datasets import dataset_list
 from data_provider.data_provider import dataset_to_tensor, get_test, get_train
