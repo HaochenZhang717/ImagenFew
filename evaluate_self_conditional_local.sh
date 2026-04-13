@@ -16,6 +16,7 @@ SAVE_GENERATED_DIR="${SAVE_GENERATED_DIR:-}"
 OUTPUT_JSON="${OUTPUT_JSON:-}"
 USE_EMA_FOR_EVAL="${USE_EMA_FOR_EVAL:-1}"
 POSTERIOR_NOISE_STD="${POSTERIOR_NOISE_STD:-0}"
+POSTERIOR_NOISE_ALPHA="${POSTERIOR_NOISE_ALPHA:-0}"
 
 if [[ -n "${CONDA_ENV:-}" ]]; then
   CONDA_BIN=""
@@ -73,6 +74,10 @@ fi
 
 if [[ "$POSTERIOR_NOISE_STD" != "0" ]]; then
   CMD+=(--posterior-noise-std "$POSTERIOR_NOISE_STD")
+fi
+
+if [[ "$POSTERIOR_NOISE_ALPHA" != "0" ]]; then
+  CMD+=(--posterior-noise-alpha "$POSTERIOR_NOISE_ALPHA")
 fi
 
 printf '[INFO] Running command:\n%s\n' "${CMD[*]}"

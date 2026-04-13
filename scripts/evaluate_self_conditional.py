@@ -35,6 +35,7 @@ def parse_args():
     parser.add_argument("--ts2vec-dir", type=str, default=None)
     parser.add_argument("--no-ema-eval", action="store_true")
     parser.add_argument("--posterior-noise-std", type=float, default=0.0)
+    parser.add_argument("--posterior-noise-alpha", type=float, default=0.0)
     parser.add_argument("--prior-sampling-method", type=str, default=None)
     parser.add_argument("--prior-num-steps", type=int, default=None)
     parser.add_argument("--prior-atol", type=float, default=None)
@@ -110,11 +111,20 @@ def make_default_output_json(dataset, split, sample_source, conditional_ckpt, pr
     return os.path.join(results_dir, filename)
 
 
-def generate_posterior_variants(handler, eval_tensor, seq_len, n_var, batch_size, noise_std, base_seed):
+def generate_posterior_variants(
+    handler,
+    eval_tensor,
+    seq_len,
+    n_var,
+    batch_size,
+    noise_std,
+    noise_alpha,
+    base_seed,
+):
     clean_batches = []
     noisy_batches = []
     device = handler.device
-    use_noisy = noise_std > 0.0
+    use_noisy = (noise_std > 0.0) or (noise_alpha > 0.0)
 
     with handler._model.ema_scope(), torch.no_grad():
         for batch_start in range(0, len(eval_tensor), batch_size):
@@ -134,8 +144,11 @@ def generate_posterior_variants(handler, eval_tensor, seq_len, n_var, batch_size
             )
 
             if use_noisy:
-                noise = torch.randn_like(context) * noise_std
-                noisy_context = context + noise
+                gaussian = torch.randn_like(context)
+                if noise_alpha > 0.0:
+                    noisy_context = (1.0 - noise_alpha) * context + noise_alpha * gaussian
+                else:
+                    noisy_context = context + gaussian * noise_std
                 torch.manual_seed(base_seed + batch_idx)
                 if torch.cuda.is_available():
                     torch.cuda.manual_seed_all(base_seed + batch_idx)
@@ -145,7 +158,11 @@ def generate_posterior_variants(handler, eval_tensor, seq_len, n_var, batch_size
 
     outputs = {"posterior": torch.cat(clean_batches, dim=0)}
     if use_noisy:
-        outputs[f"posterior_noisy_std_{noise_std:g}"] = torch.cat(noisy_batches, dim=0)
+        if noise_alpha > 0.0:
+            variant_name = f"posterior_noisy_alpha_{noise_alpha:g}"
+        else:
+            variant_name = f"posterior_noisy_std_{noise_std:g}"
+        outputs[variant_name] = torch.cat(noisy_batches, dim=0)
     return outputs
 
 
@@ -215,7 +232,7 @@ def main():
             eval_tensor,
         )
 
-    if cli_args.posterior_noise_std > 0.0 and args.sample_source in {"posterior", "both"}:
+    if (cli_args.posterior_noise_std > 0.0 or cli_args.posterior_noise_alpha > 0.0) and args.sample_source in {"posterior", "both"}:
         posterior_variants = generate_posterior_variants(
             handler=handler,
             eval_tensor=eval_tensor,
@@ -223,6 +240,7 @@ def main():
             n_var=class_metadata["channels"],
             batch_size=int(getattr(args, "batch_size", 128)),
             noise_std=float(cli_args.posterior_noise_std),
+            noise_alpha=float(cli_args.posterior_noise_alpha),
             base_seed=int(args.seed),
         )
         generated_sets["posterior"] = posterior_variants["posterior"]
@@ -259,6 +277,7 @@ def main():
         "sample_source": args.sample_source,
         "use_ema_for_eval": not cli_args.no_ema_eval,
         "posterior_noise_std": float(cli_args.posterior_noise_std),
+        "posterior_noise_alpha": float(cli_args.posterior_noise_alpha),
         "prior_sampler": getattr(args, "sampler", None),
         "conditional_ckpt": args.resume_ckpt,
         "prior_ckpt": getattr(args, "prior_ckpt", None),
