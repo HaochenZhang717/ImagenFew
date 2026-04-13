@@ -17,10 +17,6 @@ def configure_experiment_dirs(args, rank) -> Tuple[str, str, logging.Logger]:
         os.makedirs(checkpoint_dir, exist_ok=True)
         logger = create_logger(experiment_dir, 'rae')
         logger.info(f"Experiment directory created at {experiment_dir}")
-        if args.wandb:
-            entity = os.environ["ENTITY"]
-            project = os.environ["PROJECT"]
-            initialize(args, entity, experiment_name, project)
     else:
         logger = create_logger(None, 'rae')
     return experiment_dir, checkpoint_dir, logger

@@ -41,7 +41,8 @@ USE_PRECOMPUTED="${USE_PRECOMPUTED:-0}"
 export HF_HOME="${HF_HOME:-/playpen-shared/haochenz/hf_cache}"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-$GPU_ID}"
 export TOKENIZERS_PARALLELISM=false
-export EXPERIMENT_NAME="${EXPERIMENT_NAME:-DiTDH-S-${DATASET}-debug}"
+HOUSTON_TIMESTAMP="$(TZ=America/Chicago date +%Y%m%d_%H%M%S)"
+export EXPERIMENT_NAME="${EXPERIMENT_NAME:-$HOUSTON_TIMESTAMP}"
 export ENTITY="${ENTITY:-zhanghaochen}"
 export PROJECT="${PROJECT:-VLM-Diffusion-Prior}"
 
