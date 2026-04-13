@@ -8,7 +8,7 @@ w_kl: 0.007
 handler: models.MultiScaleVAE.handler
 z_channels: 32
 unet_channels: 32
-ch_mult: [1, 1, 2, 2, 4, 4]
+ch_mult: [1, 2, 2, 4]
 dynamic_size: 64
 dropout: 0.0
 num_res_blocks: 1

@@ -306,6 +306,23 @@ class DualVAE(nn.Module):
             )
         return z.expand(-1, -1, target_len)
 
+    def _concat_one_token_latents(self, z_low_freq, z_mid_freq, z_high_freq):
+        if not self.one_token_pool:
+            return z_low_freq, z_mid_freq, z_high_freq
+        return torch.cat([z_low_freq, z_mid_freq, z_high_freq], dim=1)
+
+    def _split_one_token_latents(self, z):
+        if not self.one_token_pool:
+            raise ValueError("Channel-wise latent splitting is only used in one_token_pool mode.")
+        expected_channels = self.latent_channels * 3
+        if z.ndim != 3:
+            raise ValueError(f"Expected latent tensor with shape [B, C, L], got {tuple(z.shape)}")
+        if z.shape[1] != expected_channels:
+            raise ValueError(
+                f"Expected concatenated latent channel size {expected_channels}, got {z.shape[1]}"
+            )
+        return torch.chunk(z, 3, dim=1)
+
     def encode_parts(self, inp):
         """
         inp: [B, L, C]
@@ -441,6 +458,14 @@ class DualVAE(nn.Module):
             z_high_freq = mu_high_freq
 
         if return_dict:
+            if self.one_token_pool:
+                z_concat = self._concat_one_token_latents(z_low_freq, z_mid_freq, z_high_freq)
+                mu_concat = self._concat_one_token_latents(mu_low_freq, mu_mid_freq, mu_high_freq)
+                logvar_concat = self._concat_one_token_latents(logvar_low_freq, logvar_mid_freq, logvar_high_freq)
+            else:
+                z_concat = None
+                mu_concat = None
+                logvar_concat = None
             return {
                 "z_low_freq": z_low_freq,
                 "z_mid_freq": z_mid_freq,
@@ -451,7 +476,13 @@ class DualVAE(nn.Module):
                 "logvar_low_freq": logvar_low_freq,
                 "logvar_mid_freq": logvar_mid_freq,
                 "logvar_high_freq": logvar_high_freq,
+                "z": z_concat,
+                "mu": mu_concat,
+                "logvar": logvar_concat,
             }
+
+        if self.one_token_pool:
+            return self._concat_one_token_latents(z_low_freq, z_mid_freq, z_high_freq)
 
         return z_low_freq, z_mid_freq, z_high_freq
 
@@ -462,9 +493,17 @@ class DualVAE(nn.Module):
           - a dict with keys: z_low_freq, z_mid_freq, z_high_freq
         """
         if isinstance(z, dict):
-            z_low_freq = z["z_low_freq"]
-            z_mid_freq = z["z_mid_freq"]
-            z_high_freq = z["z_high_freq"]
+            if self.one_token_pool and z.get("z") is not None:
+                z_low_freq, z_mid_freq, z_high_freq = self._split_one_token_latents(z["z"])
+            else:
+                z_low_freq = z["z_low_freq"]
+                z_mid_freq = z["z_mid_freq"]
+                z_high_freq = z["z_high_freq"]
+        elif torch.is_tensor(z):
+            if self.one_token_pool:
+                z_low_freq, z_mid_freq, z_high_freq = self._split_one_token_latents(z)
+            else:
+                raise ValueError("Tensor latent input is only supported in one_token_pool mode.")
         else:
             z_low_freq, z_mid_freq, z_high_freq = z
 
@@ -486,9 +525,17 @@ class DualVAE(nn.Module):
           - a dict with keys: z_low_freq, z_mid_freq, z_high_freq
         """
         if isinstance(z, dict):
-            z_low_freq = z["z_low_freq"]
-            z_mid_freq = z["z_mid_freq"]
-            z_high_freq = z["z_high_freq"]
+            if self.one_token_pool and z.get("z") is not None:
+                z_low_freq, z_mid_freq, z_high_freq = self._split_one_token_latents(z["z"])
+            else:
+                z_low_freq = z["z_low_freq"]
+                z_mid_freq = z["z_mid_freq"]
+                z_high_freq = z["z_high_freq"]
+        elif torch.is_tensor(z):
+            if self.one_token_pool:
+                z_low_freq, z_mid_freq, z_high_freq = self._split_one_token_latents(z)
+            else:
+                raise ValueError("Tensor latent input is only supported in one_token_pool mode.")
         else:
             z_low_freq, z_mid_freq, z_high_freq = z
 
