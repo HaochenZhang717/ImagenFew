@@ -6,6 +6,10 @@ For each sample, the script takes:
 then concatenates them along the sequence dimension to get:
     [B, C, 3L] -> [B, 3L, C]
 
+If `one_token_pool=true` in the VAE config, then each component has length 1 and
+the exported latent shape becomes:
+    [N, 3, dim]
+
 Finally, all requested datasets are concatenated along the sample dimension and
 saved as one tensor with shape:
     [N, seq_len_latent, dim]
@@ -48,6 +52,9 @@ def build_model(cfg, ckpt_path, device):
         ch_mult=tuple(cfg["ch_mult"]),
         dynamic_size=cfg["dynamic_size"],
         dropout=cfg.get("dropout", 0.0),
+        num_res_blocks=cfg.get("num_res_blocks", 2),
+        seq_len=cfg["seq_len"],
+        one_token_pool=cfg.get("one_token_pool", False),
         test_mode=True,
     ).to(device)
 

@@ -6,6 +6,9 @@ Each dataset is exported separately as a tensor of shape (N, L, D), where:
 - N is the number of samples in that dataset
 - L is the concatenated latent sequence length across low/mid/high frequencies
 - D is the latent channel dimension
+
+If the VAE uses `one_token_pool=true`, then each frequency branch contributes one
+token and the exported tensor shape becomes `(N, 3, D)`.
 """
 
 import argparse
@@ -36,6 +39,9 @@ def build_vae_model(vae_cfg, ckpt_path, device):
         ch_mult=tuple(vae_cfg["ch_mult"]),
         dynamic_size=vae_cfg["dynamic_size"],
         dropout=vae_cfg.get("dropout", 0.0),
+        num_res_blocks=vae_cfg.get("num_res_blocks", 2),
+        seq_len=vae_cfg["seq_len"],
+        one_token_pool=vae_cfg.get("one_token_pool", False),
         test_mode=True,
     ).to(device)
 

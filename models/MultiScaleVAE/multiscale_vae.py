@@ -226,12 +226,19 @@ class DualVAE(nn.Module):
         dropout=0.0,
         test_mode=False,
         ch_mult=(1, 1, 2),
-        dynamic_size=128
+        dynamic_size=128,
+        num_res_blocks=2,
+        seq_len=24,
+        one_token_pool=False,
     ):
         super().__init__()
         self.test_mode = test_mode
         self.z_channels = z_channels
         self.latent_channels = latent_channels if latent_channels is not None else z_channels
+        self.seq_len = seq_len
+        self.one_token_pool = one_token_pool
+        self.downsample_ratio = 2 ** (len(ch_mult) - 1)
+        self.default_latent_len = max(1, seq_len // self.downsample_ratio)
 
         self.decomp_ts = series_decomp_multi()
 
@@ -240,7 +247,7 @@ class DualVAE(nn.Module):
             ch=ch,
             z_channels=z_channels,
             ch_mult=ch_mult,
-            num_res_blocks=2,
+            num_res_blocks=num_res_blocks,
             using_sa=False,
             using_mid_sa=False,
             dynamic_size=dynamic_size,
@@ -250,7 +257,7 @@ class DualVAE(nn.Module):
             ch=ch,
             z_channels=z_channels,
             ch_mult=ch_mult,
-            num_res_blocks=2,
+            num_res_blocks=num_res_blocks,
             using_sa=False,
             using_mid_sa=False,
             dynamic_size=dynamic_size,
@@ -281,6 +288,24 @@ class DualVAE(nn.Module):
             for p in self.parameters():
                 p.requires_grad_(False)
 
+    def _pool_to_one_token(self, x):
+        if not self.one_token_pool:
+            return x
+        return x.mean(dim=-1, keepdim=True)
+
+    def _expand_one_token_latent(self, z, target_len=None):
+        if not self.one_token_pool:
+            return z
+        if target_len is None:
+            target_len = self.default_latent_len
+        if z.shape[-1] == target_len:
+            return z
+        if z.shape[-1] != 1:
+            raise ValueError(
+                f"Expected one-token latent with length 1 in one_token_pool mode, got {z.shape[-1]}"
+            )
+        return z.expand(-1, -1, target_len)
+
     def encode_parts(self, inp):
         """
         inp: [B, L, C]
@@ -293,19 +318,25 @@ class DualVAE(nn.Module):
 
     def encode_to_posterior(self, inp):
         low_freq, mid_freq, high_freq, ze_low_freq, ze_mid_freq, ze_high_freq = self.encode_parts(inp)
-        mu_low_freq, logvar_low_freq = self.posterior_low_freq(ze_low_freq)
-        mu_mid_freq, logvar_mid_freq = self.posterior_mid_freq(ze_mid_freq)
-        mu_high_freq, logvar_high_freq = self.posterior_high_freq(ze_high_freq)
+        ze_low_freq_pooled = self._pool_to_one_token(ze_low_freq)
+        ze_mid_freq_pooled = self._pool_to_one_token(ze_mid_freq)
+        ze_high_freq_pooled = self._pool_to_one_token(ze_high_freq)
+        mu_low_freq, logvar_low_freq = self.posterior_low_freq(ze_low_freq_pooled)
+        mu_mid_freq, logvar_mid_freq = self.posterior_mid_freq(ze_mid_freq_pooled)
+        mu_high_freq, logvar_high_freq = self.posterior_high_freq(ze_high_freq_pooled)
 
         return low_freq, mid_freq, high_freq, ze_low_freq, ze_mid_freq, ze_high_freq, mu_low_freq, logvar_low_freq, mu_mid_freq, logvar_mid_freq, mu_high_freq, logvar_high_freq
 
 
-    def decode_from_latent(self, z_low_freq, z_mid_freq, z_high_freq, data_channels):
+    def decode_from_latent(self, z_low_freq, z_mid_freq, z_high_freq, data_channels, latent_len=None):
         """
         z_trend: [B, latent_channels, L']
         z_seasonal: [B, latent_channels, L']
         z_coarse_seasonal: [B, latent_channels, L']
         """
+        z_low_freq = self._expand_one_token_latent(z_low_freq, target_len=latent_len)
+        z_mid_freq = self._expand_one_token_latent(z_mid_freq, target_len=latent_len)
+        z_high_freq = self._expand_one_token_latent(z_high_freq, target_len=latent_len)
 
         recon_low_freq = self.decoder_low_freq(self.post_latent_conv_low_freq(z_low_freq), data_channels)
 
@@ -337,11 +368,16 @@ class DualVAE(nn.Module):
         z_mid_freq = DiagGaussianHead.reparameterize(mu_mid_freq, logvar_mid_freq)
         z_high_freq = DiagGaussianHead.reparameterize(mu_high_freq, logvar_high_freq)
 
-
         (
             z_low_freq, z_mid_freq, z_high_freq,
             recon_low_freq, recon_mid_freq, recon_high_freq, total_recon
-        ) = self.decode_from_latent(z_low_freq, z_mid_freq, z_high_freq, inp.shape[-1])
+        ) = self.decode_from_latent(
+            z_low_freq,
+            z_mid_freq,
+            z_high_freq,
+            inp.shape[-1],
+            latent_len=ze_low_freq.shape[-1],
+        )
 
         kl_loss_low_freq = kl_divergence_standard_normal(mu_low_freq, logvar_low_freq, reduce=True)
         kl_loss_mid_freq = kl_divergence_standard_normal(mu_mid_freq, logvar_mid_freq, reduce=True)
@@ -419,7 +455,7 @@ class DualVAE(nn.Module):
 
         return z_low_freq, z_mid_freq, z_high_freq
 
-    def z_to_ts(self, z):
+    def z_to_ts(self, z, data_channels=7, latent_len=None):
         """
         z can be:
           - a tuple/list: (z_low_freq, z_mid_freq, z_high_freq)
@@ -433,11 +469,17 @@ class DualVAE(nn.Module):
             z_low_freq, z_mid_freq, z_high_freq = z
 
         _, _, _, recon_low_freq, recon_mid_freq, recon_high_freq, total_recon = \
-            self.decode_from_latent(z_low_freq, z_mid_freq, z_high_freq)
+            self.decode_from_latent(
+                z_low_freq,
+                z_mid_freq,
+                z_high_freq,
+                data_channels=data_channels,
+                latent_len=latent_len,
+            )
 
         return total_recon
 
-    def z_to_ts_decomp(self, z):
+    def z_to_ts_decomp(self, z, data_channels=7, latent_len=None):
         """
         z can be:
           - a tuple/list: (z_low_freq, z_mid_freq, z_high_freq)
@@ -451,7 +493,13 @@ class DualVAE(nn.Module):
             z_low_freq, z_mid_freq, z_high_freq = z
 
         _, _, _, recon_low_freq, recon_mid_freq, recon_high_freq, _ = \
-            self.decode_from_latent(z_low_freq, z_mid_freq, z_high_freq)
+            self.decode_from_latent(
+                z_low_freq,
+                z_mid_freq,
+                z_high_freq,
+                data_channels=data_channels,
+                latent_len=latent_len,
+            )
 
         return recon_low_freq, recon_mid_freq, recon_high_freq
 
@@ -548,4 +596,3 @@ if __name__ == "__main__":
 
 
     ##scp -r haochenz@unites4.cs.unc.edu:/playpen-shared/haochenz/ckpts_multiscale/ETTh1/plots ../
-

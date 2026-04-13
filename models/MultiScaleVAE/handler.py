@@ -29,6 +29,8 @@ class Handler(generativeHandler):
         ch_mult = tuple(getattr(self.args, 'ch_mult'))
         dynamic_size = getattr(self.args, 'dynamic_size')
         dropout = getattr(self.args, 'dropout')
+        num_res_blocks = getattr(self.args, 'num_res_blocks', 2)
+        one_token_pool = getattr(self.args, 'one_token_pool', False)
 
 
         self.model = DualVAE(
@@ -37,6 +39,9 @@ class Handler(generativeHandler):
             ch_mult=ch_mult,
             dynamic_size=dynamic_size,
             dropout=dropout,
+            num_res_blocks=num_res_blocks,
+            seq_len=self.args.seq_len,
+            one_token_pool=one_token_pool,
         )
         if self.args.model_ckpt is not None:
             self._load_model(self.args.model_ckpt, self.args.device)
@@ -88,7 +93,7 @@ class Handler(generativeHandler):
         z_channels = self._model.latent_channels
         # Compute latent sequence length from encoder downsample ratio
         downsample_ratio = 2 ** (len(getattr(self.args, 'ch_mult', [1, 1, 2])) - 1)
-        latent_len = self.args.seq_len // downsample_ratio
+        latent_len = 1 if getattr(self.args, 'one_token_pool', False) else self.args.seq_len // downsample_ratio
 
         for sample_size in [
             min(self.args.batch_size, n_samples - i)
@@ -97,7 +102,7 @@ class Handler(generativeHandler):
             z_low = torch.randn(sample_size, z_channels, latent_len, device=self.args.device)
             z_mid = torch.randn(sample_size, z_channels, latent_len, device=self.args.device)
             z_high = torch.randn(sample_size, z_channels, latent_len, device=self.args.device)
-            x_ts = self._model.z_to_ts((z_low, z_mid, z_high))
+            x_ts = self._model.z_to_ts((z_low, z_mid, z_high), data_channels=class_metadata['channels'])
             x_ts = x_ts[:, :, :class_metadata['channels']]
             generated_set.append(x_ts)
         return torch.concat(generated_set, dim=0)

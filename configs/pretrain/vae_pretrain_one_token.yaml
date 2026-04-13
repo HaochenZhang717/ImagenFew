@@ -6,13 +6,13 @@ weight_decay: 0.00001 #1e-5
 w_kl: 0.007
 # model:
 handler: models.MultiScaleVAE.handler
-z_channels: 64
-unet_channels: 64
-ch_mult: [1, 2, 4]
+z_channels: 32
+unet_channels: 32
+ch_mult: [1, 1, 2, 2, 4, 4]
 dynamic_size: 64
 dropout: 0.0
-num_res_blocks: 2
-one_token_pool: false
+num_res_blocks: 1
+one_token_pool: true
 # logging:
 logging_iter: 100
 tags: []
