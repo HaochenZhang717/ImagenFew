@@ -287,6 +287,7 @@ class VerbalTS(nn.Module):
         # Build attr_emb to match x_in shape
         # attr_emb_raw: (B, n_var, n_scale, channels) from TextProjectorMVarMScaleMStep,
         #               or (B, n_var, 1, channels) for simple projectors, or None.
+        breakpoint()
         if attr_emb_raw is None:
             attr_emb = torch.zeros_like(x_in)
         else:
