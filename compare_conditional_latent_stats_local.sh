@@ -27,6 +27,7 @@ SPLIT="${SPLIT:-train}"
 MAX_SAMPLES="${MAX_SAMPLES:-}"
 BATCH_SIZE="${BATCH_SIZE:-256}"
 OUTPUT_JSON="${OUTPUT_JSON:-}"
+GENERATED_LATENTS_PATH="${GENERATED_LATENTS_PATH:-}"
 
 CMD="python scripts/compare_conditional_latent_stats.py --config ${CONFIG} --split ${SPLIT} --batch-size ${BATCH_SIZE}"
 
@@ -36,6 +37,10 @@ fi
 
 if [[ -n "${OUTPUT_JSON}" ]]; then
   CMD="${CMD} --output-json ${OUTPUT_JSON}"
+fi
+
+if [[ -n "${GENERATED_LATENTS_PATH}" ]]; then
+  CMD="${CMD} --generated-latents-path ${GENERATED_LATENTS_PATH}"
 fi
 
 echo "[INFO] Running command:"

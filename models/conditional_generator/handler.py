@@ -381,7 +381,6 @@ class Handler(generativeHandler):
         prior_state = state["ema_model"] if getattr(self.args, "prior_use_ema", True) and "ema_model" in state else state["model"]
         self._prior_model.load_state_dict(prior_state, strict=True)
         self._prior_model.eval()
-        self._prior_transport = transport
 
         expected_cond_dim = getattr(self.args, "cond_dim_in", None)
         if expected_cond_dim is not None and self._prior_token_dim != expected_cond_dim:

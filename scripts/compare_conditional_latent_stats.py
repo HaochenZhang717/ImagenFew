@@ -26,6 +26,7 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--output-json", type=str, default=None)
+    parser.add_argument("--generated-latents-path", type=str, default=None)
     return parser.parse_args()
 
 
@@ -77,6 +78,20 @@ def maybe_slice_tensor(tensor, max_samples):
     if max_samples is None:
         return tensor
     return tensor[:max_samples]
+
+
+def load_generated_latents(path):
+    if path.endswith(".npy"):
+        arr = np.load(path, allow_pickle=False)
+        latents = torch.from_numpy(arr)
+    else:
+        latents = torch.load(path, map_location="cpu", weights_only=False)
+
+    if not torch.is_tensor(latents):
+        raise ValueError(f"Expected generated latents tensor at {path}, got {type(latents)}")
+    if latents.ndim != 3:
+        raise ValueError(f"Expected generated latents with shape (N, L, D), got {tuple(latents.shape)}")
+    return latents.to(torch.float32)
 
 
 def summarize_latents(latents):
@@ -145,7 +160,7 @@ def main():
     if cli_args.seed is not None:
         args.seed = cli_args.seed
 
-    if not getattr(args, "prior_ckpt", None):
+    if cli_args.generated_latents_path is None and not getattr(args, "prior_ckpt", None):
         raise ValueError("prior_ckpt must be set in the config for latent comparison.")
 
     torch.manual_seed(args.seed)
@@ -164,13 +179,22 @@ def main():
             posterior_chunks.append(handler._model.encode_posterior_context(batch).cpu())
     posterior_latents = torch.cat(posterior_chunks, dim=0)
 
-    generated_latents = handler._draw_prior_contexts(len(eval_tensor)).cpu()
+    if cli_args.generated_latents_path is not None:
+        generated_latents = load_generated_latents(cli_args.generated_latents_path)
+        generated_latents = maybe_slice_tensor(generated_latents, cli_args.max_samples)
+        if len(generated_latents) != len(eval_tensor):
+            raise ValueError(
+                f"Generated latents length {len(generated_latents)} does not match posterior length {len(eval_tensor)}."
+            )
+    else:
+        generated_latents = handler._draw_prior_contexts(len(eval_tensor)).cpu()
 
     result = {
         "dataset": dataset_name,
         "split": cli_args.split,
         "num_samples": int(len(eval_tensor)),
         "prior_ckpt": args.prior_ckpt,
+        "generated_latents_path": cli_args.generated_latents_path,
         "posterior": summarize_latents(posterior_latents),
         "generated": summarize_latents(generated_latents),
         "comparison": compare_latents(posterior_latents, generated_latents),
