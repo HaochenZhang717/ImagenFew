@@ -6,6 +6,7 @@ A minimal training script for SiT using PyTorch DDP.
 from collections import defaultdict, OrderedDict
 import torch
 from contextlib import nullcontext
+import re
 
 # the first flag below was False when we tested this script but True makes A100 training a lot faster:
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -54,6 +55,23 @@ def save_checkpoint(
     }
     os.makedirs(os.path.dirname(path), exist_ok=True)
     torch.save(state, path)
+
+
+def prune_old_epoch_checkpoints(checkpoint_dir: str, keep_last: int = 3) -> None:
+    pattern = re.compile(r"ep-(\d{7})\.pt$")
+    epoch_ckpts = []
+    for name in os.listdir(checkpoint_dir):
+        match = pattern.match(name)
+        if match is None:
+            continue
+        epoch_ckpts.append((int(match.group(1)), os.path.join(checkpoint_dir, name)))
+
+    if len(epoch_ckpts) <= keep_last:
+        return
+
+    epoch_ckpts.sort(key=lambda item: item[0])
+    for _, ckpt_path in epoch_ckpts[:-keep_last]:
+        os.remove(ckpt_path)
 
 
 def load_checkpoint(
@@ -179,7 +197,7 @@ def main():
         batch_size = int(training_cfg.get("batch_size", 16))
         global_batch_size = batch_size * world_size * grad_accum_steps
     num_workers = int(training_cfg.get("num_workers", 4))
-    log_interval = int(training_cfg.get("log_interval", 100))
+    log_interval = int(training_cfg.get("log_interval", 20))
     sample_every = int(training_cfg.get("sample_every", 2500))
     checkpoint_interval = int(training_cfg.get("checkpoint_interval", 4))  # ckpt interval is epoch based
     cfg_scale_override = training_cfg.get("cfg_scale", None)
@@ -340,15 +358,16 @@ def main():
         if checkpoint_interval > 0 and epoch % checkpoint_interval == 0 and rank == 0 and epoch > 0:
             logger.info(f"Saving checkpoint at epoch {epoch}...")
             ckpt_path = f"{checkpoint_dir}/ep-{epoch:07d}.pt"
-            # save_checkpoint(
-            #     ckpt_path,
-            #     global_step,
-            #     epoch,
-            #     ddp_model,
-            #     ema_model,
-            #     optimizer,
-            #     scheduler,
-            # )
+            save_checkpoint(
+                ckpt_path,
+                global_step,
+                epoch,
+                ddp_model,
+                ema_model,
+                optimizer,
+                scheduler,
+            )
+            prune_old_epoch_checkpoints(checkpoint_dir, keep_last=3)
         optimizer.zero_grad(set_to_none=True)
 
         for step, batch in tqdm(enumerate(loader), total=len(loader)):

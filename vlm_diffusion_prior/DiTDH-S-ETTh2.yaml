@@ -51,7 +51,7 @@ training:
   grad_accum_steps: 8
   ema_decay: 0.9995
   num_workers: 16
-  log_interval: -1
+  log_interval: 20
   checkpoint_interval: 200
   sample_every: 10000
   clip_grad: 1.0
