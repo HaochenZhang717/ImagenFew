@@ -10,7 +10,7 @@ wandb_project: diffusion-prior
 wandb_name: dit1d_base_finetune_mujoco
 wandb_tags: [dit1d, base, finetune, mujoco]
 
-epochs: 2000
+epochs: 8000
 batch_size: 2048
 num_workers: 0
 learning_rate: 0.0001
