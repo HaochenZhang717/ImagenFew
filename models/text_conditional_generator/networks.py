@@ -305,7 +305,7 @@ class VerbalTS(nn.Module):
                 attr_emb = collapsed.expand(-1, -1, x_in.shape[-1], -1)       # (B, n_var, total_Nl, channels)
             attr_emb = attr_emb.permute(0, 3, 1, 2)                           # (B, channels, n_var, total_Nl)
 
-        breakpoint()
+
         B, _, Nk, Nl = x_in.shape
         _x_in = x_in
         skip = []
