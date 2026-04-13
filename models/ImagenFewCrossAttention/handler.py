@@ -8,6 +8,10 @@ import random
 import torch
 import logging
 import numpy as np
+from torchdiffeq import odeint
+
+from diffusion_prior.models import DiT1D
+from diffusion_prior.models.transport import Sampler, create_transport
 
    
 class Handler(generativeHandler):
@@ -30,6 +34,14 @@ class Handler(generativeHandler):
         self.pretrained_vae = DualVAE(**args.multi_scale_vae).to(self.args.device)
         self.resume_epoch = 0
         self.best_score = float("inf")
+        self._prior_model = None
+        self._prior_sample_fn = None
+        self._prior_seq_len = None
+        self._prior_token_dim = None
+        self._prior_context_cache = None
+        self._prior_context_cursor = 0
+        self._prior_transport = None
+        self._prior_sampler = None
 
         pretrained_vae_weights = torch.load(args.pretrained_vae_weights, map_location="cpu")
         self.pretrained_vae.load_state_dict(pretrained_vae_weights['model'])
@@ -85,18 +97,34 @@ class Handler(generativeHandler):
         # logger.log(f'train/train epoch', loss.detach())
 
     def sample(self, n_samples, class_label, class_metadata, test_data):
+        sample_source = self._get_sample_source()
+        if sample_source == "prior":
+            return self._sample_with_prior(n_samples, class_metadata)
+        if sample_source == "posterior":
+            return self._sample_with_posterior(n_samples, class_metadata, test_data)
+        if sample_source == "both":
+            return self._sample_with_prior(n_samples, class_metadata)
+        raise ValueError(f"Unsupported sample_source: {sample_source}")
+
+    def sample_variants(self, n_samples, class_label, class_metadata, test_data):
+        sample_source = self._get_sample_source()
+        if sample_source == "both":
+            return {
+                "prior": self._sample_with_prior(n_samples, class_metadata),
+                "posterior": self._sample_with_posterior(n_samples, class_metadata, test_data),
+            }
+        return {
+            sample_source: self.sample(n_samples, class_label, class_metadata, test_data),
+        }
+
+    def _sample_with_posterior(self, n_samples, class_metadata, test_data):
         generated_set = []
         with self._model.ema_scope():
             self.process = DiffusionProcess(self.args, self._model.net, (class_metadata['channels'], self.args.img_resolution, self.args.img_resolution))
-            candidate_data = test_data if test_data is not None else class_label
-            context_bank = self._prepare_sample_context(candidate_data)
+            if test_data is None:
+                raise ValueError("test_data must be provided for posterior sampling.")
+            context_bank = self._prepare_sample_context(test_data)
             for sample_size in [min(self.args.batch_size, n_samples - i) for i in range(0, n_samples, self.args.batch_size)]:
-                # if context_bank is None:
-                #     batch_context = None
-                # else:
-                #     indices = torch.randperm(context_bank.shape[0], device=context_bank.device)[:sample_size]
-                #     batch_context = context_bank[indices]
-
                 indices = torch.randperm(context_bank.shape[0], device=context_bank.device)[:sample_size]
                 batch_context = context_bank[indices]
 
@@ -104,6 +132,24 @@ class Handler(generativeHandler):
                 x_ts_mask = self._model.ts_to_img(torch.zeros(sample_size, self.args.seq_len, class_metadata['channels']).to(self.args.device), pad_val=1)
                 x_img_sampled = self.process.interpolate(x_img, x_ts_mask, context=batch_context)
                 x_ts = self._model.img_to_ts(x_img_sampled)[:,:,:class_metadata['channels']]
+                generated_set.append(x_ts)
+        return torch.concat(generated_set, dim=0)
+
+    def _sample_with_prior(self, n_samples, class_metadata):
+        generated_set = []
+        with self._model.ema_scope():
+            self.process = DiffusionProcess(
+                self.args,
+                self._model.net,
+                (class_metadata['channels'], self.args.img_resolution, self.args.img_resolution),
+            )
+            self._ensure_prior_context_cache(n_samples)
+            for sample_size in [min(self.args.batch_size, n_samples - i) for i in range(0, n_samples, self.args.batch_size)]:
+                batch_context = self._sample_prior_context(sample_size)
+                x_img = torch.zeros(sample_size, class_metadata['channels'], self.args.img_resolution, self.args.img_resolution).to(self.args.device)
+                x_ts_mask = self._model.ts_to_img(torch.zeros(sample_size, self.args.seq_len, class_metadata['channels']).to(self.args.device), pad_val=1)
+                x_img_sampled = self.process.interpolate(x_img, x_ts_mask, context=batch_context)
+                x_ts = self._model.img_to_ts(x_img_sampled)[:, :, :class_metadata['channels']]
                 generated_set.append(x_ts)
         return torch.concat(generated_set, dim=0)
     
@@ -208,7 +254,12 @@ class Handler(generativeHandler):
             )
 
         context_source = context_source.to(self.args.device, dtype=torch.float32)
-        context = self._encode_context(context_source)
+        if context_source.ndim == 2 and context_source.shape[-1] == self.args.context_dim:
+            context = context_source.unsqueeze(0)
+        elif context_source.ndim == 3 and context_source.shape[-1] == self.args.context_dim:
+            context = context_source
+        else:
+            context = self._encode_context(context_source)
         # breakpoint()
         # if context_source.ndim == 3 and self._looks_like_raw_timeseries(context_source):
         #     context = self._encode_context(context_source)
@@ -226,6 +277,138 @@ class Handler(generativeHandler):
         #     )
 
         return context
+
+    def _init_diffusion_prior(self):
+        if self._prior_model is not None:
+            return
+
+        prior_ckpt = getattr(self.args, "prior_ckpt", None)
+        if not prior_ckpt:
+            raise ValueError("prior_ckpt must be provided to sample latent contexts from diffusion prior.")
+        if not os.path.exists(prior_ckpt):
+            raise FileNotFoundError(f"Diffusion prior checkpoint not found: {prior_ckpt}")
+
+        state = torch.load(prior_ckpt, map_location=self.device, weights_only=False)
+        model_args = state["model_args"]
+        self._prior_seq_len = state["seq_len"]
+        self._prior_token_dim = state["token_dim"]
+        self._prior_model = DiT1D(
+            seq_len=self._prior_seq_len,
+            token_dim=self._prior_token_dim,
+            hidden_size=model_args["hidden_size"],
+            depth=model_args["depth"],
+            num_heads=model_args["num_heads"],
+            mlp_ratio=model_args["mlp_ratio"],
+            use_qknorm=model_args["use_qknorm"],
+            use_rmsnorm=model_args["use_rmsnorm"],
+        ).to(self.device)
+
+        prior_state = state["ema_model"] if getattr(self.args, "prior_use_ema", True) and "ema_model" in state else state["model"]
+        self._prior_model.load_state_dict(prior_state, strict=True)
+        self._prior_model.eval()
+
+        if self._prior_token_dim != int(self.args.context_dim):
+            raise ValueError(
+                f"Diffusion prior token_dim ({self._prior_token_dim}) does not match ImagenFew context_dim ({self.args.context_dim})."
+            )
+
+        transport = create_transport(**state["transport_args"])
+        sampler = Sampler(transport)
+        self._prior_sampler = sampler
+        self._prior_transport = transport
+        sampler_cfg = self._get_prior_sampler_config()
+        if sampler_cfg["mode"].upper() != "ODE":
+            raise ValueError(f"Unsupported prior sampler mode: {sampler_cfg['mode']}. Only ODE is supported.")
+        self._prior_sample_fn = sampler.sample_ode(
+            sampling_method=sampler_cfg["sampling_method"],
+            num_steps=sampler_cfg["num_steps"],
+            atol=sampler_cfg["atol"],
+            rtol=sampler_cfg["rtol"],
+            reverse=sampler_cfg["reverse"],
+        )
+        logging.info(
+            f"Loaded diffusion prior from {prior_ckpt} "
+            f"with latent shape (L={self._prior_seq_len}, D={self._prior_token_dim})"
+        )
+
+    def _sample_prior_context(self, batch_size):
+        if self._prior_context_cache is None:
+            self._ensure_prior_context_cache(batch_size)
+
+        start = self._prior_context_cursor
+        end = start + batch_size
+        if end > self._prior_context_cache.shape[0]:
+            self._prior_context_cursor = 0
+            start = 0
+            end = batch_size
+
+        self._prior_context_cursor = end
+        return self._prior_context_cache[start:end].to(self.device, non_blocking=True)
+
+    def _ensure_prior_context_cache(self, num_samples):
+        requested_cache_size = getattr(self.args, "prior_cache_size", None)
+        cache_size = num_samples if requested_cache_size is None else int(requested_cache_size)
+        cache_size = max(num_samples, cache_size)
+        if self._prior_context_cache is not None and self._prior_context_cache.shape[0] >= cache_size:
+            self._prior_context_cursor = 0
+            return
+
+        self._prior_context_cache = self._draw_prior_contexts(cache_size)
+        self._prior_context_cursor = 0
+        logging.info(f"Cached {cache_size} diffusion-prior latent contexts on CPU.")
+
+    def _draw_prior_contexts(self, num_samples):
+        self._init_diffusion_prior()
+        sample_batch_size = max(1, int(getattr(self.args, "prior_cache_batch_size", getattr(self.args, "batch_size", 128))))
+        chunks = []
+        remaining = num_samples
+        while remaining > 0:
+            bs = min(sample_batch_size, remaining)
+            init = torch.randn(
+                bs,
+                self._prior_seq_len,
+                self._prior_token_dim,
+                device=self.device,
+            )
+            with torch.no_grad():
+                xs = self._prior_sample_fn(init, self._prior_model)
+            chunks.append(xs[-1].detach().cpu())
+            remaining -= bs
+        return torch.cat(chunks, dim=0)
+
+    def _get_prior_sampler_config(self):
+        sampler_cfg = getattr(self.args, "sampler", None)
+        if isinstance(sampler_cfg, dict):
+            params = dict(sampler_cfg.get("params", {}))
+            return {
+                "mode": sampler_cfg.get("mode", "ODE"),
+                "sampling_method": params.get("sampling_method", "dopri5"),
+                "num_steps": int(params.get("num_steps", 50)),
+                "atol": float(params.get("atol", 1e-6)),
+                "rtol": float(params.get("rtol", 1e-3)),
+                "reverse": bool(params.get("reverse", False)),
+            }
+
+        return {
+            "mode": "ODE",
+            "sampling_method": getattr(self.args, "prior_method", "dopri5"),
+            "num_steps": int(getattr(self.args, "prior_num_steps", 50)),
+            "atol": float(getattr(self.args, "prior_atol", 1e-6)),
+            "rtol": float(getattr(self.args, "prior_rtol", 1e-3)),
+            "reverse": bool(getattr(self.args, "prior_reverse", False)),
+        }
+
+    def _get_sample_source(self):
+        sample_source = getattr(self.args, "sample_source", None)
+        if sample_source is None:
+            return "prior" if getattr(self.args, "prior_ckpt", None) else "posterior"
+
+        sample_source = str(sample_source).lower()
+        if sample_source == "prior" and not getattr(self.args, "prior_ckpt", None):
+            raise ValueError("sample_source='prior' requires prior_ckpt to be set.")
+        if sample_source not in {"prior", "posterior", "both"}:
+            raise ValueError("sample_source must be one of {'prior', 'posterior', 'both'}.")
+        return sample_source
 
     def _looks_like_raw_timeseries(self, tensor):
         context_dim = getattr(self.args, "context_dim", None)

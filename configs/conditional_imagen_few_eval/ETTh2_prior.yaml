@@ -1,0 +1,57 @@
+epochs: 1001
+batch_size: 1024
+learning_rate: 0.0001
+weight_decay: 0.00001
+
+use_stft: false
+delay: 8
+embedding: 8
+
+handler: models.ImagenFewCrossAttention.handler
+model_ckpt: null
+img_resolution: 8
+unet_channels: 32
+ch_mult: [1, 2, 2, 4]
+attn_resolution: [8, 4, 2]
+diffusion_steps: 36
+ema: true
+ema_warmup: 100
+ft_method: all
+
+pretrained_vae_weights: ./logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE
+multi_scale_vae:
+  z_channels: 64
+  ch: 64
+  ch_mult: [1, 2, 4]
+  dynamic_size: 64
+  dropout: 0.0
+
+prior_ckpt: null
+prior_use_ema: true
+sample_source: prior
+sampler:
+  mode: ODE
+  params:
+    sampling_method: dopri5
+    num_steps: 50
+    atol: 1.0e-06
+    rtol: 0.001
+    reverse: false
+
+logging_iter: 100
+tags: [conditional-imagen-few-eval, cross-attention, prior]
+run_dir: CondImagenFewEval/ETTh2
+
+datasets_dir: ./data/
+seq_len: 24
+pretrain: false
+datasets:
+  - name: ETTh2
+    data: ETTh2
+    embed: timeF
+    rel_path: TSF/ETT-small/ETTh2.csv
+    features: M
+    label_len: 7
+    pred_len: 0
+train_on_datasets:
+  - ETTh2
