@@ -363,6 +363,7 @@ def main():
                 with autocast(**autocast_kwargs):
                     loss = transport.training_losses(ddp_model, z)["loss"].mean()
 
+
                 loss = loss / grad_accum_steps
 
                 if scaler:
