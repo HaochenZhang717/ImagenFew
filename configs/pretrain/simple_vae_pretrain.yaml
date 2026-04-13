@@ -6,7 +6,7 @@ weight_decay: 0.00001
 beta: 0.001
 
 # model:
-handler: models.multiscalevae.simple_handler
+handler: models.MultiScaleVAE.simple_handler
 hidden_size: 128
 num_layers: 4
 num_heads: 4
@@ -112,4 +112,3 @@ train_on_datasets:
   - EMOPain
   - Chinatown
   - SharePriceIncrease
-
