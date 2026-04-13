@@ -33,6 +33,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--eval-metrics", nargs="+", type=str, default=None)
     parser.add_argument("--ts2vec-dir", type=str, default=None)
+    parser.add_argument("--no-ema-eval", action="store_true")
     return parser.parse_args()
 
 
@@ -137,6 +138,8 @@ def main():
 
     handler = import_module(args.handler).Handler(args=args, rank=args.device)
     handler.model.eval()
+    if cli_args.no_ema_eval and hasattr(handler, "_model") and hasattr(handler._model, "use_ema"):
+        handler._model.use_ema = False
 
     with torch.no_grad():
         generated_sets = handler.sample_variants(
@@ -173,6 +176,7 @@ def main():
         "split": cli_args.split,
         "num_samples": int(len(eval_tensor)),
         "sample_source": args.sample_source,
+        "use_ema_for_eval": not cli_args.no_ema_eval,
         "conditional_ckpt": args.resume_ckpt,
         "prior_ckpt": getattr(args, "prior_ckpt", None),
         "metrics": all_scores,

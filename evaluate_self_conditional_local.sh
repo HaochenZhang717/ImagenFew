@@ -14,6 +14,7 @@ PRIOR_CKPT="${PRIOR_CKPT:-}"
 MAX_SAMPLES="${MAX_SAMPLES:-}"
 SAVE_GENERATED_DIR="${SAVE_GENERATED_DIR:-}"
 OUTPUT_JSON="${OUTPUT_JSON:-}"
+USE_EMA_FOR_EVAL="${USE_EMA_FOR_EVAL:-1}"
 
 if [[ -n "${CONDA_ENV:-}" ]]; then
   CONDA_BIN=""
@@ -63,6 +64,10 @@ fi
 
 if [[ -n "$OUTPUT_JSON" ]]; then
   CMD+=(--output-json "$OUTPUT_JSON")
+fi
+
+if [[ "$USE_EMA_FOR_EVAL" == "0" ]]; then
+  CMD+=(--no-ema-eval)
 fi
 
 printf '[INFO] Running command:\n%s\n' "${CMD[*]}"
