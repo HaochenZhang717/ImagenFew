@@ -42,6 +42,7 @@ CONFIG="${CONFIG:-./configs/pretrain/simple_vae_pretrain.yaml}"
 WANDB_PROJECT="${WANDB_PROJECT:-SimpleVAE}"
 SUBSET_P="${SUBSET_P:-1.0}"
 
+
 echo "Running SimpleVAE pretrain on host $(hostname)"
 echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 echo "CONFIG=$CONFIG"
