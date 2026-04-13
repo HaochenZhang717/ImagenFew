@@ -210,88 +210,109 @@ class ResidualBlock(nn.Module):
 
 
 class VerbalTS(nn.Module):
+    """
+    Multi-scale patch-based diffusion backbone conditioned on side info and attr embedding.
+    """
     def __init__(self, config, inputdim=1):
         super().__init__()
         self.config = config
         self.n_var = config["n_var"]
         self.channels = config["channels"]
         self.multipatch_num = config["multipatch_num"]
+
         self.diffusion_embedding = DiffusionEmbedding(
             num_steps=config["num_steps"],
             embedding_dim=config["diffusion_embedding_dim"],
         )
+
         config["side"]["device"] = config["device"]
         self.side_encoder = SideEncoder_Var(configs=config["side"])
         side_dim = self.side_encoder.total_emb_dim
 
-        # self.attention_mask_type = config["attention_mask_type"]
         self.output_projection1 = Conv1d_with_init(self.channels, self.channels, 1)
-        self.ts_downsample = nn.ModuleList([])
-        self.side_downsample = nn.ModuleList([])
-        self.patch_decoder = nn.ModuleList([])
+        self.ts_downsample = nn.ModuleList()
+        self.side_downsample = nn.ModuleList()
+        self.patch_decoder = nn.ModuleList()
 
         for i in range(self.multipatch_num):
+            patch_len = config["base_patch"] * config["L_patch_len"] ** i
             self.ts_downsample.append(
-                TsPatchEmbedding(L_patch_len=config["base_patch"] * config["L_patch_len"] ** i, channels=inputdim,
-                                 d_model=self.channels, dropout=0))
+                TsPatchEmbedding(L_patch_len=patch_len, channels=inputdim, d_model=self.channels)
+            )
             self.patch_decoder.append(
-                PatchDecoder(L_patch_len=config["base_patch"] * config["L_patch_len"] ** i, d_model=self.channels,
-                             channels=1))
+                PatchDecoder(L_patch_len=patch_len, d_model=self.channels, channels=1)
+            )
             self.side_downsample.append(
-                SidePatchEmbedding(L_patch_len=config["base_patch"] * config["L_patch_len"] ** i, channels=side_dim,
-                                   d_model=side_dim, dropout=0))
-
-        self.attn_mask_initialized = False
+                SidePatchEmbedding(L_patch_len=patch_len, channels=side_dim, d_model=side_dim)
+            )
 
         self.multipatch_mixer = nn.Linear(self.multipatch_num, 1)
-        self.residual_layers = nn.ModuleList(
-            [
-                ResidualBlock(
-                    side_dim=side_dim,
-                    channels=self.channels,
-                    diffusion_embedding_dim=config["diffusion_embedding_dim"],
-                    nheads=config["nheads"],
-                    condition_type=config["condition_type"]
-                )
-                for _ in range(config["layers"])
-            ]
-        )
+        self.residual_layers = nn.ModuleList([
+            ResidualBlock(
+                side_dim=side_dim,
+                channels=self.channels,
+                diffusion_embedding_dim=config["diffusion_embedding_dim"],
+                nheads=config["nheads"],
+                condition_type=config["condition_type"],
+            )
+            for _ in range(config["layers"])
+        ])
 
     def forward(self, x_raw, tp, attr_emb_raw, diffusion_step):
+        """
+        Args:
+            x_raw: (B, 1, n_var, L) noisy time series
+            tp:    (B, L) time positions
+            attr_emb_raw: (B, n_var, 1, channels) conditioning embedding, or None
+            diffusion_step: (B,) integer timestep indices
+        Returns:
+            output: (B, n_var, L) predicted noise
+            loss_dict: {}
+        """
         B_raw, inputdim, n_var, L = x_raw.shape
+        side_emb_raw = self.side_encoder(x_raw, tp)           # (B, side_dim, n_var, L)
+        diffusion_emb = self.diffusion_embedding(diffusion_step)  # (B, diff_emb_dim)
 
-        side_emb_raw = self.side_encoder(tp)
-        diffusion_emb = self.diffusion_embedding(diffusion_step)
-
-        x_list = []
-        side_list = []
-        scale_length = []
-        # attr_emb_list = []
-        for i in reversed(range(self.multipatch_num)):
+        x_list, side_list, scale_lengths = [], [], []
+        for i in range(self.multipatch_num):
             x = self.ts_downsample[i](x_raw)
             side_emb = self.side_downsample[i](side_emb_raw)
             x_list.append(x)
             side_list.append(side_emb)
-            scale_length.append(x.shape[-1])
-        x_in = torch.cat(x_list, dim=-1)
+            scale_lengths.append(x.shape[-1])
+
+        x_in = torch.cat(x_list, dim=-1)       # (B, channels, n_var, total_Nl)
         side_in = torch.cat(side_list, dim=-1)
 
-        if attr_emb_raw is not None:
-            attr_emb = attr_emb_raw
-        else:
+        # Build attr_emb to match x_in shape
+        # attr_emb_raw: (B, n_var, n_scale, channels) from TextProjectorMVarMScaleMStep,
+        #               or (B, n_var, 1, channels) for simple projectors, or None.
+        if attr_emb_raw is None:
             attr_emb = torch.zeros_like(x_in)
+        else:
+            n_scale = attr_emb_raw.shape[2]
+            if n_scale == len(scale_lengths):
+                # Per-scale expansion: assign each scale slice to its patch length
+                mscale_list = []
+                for i in range(n_scale):
+                    tmp = attr_emb_raw[:, :, i:i + 1, :].expand(-1, -1, scale_lengths[i], -1)
+                    mscale_list.append(tmp)
+                attr_emb = torch.cat(mscale_list, dim=2)   # (B, n_var, total_Nl, channels)
+            else:
+                # Collapse the scale dim (mean) and broadcast uniformly
+                collapsed = attr_emb_raw.mean(dim=2, keepdim=True)            # (B, n_var, 1, channels)
+                attr_emb = collapsed.expand(-1, -1, x_in.shape[-1], -1)       # (B, n_var, total_Nl, channels)
+            attr_emb = attr_emb.permute(0, 3, 1, 2)                           # (B, channels, n_var, total_Nl)
+
 
         B, _, Nk, Nl = x_in.shape
-
         _x_in = x_in
         skip = []
         for layer in self.residual_layers:
-            x_in, skip_connection = layer(x_in + _x_in, side_in, attr_emb, diffusion_emb,
-                                          condition_type=self.config["condition_type"])
+            x_in, skip_connection = layer(x_in + _x_in, side_in, attr_emb, diffusion_emb)
             skip.append(skip_connection)
 
         x = torch.sum(torch.stack(skip), dim=0) / math.sqrt(len(self.residual_layers))
-
         x = x.reshape(B, self.channels, Nk * Nl)
         x = self.output_projection1(x)
         x = F.relu(x)
@@ -299,19 +320,14 @@ class VerbalTS(nn.Module):
 
         start_id = 0
         all_out = []
-        for i in range(len(x_list)):
-            x_out = x[:, :, :, start_id:start_id + x_list[i].shape[-1]]
-            # print(f"x_out.shape = {x_out.shape}")
-            x_out = self.patch_decoder[len(x_list) - 1 - i](x_out)
+        for i, x_scale in enumerate(x_list):
+            x_out = x[:, :, :, start_id:start_id + x_scale.shape[-1]]
+            x_out = self.patch_decoder[i](x_out)
             x_out = x_out[:, :, :, :L]
             all_out.append(x_out)
-            start_id += x_list[i].shape[-1]
+            start_id += x_scale.shape[-1]
 
-        all_out = torch.cat(all_out, dim=1)
-        all_out = all_out.permute(0, 2, 3, 1).contiguous()
-        # print(f"all_out.shape = {all_out.shape}")
-        all_out = self.multipatch_mixer(all_out)
-        # print(f"all_out.shape = {all_out.shape}")
-        # breakpoint()
-        all_out = all_out.reshape((B_raw, n_var, L))
+        all_out = torch.cat(all_out, dim=1)                              # (B, multipatch_num, n_var, L)
+        all_out = self.multipatch_mixer(all_out.permute(0, 2, 3, 1))    # (B, n_var, L, 1)
+        all_out = all_out.reshape(B_raw, n_var, L)
         return all_out, {}
