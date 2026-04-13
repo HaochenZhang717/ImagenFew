@@ -256,7 +256,6 @@ class SelfConditionalGenerator(nn.Module):
         if is_train:
             t = torch.randint(0, self.num_steps, (B,), device=self.device)
             # attr_emb = self.cond_projector(n_var, context, t)
-            breakpoint()
             return self._noise_estimation_loss(x, tp, attr_emb, t)
 
         # Evaluation: average loss over all timesteps

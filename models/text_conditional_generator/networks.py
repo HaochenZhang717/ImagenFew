@@ -287,10 +287,10 @@ class VerbalTS(nn.Module):
         # Build attr_emb to match x_in shape
         # attr_emb_raw: (B, n_var, n_scale, channels) from TextProjectorMVarMScaleMStep,
         #               or (B, n_var, 1, channels) for simple projectors, or None.
-        breakpoint()
         if attr_emb_raw is None:
             attr_emb = torch.zeros_like(x_in)
         else:
+            attr_emb_raw = attr_emb_raw.unsqueeze(2)
             n_scale = attr_emb_raw.shape[2]
             if n_scale == len(scale_lengths):
                 # Per-scale expansion: assign each scale slice to its patch length
@@ -305,7 +305,7 @@ class VerbalTS(nn.Module):
                 attr_emb = collapsed.expand(-1, -1, x_in.shape[-1], -1)       # (B, n_var, total_Nl, channels)
             attr_emb = attr_emb.permute(0, 3, 1, 2)                           # (B, channels, n_var, total_Nl)
 
-
+        breakpoint()
         B, _, Nk, Nl = x_in.shape
         _x_in = x_in
         skip = []
