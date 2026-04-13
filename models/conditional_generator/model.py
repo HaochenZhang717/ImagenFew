@@ -251,8 +251,9 @@ class SelfConditionalGenerator(nn.Module):
         """
         x_latent = x.permute(0, 2, 1)
         context_trend, context_coarse_seasonal, context_seasonal = self.multi_scale_vae.ts_to_z(
-            x_latent.permute(0, 2, 1), sample=False
-        )
+            x_latent.permute(0, 2, 1), sample=True
+        ) # here I use sample
+
         context = torch.cat([context_trend, context_coarse_seasonal, context_seasonal], dim=-1)
         context = context.permute(0, 2, 1)
         return context

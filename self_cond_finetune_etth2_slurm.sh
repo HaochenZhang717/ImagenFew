@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=self_cond_etth2
-#SBATCH --partition=a6000
+#SBATCH --partition=all
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -38,8 +38,10 @@ fi
 export TORCH_DISTRIBUTED_DEBUG=DETAIL
 export NCCL_DEBUG=INFO
 
+CONFIG="${CONFIG:-./configs/self_cond_finetune/ETTh2.yaml}"
+
 python run.py \
 --subset_p 1.0 \
 --wandb \
 --wandb_project SelfConditionalGenerationFinetune \
---config ./configs/self_cond_finetune/ETTh2.yaml
+--config "${CONFIG}"

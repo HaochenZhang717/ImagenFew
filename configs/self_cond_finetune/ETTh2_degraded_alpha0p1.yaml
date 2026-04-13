@@ -16,13 +16,13 @@ pretrain_path: ./logs/self_conditional_generator/pretrain/2133314a-ddb0-4f5f-b1e
 pretrained_vae_weights: ./logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE
 prior_ckpt: ./logs/diffusion_prior/time_shift_sweep/ETTh2/tds_1p0/diffusion_prior_latest.pt
 prior_use_ema: true
-posterior_train_mode: clean
-posterior_train_alpha: 0.0
+posterior_train_mode: degraded
+posterior_train_alpha: 0.1
 sample_source: both
 sampler:
   mode: ODE
   params:
-    sampling_method: euler
+    sampling_method: dopri5
     num_steps: 50
     atol: 1.0e-06
     rtol: 0.001
@@ -58,7 +58,9 @@ multi_scale_vae:
 logging_iter: 100
 tags:
 - self-conditional-generator
-run_dir: self_conditional_generator/finetune/ETTh2
+- degraded
+- alpha-0.1
+run_dir: self_conditional_generator/finetune/ETTh2_degraded_alpha0p1
 datasets_dir: ./data/
 pretrain: false
 datasets:

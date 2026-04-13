@@ -22,7 +22,7 @@ sample_source: both
 sampler:
   mode: ODE
   params:
-    sampling_method: euler
+    sampling_method: dopri5
     num_steps: 50
     atol: 1.0e-06
     rtol: 0.001
@@ -58,7 +58,8 @@ multi_scale_vae:
 logging_iter: 100
 tags:
 - self-conditional-generator
-run_dir: self_conditional_generator/finetune/ETTh2
+- clean
+run_dir: self_conditional_generator/finetune/ETTh2_clean
 datasets_dir: ./data/
 pretrain: false
 datasets:
