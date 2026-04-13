@@ -10,8 +10,14 @@ handler: models.MultiScaleVAE.simple_handler
 hidden_size: 128
 num_layers: 4
 num_heads: 4
-latent_dim: 64
+latent_dim: 16
 dynamic_size: [64, 64]
+encoder_channels: [64, 96, 128, 128]
+encoder_downsample_stages: 2
+decoder_channels: [128, 128, 96, 64]
+decoder_res_blocks: 2
+decoder_dropout: 0.0
+decoder_upsample_stages: 2
 
 # logging:
 logging_iter: 100

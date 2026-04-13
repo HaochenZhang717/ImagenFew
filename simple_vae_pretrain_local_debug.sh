@@ -28,7 +28,7 @@ export TOKENIZERS_PARALLELISM=false
 
 CONFIG="${CONFIG:-./configs/pretrain/simple_vae_pretrain.yaml}"
 WANDB_PROJECT="${WANDB_PROJECT:-SimpleVAE-Debug}"
-SUBSET_P="${SUBSET_P:-0.05}"
+SUBSET_P="${SUBSET_P:-1.0}"
 
 echo "Running local debug SimpleVAE pretrain"
 echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"

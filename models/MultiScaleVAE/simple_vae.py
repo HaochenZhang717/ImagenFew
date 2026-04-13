@@ -89,21 +89,62 @@ class EncoderLayer(nn.Module):
         return x
 
 
+class EncoderConvStage(nn.Module):
+    def __init__(self, in_channels, out_channels, downsample: bool = False):
+        super().__init__()
+        stride = 2 if downsample else 1
+        kernel_size = 2 if downsample else 3
+        padding = 0 if downsample else 1
+        self.conv = nn.Conv1d(
+            in_channels,
+            out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+        )
+        self.act = nn.ReLU()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.act(self.conv(x))
+
+
 class DynamicConvStem(nn.Module):
     """
     Input stem with a dynamic first convolution so the encoder can accept
     varying channel counts during pretraining.
     """
 
-    def __init__(self, dynamic_size, hidden_size):
+    def __init__(self, dynamic_size, encoder_channels, downsample_stages: int):
         super().__init__()
-        self.conv1 = DynamicConv1d(dynamic_size, kernel=2, out_channels=hidden_size // 2, down=True)
-        self.act = nn.ReLU()
-        self.conv2 = nn.Conv1d(hidden_size // 2, hidden_size, kernel_size=2, stride=2, padding=0)
+        if len(encoder_channels) < 2:
+            raise ValueError("encoder_channels must contain at least 2 stage widths")
+        if downsample_stages < 1 or downsample_stages > len(encoder_channels):
+            raise ValueError("downsample_stages must be in [1, len(encoder_channels)]")
+
+        self.dynamic_conv = DynamicConv1d(
+            dynamic_size,
+            kernel=2 if downsample_stages >= 1 else 3,
+            out_channels=encoder_channels[0],
+            down=downsample_stages >= 1,
+        )
+        self.dynamic_act = nn.ReLU()
+        self.stages = nn.ModuleList()
+
+        in_channels = encoder_channels[0]
+        for idx, out_channels in enumerate(encoder_channels[1:], start=1):
+            self.stages.append(
+                EncoderConvStage(
+                    in_channels,
+                    out_channels,
+                    downsample=idx < downsample_stages,
+                )
+            )
+            in_channels = out_channels
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.act(self.conv1(x))
-        x = self.conv2(x)
+        x = self.dynamic_act(self.dynamic_conv(x))
+        for stage in self.stages:
+            x = stage(x)
         return x
 
 
@@ -121,6 +162,26 @@ class DynamicConvHead(nn.Module):
         return self.proj(x, out_features=out_channels)
 
 
+class ResidualConvBlock(nn.Module):
+    def __init__(self, channels: int, kernel_size: int = 5, dropout: float = 0.0):
+        super().__init__()
+        padding = kernel_size // 2
+        num_groups = min(8, channels)
+        while channels % num_groups != 0 and num_groups > 1:
+            num_groups -= 1
+
+        self.norm1 = nn.GroupNorm(num_groups=num_groups, num_channels=channels, eps=1e-6, affine=True)
+        self.norm2 = nn.GroupNorm(num_groups=num_groups, num_channels=channels, eps=1e-6, affine=True)
+        self.conv1 = nn.Conv1d(channels, channels, kernel_size=kernel_size, padding=padding)
+        self.conv2 = nn.Conv1d(channels, channels, kernel_size=kernel_size, padding=padding)
+        self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        h = self.conv1(F.silu(self.norm1(x)))
+        h = self.conv2(self.dropout(F.silu(self.norm2(h))))
+        return x + h
+
+
 class TimeSeriesEncoder(nn.Module):
     def __init__(
         self,
@@ -130,24 +191,39 @@ class TimeSeriesEncoder(nn.Module):
         num_heads=4,
         latent_dim=64,
         dynamic_size=None,
+        encoder_channels=None,
+        encoder_downsample_stages=2,
     ):
         super().__init__()
         if dynamic_size is None:
             dynamic_size = input_dim
+        if encoder_channels is None:
+            encoder_channels = [
+                max(hidden_size // 2, 1),
+                hidden_size,
+                hidden_size,
+                hidden_size,
+            ]
+        encoder_channels = list(encoder_channels)
+        self.downsample_factor = 2 ** encoder_downsample_stages
 
-        self.conv = DynamicConvStem(dynamic_size=dynamic_size, hidden_size=hidden_size)
-        self.layers = nn.ModuleList(
-            [EncoderLayer(hidden_size, num_heads) for _ in range(num_layers)]
+        self.conv = DynamicConvStem(
+            dynamic_size=dynamic_size,
+            encoder_channels=encoder_channels,
+            downsample_stages=encoder_downsample_stages,
         )
-        self.to_mu = nn.Linear(hidden_size, latent_dim)
-        self.to_logvar = nn.Linear(hidden_size, latent_dim)
+        self.layers = nn.ModuleList(
+            [EncoderLayer(encoder_channels[-1], num_heads) for _ in range(num_layers)]
+        )
+        self.to_mu = nn.Linear(encoder_channels[-1], latent_dim)
+        self.to_logvar = nn.Linear(encoder_channels[-1], latent_dim)
 
     def forward(self, x):
         """
         x: (B, C, T)
         returns:
-            mu:     (B, T/4, latent_dim)
-            logvar: (B, T/4, latent_dim)
+            mu:     (B, T/downsample_factor, latent_dim)
+            logvar: (B, T/downsample_factor, latent_dim)
         """
         x = self.conv(x)
         x = x.permute(0, 2, 1)
@@ -167,27 +243,69 @@ class TimeSeriesDecoder(nn.Module):
         latent_dim,
         output_dim,
         hidden_size=128,
+        seq_len=24,
         dynamic_size=None,
+        decoder_channels=None,
+        decoder_res_blocks=1,
+        decoder_dropout=0.0,
+        upsample_stages=2,
+        latent_downsample_factor=4,
     ):
         super().__init__()
         if dynamic_size is None:
             dynamic_size = output_dim
+        if decoder_channels is None:
+            decoder_channels = [hidden_size, hidden_size, max(hidden_size // 2, 1), max(hidden_size // 2, 1)]
+        decoder_channels = list(decoder_channels)
+        if len(decoder_channels) < 4:
+            raise ValueError(
+                "decoder_channels must contain at least 4 stage widths"
+            )
+        if latent_downsample_factor < 1 or seq_len % latent_downsample_factor != 0:
+            raise ValueError("seq_len must be divisible by latent_downsample_factor")
+        if upsample_stages < 1 or upsample_stages > len(decoder_channels):
+            raise ValueError("upsample_stages must be in [1, len(decoder_channels)]")
 
-        self.input_proj = nn.Conv1d(latent_dim, hidden_size, kernel_size=1)
-        self.conv1 = nn.Conv1d(hidden_size, hidden_size, kernel_size=5, padding=2)
-        self.conv2 = nn.Conv1d(hidden_size, hidden_size // 2, kernel_size=5, padding=2)
+        self.seq_len = seq_len
+        self.latent_seq_len = seq_len // latent_downsample_factor
+        self.input_proj = nn.Conv1d(latent_dim, decoder_channels[0], kernel_size=1)
+        self.stages = nn.ModuleList()
+
+        in_channels = decoder_channels[0]
+        for idx, out_channels in enumerate(decoder_channels):
+            stage = nn.ModuleDict({
+                "resblocks": nn.Sequential(
+                    *[
+                        ResidualConvBlock(
+                            in_channels,
+                            kernel_size=5,
+                            dropout=decoder_dropout,
+                        )
+                        for _ in range(decoder_res_blocks)
+                    ]
+                ),
+                "channel_proj": nn.Conv1d(in_channels, out_channels, kernel_size=1) if in_channels != out_channels else nn.Identity(),
+            })
+            stage["upsample"] = (
+                nn.Upsample(scale_factor=2, mode="nearest")
+                if idx < upsample_stages
+                else nn.Identity()
+            )
+            self.stages.append(stage)
+            in_channels = out_channels
+
         self.output_proj = DynamicConvHead(dynamic_size=dynamic_size)
 
     def forward(self, z, out_channels: int):
         """
-        z: (B, latent_dim, T/4)
+        z: (B, latent_dim, T/latent_downsample_factor)
         return: (B, C, T)
         """
         x = self.input_proj(z)
-        x = F.relu(self.conv1(x))
-        x = F.interpolate(x, scale_factor=2, mode="nearest")
-        x = F.relu(self.conv2(x))
-        x = F.interpolate(x, scale_factor=2, mode="nearest")
+        for stage in self.stages:
+            x = stage["resblocks"](x)
+            x = stage["channel_proj"](x)
+            x = stage["upsample"](x)
         x = self.output_proj(x, out_channels=out_channels)
         return x
 
@@ -203,6 +321,13 @@ class SimpleVAE(nn.Module):
         latent_dim=64,
         beta=0.001,
         dynamic_size=None,
+        encoder_channels=None,
+        encoder_downsample_stages=2,
+        decoder_channels=None,
+        decoder_res_blocks=1,
+        decoder_dropout=0.0,
+        decoder_upsample_stages=2,
+        seq_len=24,
     ):
         super().__init__()
         if dynamic_size is None:
@@ -211,6 +336,11 @@ class SimpleVAE(nn.Module):
         self.beta = beta
         self.input_dim = input_dim
         self.output_dim = output_dim
+        self.seq_len = seq_len
+        self.latent_downsample_factor = 2 ** encoder_downsample_stages
+        if seq_len % self.latent_downsample_factor != 0:
+            raise ValueError("seq_len must be divisible by 2 ** encoder_downsample_stages")
+        self.latent_seq_len = seq_len // self.latent_downsample_factor
 
         self.encoder = TimeSeriesEncoder(
             input_dim=input_dim,
@@ -219,12 +349,20 @@ class SimpleVAE(nn.Module):
             num_heads=num_heads,
             latent_dim=latent_dim,
             dynamic_size=dynamic_size,
+            encoder_channels=encoder_channels,
+            encoder_downsample_stages=encoder_downsample_stages,
         )
         self.decoder = TimeSeriesDecoder(
             latent_dim=latent_dim,
             output_dim=output_dim,
             hidden_size=hidden_size,
+            seq_len=seq_len,
             dynamic_size=dynamic_size,
+            decoder_channels=decoder_channels,
+            decoder_res_blocks=decoder_res_blocks,
+            decoder_dropout=decoder_dropout,
+            upsample_stages=decoder_upsample_stages,
+            latent_downsample_factor=self.latent_downsample_factor,
         )
 
     def reparameterize(self, mu, logvar):
@@ -236,7 +374,7 @@ class SimpleVAE(nn.Module):
         """
         x: (B, C, T)
         returns:
-            mu, logvar, z with shape (B, T/4, latent_dim)
+            mu, logvar, z with shape (B, T/latent_downsample_factor, latent_dim)
         """
         mu, logvar = self.encoder(x)
         z = self.reparameterize(mu, logvar)
@@ -258,7 +396,6 @@ class SimpleVAE(nn.Module):
         x: (B, C, T)
         """
         mu, logvar, z = self.encode(x)
-        breakpoint()
         recon = self.decode(z, out_channels=x.shape[1])
         return {
             "recon": recon,
@@ -288,6 +425,13 @@ if __name__ == "__main__":
         latent_dim=128,
         beta=0.001,
         dynamic_size=32,
+        encoder_channels=[64, 96, 128, 128],
+        encoder_downsample_stages=2,
+        decoder_channels=[128, 128, 96, 64],
+        decoder_res_blocks=2,
+        decoder_dropout=0.0,
+        decoder_upsample_stages=2,
+        seq_len=128,
     )
 
     x = torch.randn(8, 5, 128)

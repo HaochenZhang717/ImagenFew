@@ -34,6 +34,13 @@ class Handler(generativeHandler):
             latent_dim=getattr(self.args, "latent_dim", 64),
             beta=getattr(self.args, "beta", 0.001),
             dynamic_size=model_dynamic_size,
+            encoder_channels=getattr(self.args, "encoder_channels", None),
+            encoder_downsample_stages=getattr(self.args, "encoder_downsample_stages", 2),
+            decoder_channels=getattr(self.args, "decoder_channels", None),
+            decoder_res_blocks=getattr(self.args, "decoder_res_blocks", 1),
+            decoder_dropout=getattr(self.args, "decoder_dropout", 0.0),
+            decoder_upsample_stages=getattr(self.args, "decoder_upsample_stages", 2),
+            seq_len=self.args.seq_len,
         )
         if self.args.model_ckpt is not None:
             self._load_model(self.args.model_ckpt, self.args.device)
@@ -74,12 +81,13 @@ class Handler(generativeHandler):
     def sample(self, n_samples, class_label, class_metadata):
         generated = []
         latent_dim = getattr(self.args, "latent_dim", 64)
+        latent_seq_len = self._model.latent_seq_len
 
         for sample_size in [
             min(self.args.batch_size, n_samples - i)
             for i in range(0, n_samples, self.args.batch_size)
         ]:
-            z = torch.randn(sample_size, latent_dim, device=self.args.device)
+            z = torch.randn(sample_size, latent_seq_len, latent_dim, device=self.args.device)
             x_ts = self._model.decode(z, out_channels=class_metadata["channels"])
             generated.append(x_ts.transpose(1, 2))
 
