@@ -155,19 +155,20 @@ class SelfConditionalGenerator(nn.Module):
         # Diffusion backbone
         diff_cfg["device"] = self.device
         self.diff_model = VerbalTS(diff_cfg, inputdim=1).to(self.device)
-        self.text_context_projection = (
-            nn.Identity()
-            if self.text_embedding_dim == configs["cond_dim_in"]
-            else nn.Linear(self.text_embedding_dim, configs["cond_dim_in"])
+
+        self.text_context_projection = nn.Sequential(
+            nn.Linear(configs["cond_dim_in"], (configs["cond_dim_in"] + configs["cond_dim_out"]) // 2),
+            nn.SiLU(),
+            nn.Linear((configs["cond_dim_in"] + configs["cond_dim_out"]) // 2, configs["cond_dim_out"])
         )
 
-        self.cond_projector = TextProjectorMVarMScaleMStep(
-            n_scale=diff_cfg["n_scales"],
-            n_stages=diff_cfg["n_stages"],
-            n_steps=diff_cfg["num_steps"],
-            dim_in=configs["cond_dim_in"],
-            dim_out=configs["cond_dim_out"]
-        )
+        # self.cond_projector = TextProjectorMVarMScaleMStep(
+        #     n_scale=diff_cfg["n_scales"],
+        #     n_stages=diff_cfg["n_stages"],
+        #     n_steps=diff_cfg["num_steps"],
+        #     dim_in=configs["cond_dim_in"],
+        #     dim_out=configs["cond_dim_out"]
+        # )
         # Noise schedulers
         self.ddpm = DDPMSampler(
             self.num_steps,
@@ -247,22 +248,22 @@ class SelfConditionalGenerator(nn.Module):
         return self.text_context_projection(text_context)
 
     def forward(self, x, text_context, is_train=True):
-        breakpoint()
         B, _ , n_var = x.shape
         x = x.permute(0,2,1) #(B, C, L)
         tp = self._make_tp(B, x.shape[-1])
-        context = self._prepare_text_context(text_context)
-
+        attr_emb = self._prepare_text_context(text_context)
+        # text_context.shape == (B, n_var, dim)
         if is_train:
             t = torch.randint(0, self.num_steps, (B,), device=self.device)
-            attr_emb = self.cond_projector(n_var, context, t)
+            # attr_emb = self.cond_projector(n_var, context, t)
+            breakpoint()
             return self._noise_estimation_loss(x, tp, attr_emb, t)
 
         # Evaluation: average loss over all timesteps
         loss_dict = {}
         for step in range(self.num_steps):
             t = (torch.ones(B, device=self.device) * step).long()
-            attr_emb = self.cond_projector(n_var, context, t)
+            # attr_emb = self.cond_projector(n_var, context, t)
             tmp = self._noise_estimation_loss(x, tp, attr_emb, t)
             for k, v in tmp.items():
                 loss_dict[k] = loss_dict.get(k, 0) + v

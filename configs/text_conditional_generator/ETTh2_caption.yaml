@@ -11,7 +11,7 @@ ema_warmup: 0
 ema_decay: 0.9999
 handler: models.text_conditional_generator.handler
 seq_len: 24
-cond_dim_in: 64
+cond_dim_in: 2048
 cond_dim_out: 128
 caption_embeddings_path: ./logs/finetune_captions/ETTh2/train_caption_embeds.pt
 pretrain_path: ""
