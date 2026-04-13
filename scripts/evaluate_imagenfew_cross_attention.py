@@ -53,7 +53,7 @@ def to_args_namespace(config_dict):
     args.find_unused_parameters = getattr(args, "find_unused_parameters", False)
     args.train_on_datasets = [dataset for dataset in dataset_list if dataset in args.train_on_datasets]
     args.seed = getattr(args, "seed", 42)
-    args.eval_metrics = getattr(args, "eval_metrics", ["disc_mean", "disc_std", "pred_mean", "pred_std", "context_fid"])
+    args.eval_metrics = getattr(args, "eval_metrics", ["disc", "contextFID", "pred"])
     args.context_dim = getattr(args, "context_dim", getattr(args, "multi_scale_vae", {}).get("z_channels"))
     return args
 
