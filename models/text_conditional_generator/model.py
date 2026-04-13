@@ -247,7 +247,7 @@ class SelfConditionalGenerator(nn.Module):
         return self.text_context_projection(text_context)
 
     def forward(self, x, text_context, is_train=True):
-
+        breakpoint()
         B, _ , n_var = x.shape
         x = x.permute(0,2,1) #(B, C, L)
         tp = self._make_tp(B, x.shape[-1])
