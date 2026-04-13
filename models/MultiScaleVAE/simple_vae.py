@@ -258,6 +258,7 @@ class SimpleVAE(nn.Module):
         x: (B, C, T)
         """
         mu, logvar, z = self.encode(x)
+        breakpoint()
         recon = self.decode(z, out_channels=x.shape[1])
         return {
             "recon": recon,
