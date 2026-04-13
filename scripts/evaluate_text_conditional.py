@@ -31,6 +31,7 @@ def parse_args():
     parser.add_argument("--eval-metrics", nargs="+", type=str, default=None)
     parser.add_argument("--ts2vec-dir", type=str, default=None)
     parser.add_argument("--no-ema-eval", action="store_true")
+    parser.add_argument("--shuffle-caption-embeddings", action="store_true")
     return parser.parse_args()
 
 
@@ -99,7 +100,7 @@ def load_caption_embeddings(path):
     return embeds.to(torch.float32)
 
 
-def make_default_output_json(dataset, split, conditional_ckpt):
+def make_default_output_json(dataset, split, conditional_ckpt, shuffled):
     results_dir = os.path.join(
         "./logs",
         "text_conditional_generator",
@@ -108,7 +109,8 @@ def make_default_output_json(dataset, split, conditional_ckpt):
     )
     os.makedirs(results_dir, exist_ok=True)
     cond_tag = os.path.splitext(os.path.basename(conditional_ckpt))[0]
-    filename = f"{split}_posterior_{cond_tag}.json"
+    suffix = "_shuffled" if shuffled else ""
+    filename = f"{split}_posterior_{cond_tag}{suffix}.json"
     return os.path.join(results_dir, filename)
 
 
@@ -144,6 +146,9 @@ def main():
 
     eval_tensor = maybe_slice_tensor(eval_tensor, cli_args.max_samples)
     caption_embeddings = maybe_slice_tensor(caption_embeddings, cli_args.max_samples)
+    if cli_args.shuffle_caption_embeddings:
+        perm = torch.randperm(len(caption_embeddings))
+        caption_embeddings = caption_embeddings[perm]
 
     class_metadata = {"name": dataset_name, "channels": int(eval_tensor.shape[-1])}
     class_label = dataset_list.index(dataset_name)
@@ -190,6 +195,7 @@ def main():
         dataset_name,
         cli_args.split,
         args.resume_ckpt,
+        cli_args.shuffle_caption_embeddings,
     )
     os.makedirs(os.path.dirname(output_json), exist_ok=True)
     result = {
@@ -197,6 +203,7 @@ def main():
         "split": cli_args.split,
         "conditional_ckpt": args.resume_ckpt,
         "caption_embeddings_path": args.caption_embeddings_path,
+        "shuffle_caption_embeddings": cli_args.shuffle_caption_embeddings,
         "use_ema_for_eval": not cli_args.no_ema_eval,
         "num_samples": int(len(eval_tensor)),
         "metrics": scores,

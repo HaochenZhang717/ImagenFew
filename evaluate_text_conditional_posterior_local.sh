@@ -30,6 +30,7 @@ SAVE_GENERATED_DIR="${SAVE_GENERATED_DIR:-}"
 CONDITIONAL_CKPT="${CONDITIONAL_CKPT:-}"
 TS2VEC_DIR="${TS2VEC_DIR:-}"
 USE_EMA_FOR_EVAL="${USE_EMA_FOR_EVAL:-1}"
+SHUFFLE_CAPTION_EMBEDDINGS="${SHUFFLE_CAPTION_EMBEDDINGS:-0}"
 
 CMD="python scripts/evaluate_text_conditional.py --config ${CONFIG} --split ${SPLIT}"
 
@@ -55,6 +56,10 @@ fi
 
 if [[ "${USE_EMA_FOR_EVAL}" == "0" ]]; then
   CMD="${CMD} --no-ema-eval"
+fi
+
+if [[ "${SHUFFLE_CAPTION_EMBEDDINGS}" == "1" ]]; then
+  CMD="${CMD} --shuffle-caption-embeddings"
 fi
 
 echo "[INFO] Running command:"
