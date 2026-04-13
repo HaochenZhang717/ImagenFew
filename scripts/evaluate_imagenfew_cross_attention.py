@@ -42,7 +42,12 @@ def to_args_namespace(config_dict):
     args.finetune = not getattr(args, "pretrain", False)
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     args.n_classes = len(dataset_list)
-    args.input_channels = getattr(args, "input_channels", None)
+    args.beta1 = getattr(args, "beta1", 1e-5)
+    args.betaT = getattr(args, "betaT", 1e-2)
+    args.deterministic = getattr(args, "deterministic", False)
+    args.input_channels = getattr(args, "input_channels", 1 if not getattr(args, "use_stft", False) else 2)
+    args.lora_dim = getattr(args, "lora_dim", 4)
+    args.dynamic_size = getattr(args, "dynamic_size", [128, 128])
     args.subset_p = getattr(args, "subset_p", None)
     args.subset_n = getattr(args, "subset_n", None)
     args.find_unused_parameters = getattr(args, "find_unused_parameters", False)
