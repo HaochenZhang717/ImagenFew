@@ -1,8 +1,8 @@
-latents: /work/vb21/haochen/neurips_2026/ImagenFew/logs/vae_latents/finetune_dataset/mujoco_mu.pt
-output_dir: /work/vb21/haochen/neurips_2026/ImagenFew/logs/diffusion_prior/dit1d_base_finetune/mujoco
+latents: /playpen-shared/haochenz/ImagenFew/logs/vae_latents/finetune_dataset/mujoco_mu.pt
+output_dir: /playpen-shared/haochenz/ImagenFew/logs/diffusion_prior/dit1d_base_finetune/mujoco
 resume: null
 resume_ckpt: null
-finetune_ckpt: /work/vb21/haochen/neurips_2026/ImagenFew/logs/diffusion_prior/dit1d_base/diffusion_prior_best.pt
+finetune_ckpt: /playpen-shared/haochenz/ImagenFew/logs/diffusion_prior/dit1d_base/diffusion_prior_best.pt
 seed: 0
 device: cuda
 wandb: true
