@@ -266,8 +266,12 @@ class DualVAE(nn.Module):
         self.encoder_low_freq = Encoder(**coarse_config)
         self.decoder_low_freq = Decoder(**coarse_config)
 
-        self.encoder_mid_freq = GuidedEncoder(**fine_config)
-        self.decoder_mid_freq = GuidedDecoder(**fine_config)
+        if self.one_token_pool:
+            self.encoder_mid_freq = Encoder(**fine_config)
+            self.decoder_mid_freq = Decoder(**fine_config)
+        else:
+            self.encoder_mid_freq = GuidedEncoder(**fine_config)
+            self.decoder_mid_freq = GuidedDecoder(**fine_config)
 
         self.encoder_high_freq = GuidedEncoder(**fine_config)
         self.decoder_high_freq = GuidedDecoder(**fine_config)
@@ -357,11 +361,17 @@ class DualVAE(nn.Module):
 
         recon_low_freq = self.decoder_low_freq(self.post_latent_conv_low_freq(z_low_freq), data_channels)
 
-        recon_mid_freq = self.decoder_mid_freq(
-            self.post_latent_conv_mid_freq(z_mid_freq),
-            recon_low_freq,
-            out_features=data_channels,
-        )
+        if self.one_token_pool:
+            recon_mid_freq = self.decoder_mid_freq(
+                self.post_latent_conv_mid_freq(z_mid_freq),
+                data_channels,
+            )
+        else:
+            recon_mid_freq = self.decoder_mid_freq(
+                self.post_latent_conv_mid_freq(z_mid_freq),
+                recon_low_freq,
+                out_features=data_channels,
+            )
 
         recon_high_freq = self.decoder_high_freq(
             self.post_latent_conv_high_freq(z_high_freq),
