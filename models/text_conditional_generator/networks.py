@@ -224,7 +224,7 @@ class VerbalTS(nn.Module):
         self.side_encoder = SideEncoder_Var(configs=config["side"])
         side_dim = self.side_encoder.total_emb_dim
 
-        self.attention_mask_type = config["attention_mask_type"]
+        # self.attention_mask_type = config["attention_mask_type"]
         self.output_projection1 = Conv1d_with_init(self.channels, self.channels, 1)
         self.ts_downsample = nn.ModuleList([])
         self.side_downsample = nn.ModuleList([])
