@@ -51,6 +51,9 @@ def to_args_namespace(config_dict):
     args.warmup_steps = getattr(args, "warmup_steps", 0)
     args.min_lr = getattr(args, "min_lr", 0.0)
     args.gradient_accumulation_steps = getattr(args, "gradient_accumulation_steps", 1)
+    args.seed = getattr(args, "seed", 42)
+    args.eval_metrics = getattr(args, "eval_metrics", ["disc"])
+    args.metric_iteration = getattr(args, "metric_iteration", 10)
     args.sample_source = "posterior"
     return args
 
