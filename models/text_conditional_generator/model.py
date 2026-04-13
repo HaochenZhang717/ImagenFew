@@ -162,13 +162,6 @@ class SelfConditionalGenerator(nn.Module):
             nn.Linear((configs["cond_dim_in"] + configs["cond_dim_out"]) // 2, configs["cond_dim_out"])
         )
 
-        # self.cond_projector = TextProjectorMVarMScaleMStep(
-        #     n_scale=diff_cfg["n_scales"],
-        #     n_stages=diff_cfg["n_stages"],
-        #     n_steps=diff_cfg["num_steps"],
-        #     dim_in=configs["cond_dim_in"],
-        #     dim_out=configs["cond_dim_out"]
-        # )
         # Noise schedulers
         self.ddpm = DDPMSampler(
             self.num_steps,
@@ -187,7 +180,7 @@ class SelfConditionalGenerator(nn.Module):
 
         if self.use_ema:
             self.model_ema = LitEma(
-                self.diff_model,
+                self,
                 decay=self.ema_decay,
                 use_num_upates=True,
                 warmup=self.ema_warmup,
@@ -196,7 +189,7 @@ class SelfConditionalGenerator(nn.Module):
     def reset_ema(self):
         if self.use_ema:
             self.model_ema = LitEma(
-                self.diff_model,
+                self,
                 decay=self.ema_decay,
                 use_num_upates=True,
                 warmup=self.ema_warmup,
@@ -276,21 +269,21 @@ class SelfConditionalGenerator(nn.Module):
     @contextmanager
     def ema_scope(self, context=None):
         if self.use_ema:
-            self.model_ema.store(self.diff_model.parameters())
-            self.model_ema.copy_to(self.diff_model)
+            self.model_ema.store(self.parameters())
+            self.model_ema.copy_to(self)
             if context is not None:
                 print(f"{context}: Switched to EMA weights")
         try:
             yield None
         finally:
             if self.use_ema:
-                self.model_ema.restore(self.diff_model.parameters())
+                self.model_ema.restore(self.parameters())
                 if context is not None:
                     print(f"{context}: Restored training weights")
 
     def on_train_batch_end(self):
         if self.use_ema:
-            self.model_ema(self.diff_model)
+            self.model_ema(self)
 
     @torch.no_grad()
     def generate_from_context(self, context, seq_len, n_var, sampler="ddim"):
