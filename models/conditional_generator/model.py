@@ -240,25 +240,33 @@ class SelfConditionalGenerator(nn.Module):
         pred_noise, extra = self.diff_model(noisy_x_in, tp, attr_emb, t)
         return pred_noise, extra
 
-    # ------------------------------------------------------------------
-    # Training forward
-    # ------------------------------------------------------------------
-    def forward(self, x, is_train=True):
-
-        B, _ , n_var = x.shape
-        x = x.permute(0,2,1) #(B, C, L)
-        tp = self._make_tp(B, x.shape[-1])
-
-        context_trend, context_coarse_seasonal, context_seasonal = self.multi_scale_vae.ts_to_z(x.permute(0,2,1), sample=False)
-        context = torch.cat([context_trend, context_coarse_seasonal, context_seasonal], dim=-1) # (B, C, L)
+    @torch.no_grad()
+    def encode_posterior_context(self, x):
+        """
+        Encode clean time-series into the frozen VAE posterior context used by the conditioner.
+        Args:
+            x: (B, seq_len, n_var)
+        Returns:
+            context: (B, latent_seq_len, cond_dim_in)
+        """
+        x_latent = x.permute(0, 2, 1)
+        context_trend, context_coarse_seasonal, context_seasonal = self.multi_scale_vae.ts_to_z(
+            x_latent.permute(0, 2, 1), sample=False
+        )
+        context = torch.cat([context_trend, context_coarse_seasonal, context_seasonal], dim=-1)
         context = context.permute(0, 2, 1)
+        return context
+
+    def forward_with_context(self, x, context, is_train=True):
+        B, _, n_var = x.shape
+        x = x.permute(0, 2, 1)  # (B, C, L)
+        tp = self._make_tp(B, x.shape[-1])
 
         if is_train:
             t = torch.randint(0, self.num_steps, (B,), device=self.device)
             attr_emb = self.cond_projector(n_var, context, t)
             return self._noise_estimation_loss(x, tp, attr_emb, t)
 
-        # Evaluation: average loss over all timesteps
         loss_dict = {}
         for step in range(self.num_steps):
             t = (torch.ones(B, device=self.device) * step).long()
@@ -269,6 +277,13 @@ class SelfConditionalGenerator(nn.Module):
         for k in loss_dict:
             loss_dict[k] = loss_dict[k] / self.num_steps
         return loss_dict
+
+    # ------------------------------------------------------------------
+    # Training forward
+    # ------------------------------------------------------------------
+    def forward(self, x, is_train=True):
+        context = self.encode_posterior_context(x)
+        return self.forward_with_context(x, context, is_train=is_train)
 
     # ------------------------------------------------------------------
     # Sampling

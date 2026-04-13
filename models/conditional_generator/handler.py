@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.distributed as tdist
 from tqdm import tqdm
 from torch.optim.lr_scheduler import LambdaLR
+from torchdiffeq import odeint
 
 from ..generative_handler import generativeHandler
 from .model import SelfConditionalGenerator
@@ -70,6 +71,8 @@ class Handler(generativeHandler):
         self._prior_token_dim = None
         self._prior_context_cache = None
         self._prior_context_cursor = 0
+        self._prior_transport = None
+        self._prior_sampler = None
 
         resume_ckpt = getattr(self.args, "resume_ckpt", None)
         if getattr(self.args, "pretrain", False) and resume_ckpt is None:
@@ -151,7 +154,11 @@ class Handler(generativeHandler):
         for batch_idx, (data, class_indices) in enumerate(pbar, 1):
             # data: (B, seq_len, n_var)
             x = data.to(self.device).float()
-            loss_dict = self.model(x, is_train=True)
+            if self._get_posterior_train_mode() == "clean":
+                loss_dict = self.model(x, is_train=True)
+            else:
+                context = self._build_training_context(x)
+                loss_dict = self.model.forward_with_context(x, context, is_train=True)
             loss = loss_dict["all"]
             loss_for_backward = loss / accumulation_steps
 
@@ -374,6 +381,7 @@ class Handler(generativeHandler):
         prior_state = state["ema_model"] if getattr(self.args, "prior_use_ema", True) and "ema_model" in state else state["model"]
         self._prior_model.load_state_dict(prior_state, strict=True)
         self._prior_model.eval()
+        self._prior_transport = transport
 
         expected_cond_dim = getattr(self.args, "cond_dim_in", None)
         if expected_cond_dim is not None and self._prior_token_dim != expected_cond_dim:
@@ -383,6 +391,8 @@ class Handler(generativeHandler):
 
         transport = create_transport(**state["transport_args"])
         sampler = Sampler(transport)
+        self._prior_sampler = sampler
+        self._prior_transport = transport
         sampler_cfg = self._get_prior_sampler_config()
         if sampler_cfg["mode"].upper() != "ODE":
             raise ValueError(f"Unsupported prior sampler mode: {sampler_cfg['mode']}. Only ODE is supported.")
@@ -464,6 +474,85 @@ class Handler(generativeHandler):
             "rtol": float(getattr(self.args, "prior_rtol", 1e-3)),
             "reverse": bool(getattr(self.args, "prior_reverse", False)),
         }
+
+    def _get_posterior_train_mode(self):
+        mode = str(getattr(self.args, "posterior_train_mode", "clean")).lower()
+        aliases = {
+            "clean_posterior": "clean",
+            "degraded_posterior": "degraded",
+            "degraded_posterior_prior_refine": "prior_refine",
+            "degraded_posterior_prior_reverse": "prior_refine",
+            "prior_reverse": "prior_refine",
+        }
+        mode = aliases.get(mode, mode)
+        if mode not in {"clean", "degraded", "prior_refine"}:
+            raise ValueError(
+                "posterior_train_mode must be one of {'clean', 'degraded', 'prior_refine'}."
+            )
+        return mode
+
+    def _get_posterior_train_alpha(self):
+        alpha = float(getattr(self.args, "posterior_train_alpha", 0.0))
+        if not (0.0 <= alpha <= 1.0):
+            raise ValueError("posterior_train_alpha must be in [0, 1].")
+        return alpha
+
+    def _build_training_context(self, x):
+        with torch.no_grad():
+            clean_context = self._model.encode_posterior_context(x)
+
+            mode = self._get_posterior_train_mode()
+            if mode == "clean":
+                return clean_context
+
+            alpha = self._get_posterior_train_alpha()
+            if alpha == 0.0:
+                return clean_context
+
+            gaussian = torch.randn_like(clean_context)
+            degraded = (1.0 - alpha) * clean_context + alpha * gaussian
+
+            if mode == "degraded":
+                return degraded
+
+            return self._refine_context_with_prior(degraded, alpha)
+
+    def _refine_context_with_prior(self, degraded_context, alpha):
+        if alpha <= 0.0:
+            return degraded_context
+
+        self._init_diffusion_prior()
+        sampler_cfg = self._get_prior_sampler_config()
+        method = sampler_cfg["sampling_method"]
+        num_steps = max(2, int(sampler_cfg["num_steps"]))
+        atol = float(sampler_cfg["atol"])
+        rtol = float(sampler_cfg["rtol"])
+
+        t_end = float(getattr(self._prior_transport, "sample_eps", 0.0))
+        if alpha <= t_end:
+            return degraded_context
+
+        t_grid = torch.linspace(alpha, t_end, num_steps, device=self.device, dtype=degraded_context.dtype)
+
+        def _fn(t_scalar, x_state):
+            t_batch = torch.full(
+                (x_state.shape[0],),
+                float(t_scalar),
+                device=x_state.device,
+                dtype=x_state.dtype,
+            )
+            return self._prior_sampler.drift(x_state, t_batch, self._prior_model)
+
+        with torch.no_grad():
+            refined = odeint(
+                _fn,
+                degraded_context,
+                t_grid,
+                method=method,
+                atol=atol,
+                rtol=rtol,
+            )[-1]
+        return refined
 
     def _get_sample_source(self):
         sample_source = getattr(self.args, "sample_source", None)
