@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=text_cond_etth2
-#SBATCH --partition=a6000
+#SBATCH --partition=all
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
