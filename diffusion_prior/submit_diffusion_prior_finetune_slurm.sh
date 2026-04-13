@@ -21,3 +21,6 @@ sbatch --time="${SLURM_TIME}" diffusion_prior/train_mujoco_finetune_slurm.sh
 echo "[INFO] Submitting AirQuality finetune"
 CONDA_ENV="${CONDA_ENV}" \
 sbatch --time="${SLURM_TIME}" diffusion_prior/train_airquality_finetune_slurm.sh
+
+
+#CONDA_ENV=vlm bash diffusion_prior/submit_diffusion_prior_finetune_slurm.sh
