@@ -35,12 +35,12 @@ if [[ -n "${CONDA_ENV:-}" ]]; then
   conda activate "$CONDA_ENV"
 fi
 
-export NPROC_PER_NODE="${NPROC_PER_NODE:-2}"
+export NPROC_PER_NODE="${NPROC_PER_NODE:-1}"
 export MASTER_PORT="${MASTER_PORT:-29674}"
-export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1}"
+export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 export TOKENIZERS_PARALLELISM=false
 
-echo "Running 2-GPU Slurm diffusion prior finetune for AirQuality on host $(hostname)"
+echo "Running 1-GPU Slurm diffusion prior finetune for AirQuality on host $(hostname)"
 echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 echo "NPROC_PER_NODE=$NPROC_PER_NODE"
 echo "MASTER_PORT=$MASTER_PORT"
