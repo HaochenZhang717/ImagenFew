@@ -337,9 +337,6 @@ def main():
             sampler.set_epoch(epoch)
         epoch_metrics: Dict[str, torch.Tensor] = defaultdict(lambda: torch.zeros(1, device=device))
         num_batches = 0
-        # optimizer.zero_grad()
-        accum_counter = 0
-        step_loss_accum = 0.0
         if checkpoint_interval > 0 and epoch % checkpoint_interval == 0 and rank == 0 and epoch > 0:
             logger.info(f"Saving checkpoint at epoch {epoch}...")
             ckpt_path = f"{checkpoint_dir}/ep-{epoch:07d}.pt"
@@ -352,60 +349,13 @@ def main():
             #     optimizer,
             #     scheduler,
             # )
-        for step, batch in tqdm(enumerate(loader)):
-            z = batch_to_latents(batch, device, vision_encoder)
-            optimizer.zero_grad(set_to_none=True)
-            with autocast(**autocast_kwargs):
-                loss = transport.training_losses(ddp_model, z)["loss"].mean()
-            loss = loss.float()
-            if scaler:
-                scaler.scale(loss / grad_accum_steps).backward()
-            else:
-                (loss / grad_accum_steps).backward()
-            if clip_grad:
-                if scaler:
-                    scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(ddp_model.parameters(), clip_grad)
-            if global_step % grad_accum_steps == 0:
-                if scaler:
-                    scaler.step(optimizer)
-                    scaler.update()
-                else:
-                    optimizer.step()
-                if scheduler is not None:
-                    scheduler.step()
-                update_ema(ema_model, ddp_model.module, decay=ema_decay)
-            running_loss += loss.item()
-            epoch_metrics['loss'] += loss.detach()
-
-            if log_interval > 0 and global_step % log_interval == 0 and rank == 0:
-                avg_loss = running_loss / log_interval  # flow loss often has large variance so we record avg loss
-                steps = torch.tensor(log_interval, device=device)
-                stats = {
-                    "train/loss": avg_loss,
-                    "train/lr": optimizer.param_groups[0]["lr"],
-                }
-                logger.info(
-                    f"[Epoch {epoch} | Step {global_step}] "
-                    + ", ".join(f"{k}: {v:.4f}" for k, v in stats.items())
-                )
-                if args.wandb and rank == 0:
-                    wandb_utils.log(
-                        stats,
-                        step=global_step,
-                    )
-                running_loss = 0.0
-
-            global_step += 1
-            num_batches += 1
-
         optimizer.zero_grad(set_to_none=True)
 
         for step, batch in tqdm(enumerate(loader), total=len(loader)):
 
             z = batch_to_latents(batch, device, vision_encoder)
 
-            do_step = (step + 1) % grad_accum_steps == 0
+            do_step = ((step + 1) % grad_accum_steps == 0) or ((step + 1) == len(loader))
             sync_context = nullcontext() if do_step else ddp_model.no_sync()
 
             with sync_context:
@@ -445,6 +395,23 @@ def main():
 
             global_step += 1
             num_batches += 1
+
+            if log_interval > 0 and global_step % log_interval == 0 and rank == 0:
+                avg_loss = running_loss / log_interval  # flow loss often has large variance so we record avg loss
+                stats = {
+                    "train/loss": avg_loss,
+                    "train/lr": optimizer.param_groups[0]["lr"],
+                }
+                logger.info(
+                    f"[Epoch {epoch} | Step {global_step}] "
+                    + ", ".join(f"{k}: {v:.4f}" for k, v in stats.items())
+                )
+                if args.wandb and rank == 0:
+                    wandb_utils.log(
+                        stats,
+                        step=global_step,
+                    )
+                running_loss = 0.0
 
         if rank == 0 and num_batches > 0:
             avg_loss = epoch_metrics['loss'].item() / num_batches
