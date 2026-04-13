@@ -34,6 +34,11 @@ def parse_args():
     parser.add_argument("--eval-metrics", nargs="+", type=str, default=None)
     parser.add_argument("--ts2vec-dir", type=str, default=None)
     parser.add_argument("--no-ema-eval", action="store_true")
+    parser.add_argument("--posterior-noise-std", type=float, default=0.0)
+    parser.add_argument("--prior-sampling-method", type=str, default=None)
+    parser.add_argument("--prior-num-steps", type=int, default=None)
+    parser.add_argument("--prior-atol", type=float, default=None)
+    parser.add_argument("--prior-rtol", type=float, default=None)
     return parser.parse_args()
 
 
@@ -105,6 +110,45 @@ def make_default_output_json(dataset, split, sample_source, conditional_ckpt, pr
     return os.path.join(results_dir, filename)
 
 
+def generate_posterior_variants(handler, eval_tensor, seq_len, n_var, batch_size, noise_std, base_seed):
+    clean_batches = []
+    noisy_batches = []
+    device = handler.device
+    use_noisy = noise_std > 0.0
+
+    with handler._model.ema_scope(), torch.no_grad():
+        for batch_start in range(0, len(eval_tensor), batch_size):
+            batch_idx = batch_start // batch_size
+            batch = eval_tensor[batch_start: batch_start + batch_size].to(device=device, dtype=torch.float32)
+            context_trend, context_coarse_seasonal, context_seasonal = handler._model.multi_scale_vae.ts_to_z(
+                batch, sample=False
+            )
+            context = torch.cat([context_trend, context_coarse_seasonal, context_seasonal], dim=-1)
+            context = context.permute(0, 2, 1)
+
+            torch.manual_seed(base_seed + batch_idx)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(base_seed + batch_idx)
+            clean_batches.append(
+                handler._model.generate_from_context(context, seq_len, n_var)
+            )
+
+            if use_noisy:
+                noise = torch.randn_like(context) * noise_std
+                noisy_context = context + noise
+                torch.manual_seed(base_seed + batch_idx)
+                if torch.cuda.is_available():
+                    torch.cuda.manual_seed_all(base_seed + batch_idx)
+                noisy_batches.append(
+                    handler._model.generate_from_context(noisy_context, seq_len, n_var)
+                )
+
+    outputs = {"posterior": torch.cat(clean_batches, dim=0)}
+    if use_noisy:
+        outputs[f"posterior_noisy_std_{noise_std:g}"] = torch.cat(noisy_batches, dim=0)
+    return outputs
+
+
 def main():
     cli_args = parse_args()
     config = OmegaConf.to_object(OmegaConf.load(cli_args.config))
@@ -122,6 +166,28 @@ def main():
         args.prior_ckpt = cli_args.prior_ckpt
     if cli_args.sample_source is not None:
         args.sample_source = cli_args.sample_source
+    if any(
+        value is not None
+        for value in (
+            cli_args.prior_sampling_method,
+            cli_args.prior_num_steps,
+            cli_args.prior_atol,
+            cli_args.prior_rtol,
+        )
+    ):
+        sampler = dict(getattr(args, "sampler", {}) or {})
+        params = dict(sampler.get("params", {}) or {})
+        sampler["mode"] = sampler.get("mode", "ODE")
+        if cli_args.prior_sampling_method is not None:
+            params["sampling_method"] = cli_args.prior_sampling_method
+        if cli_args.prior_num_steps is not None:
+            params["num_steps"] = int(cli_args.prior_num_steps)
+        if cli_args.prior_atol is not None:
+            params["atol"] = float(cli_args.prior_atol)
+        if cli_args.prior_rtol is not None:
+            params["rtol"] = float(cli_args.prior_rtol)
+        sampler["params"] = params
+        args.sampler = sampler
 
     if not getattr(args, "resume_ckpt", None):
         raise ValueError("A finetuned conditional generator checkpoint must be provided via config or --conditional-ckpt.")
@@ -148,6 +214,21 @@ def main():
             class_metadata,
             eval_tensor,
         )
+
+    if cli_args.posterior_noise_std > 0.0 and args.sample_source in {"posterior", "both"}:
+        posterior_variants = generate_posterior_variants(
+            handler=handler,
+            eval_tensor=eval_tensor,
+            seq_len=args.seq_len,
+            n_var=class_metadata["channels"],
+            batch_size=int(getattr(args, "batch_size", 128)),
+            noise_std=float(cli_args.posterior_noise_std),
+            base_seed=int(args.seed),
+        )
+        generated_sets["posterior"] = posterior_variants["posterior"]
+        for key, value in posterior_variants.items():
+            if key != "posterior":
+                generated_sets[key] = value
 
     real_set = eval_tensor.cpu().detach().numpy()
     ts2vec_dir = cli_args.ts2vec_dir or os.path.join("./logs", "TS2VEC")
@@ -177,6 +258,8 @@ def main():
         "num_samples": int(len(eval_tensor)),
         "sample_source": args.sample_source,
         "use_ema_for_eval": not cli_args.no_ema_eval,
+        "posterior_noise_std": float(cli_args.posterior_noise_std),
+        "prior_sampler": getattr(args, "sampler", None),
         "conditional_ckpt": args.resume_ckpt,
         "prior_ckpt": getattr(args, "prior_ckpt", None),
         "metrics": all_scores,

@@ -15,6 +15,7 @@ MAX_SAMPLES="${MAX_SAMPLES:-}"
 SAVE_GENERATED_DIR="${SAVE_GENERATED_DIR:-}"
 OUTPUT_JSON="${OUTPUT_JSON:-}"
 USE_EMA_FOR_EVAL="${USE_EMA_FOR_EVAL:-1}"
+POSTERIOR_NOISE_STD="${POSTERIOR_NOISE_STD:-0}"
 
 if [[ -n "${CONDA_ENV:-}" ]]; then
   CONDA_BIN=""
@@ -68,6 +69,10 @@ fi
 
 if [[ "$USE_EMA_FOR_EVAL" == "0" ]]; then
   CMD+=(--no-ema-eval)
+fi
+
+if [[ "$POSTERIOR_NOISE_STD" != "0" ]]; then
+  CMD+=(--posterior-noise-std "$POSTERIOR_NOISE_STD")
 fi
 
 printf '[INFO] Running command:\n%s\n' "${CMD[*]}"
