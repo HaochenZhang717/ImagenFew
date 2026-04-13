@@ -10,9 +10,9 @@ SLURM_TIME="${SLURM_TIME:-2-00:00:00}"
 
 echo "[INFO] Submitting diffusion prior finetune jobs with CONDA_ENV=${CONDA_ENV}"
 
-echo "[INFO] Submitting ETTh2 finetune"
-CONDA_ENV="${CONDA_ENV}" \
-sbatch --time="${SLURM_TIME}" diffusion_prior/train_etth2_finetune_slurm.sh
+#echo "[INFO] Submitting ETTh2 finetune"
+#CONDA_ENV="${CONDA_ENV}" \
+#sbatch --time="${SLURM_TIME}" diffusion_prior/train_etth2_finetune_slurm.sh
 
 echo "[INFO] Submitting mujoco finetune"
 CONDA_ENV="${CONDA_ENV}" \
