@@ -96,9 +96,16 @@ def load_generated_latents(path):
 
 def summarize_latents(latents):
     flat = latents.reshape(latents.shape[0], -1).to(torch.float32)
+    latents = latents.to(torch.float32)
     sample_norms = flat.norm(dim=1)
     dim_mean = flat.mean(dim=0)
     dim_std = flat.std(dim=0, unbiased=False)
+    mean_matrix = latents.mean(dim=0)
+    std_matrix = latents.std(dim=0, unbiased=False)
+    by_position_mean_abs = mean_matrix.abs().mean(dim=1)
+    by_position_std_avg = std_matrix.mean(dim=1)
+    by_feature_mean_abs = mean_matrix.abs().mean(dim=0)
+    by_feature_std_avg = std_matrix.mean(dim=0)
     summary = {
         "shape": list(latents.shape),
         "global_mean": float(flat.mean().item()),
@@ -109,6 +116,12 @@ def summarize_latents(latents):
         "sample_l2_std": float(sample_norms.std(unbiased=False).item()),
         "dim_mean_abs_avg": float(dim_mean.abs().mean().item()),
         "dim_std_avg": float(dim_std.mean().item()),
+        "per_position_mean_abs": [float(x) for x in by_position_mean_abs.tolist()],
+        "per_position_std_avg": [float(x) for x in by_position_std_avg.tolist()],
+        "per_feature_mean_abs": [float(x) for x in by_feature_mean_abs.tolist()],
+        "per_feature_std_avg": [float(x) for x in by_feature_std_avg.tolist()],
+        "mean_matrix": [[float(v) for v in row] for row in mean_matrix.tolist()],
+        "std_matrix": [[float(v) for v in row] for row in std_matrix.tolist()],
     }
     return summary
 
@@ -116,11 +129,19 @@ def summarize_latents(latents):
 def compare_latents(posterior, generated):
     posterior_flat = posterior.reshape(posterior.shape[0], -1).to(torch.float32)
     generated_flat = generated.reshape(generated.shape[0], -1).to(torch.float32)
+    posterior = posterior.to(torch.float32)
+    generated = generated.to(torch.float32)
 
     posterior_mean = posterior_flat.mean(dim=0)
     generated_mean = generated_flat.mean(dim=0)
     posterior_std = posterior_flat.std(dim=0, unbiased=False)
     generated_std = generated_flat.std(dim=0, unbiased=False)
+    posterior_mean_matrix = posterior.mean(dim=0)
+    generated_mean_matrix = generated.mean(dim=0)
+    posterior_std_matrix = posterior.std(dim=0, unbiased=False)
+    generated_std_matrix = generated.std(dim=0, unbiased=False)
+    mean_diff_matrix = generated_mean_matrix - posterior_mean_matrix
+    std_diff_matrix = generated_std_matrix - posterior_std_matrix
 
     mean_cosine = torch.nn.functional.cosine_similarity(
         posterior_mean.unsqueeze(0),
@@ -137,6 +158,20 @@ def compare_latents(posterior, generated):
         "global_std_diff": float(
             (posterior_flat.std(unbiased=False) - generated_flat.std(unbiased=False)).item()
         ),
+        "per_position_avg_abs_mean_diff": [
+            float(x) for x in mean_diff_matrix.abs().mean(dim=1).tolist()
+        ],
+        "per_position_avg_abs_std_diff": [
+            float(x) for x in std_diff_matrix.abs().mean(dim=1).tolist()
+        ],
+        "per_feature_avg_abs_mean_diff": [
+            float(x) for x in mean_diff_matrix.abs().mean(dim=0).tolist()
+        ],
+        "per_feature_avg_abs_std_diff": [
+            float(x) for x in std_diff_matrix.abs().mean(dim=0).tolist()
+        ],
+        "mean_diff_matrix": [[float(v) for v in row] for row in mean_diff_matrix.tolist()],
+        "std_diff_matrix": [[float(v) for v in row] for row in std_diff_matrix.tolist()],
     }
 
 
