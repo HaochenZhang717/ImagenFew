@@ -293,7 +293,7 @@ class SelfConditionalGenerator(nn.Module):
         x = torch.randn(B, n_var, seq_len, device=self.device)
         for t_idx in range(self.num_steps - 1, -1, -1):
             t = (torch.ones(B, device=self.device) * t_idx).long()
-            attr_emb = self.cond_projector(n_var, context, t)
+            attr_emb = context
             pred_noise, _ = self._predict_noise(x, tp, attr_emb, t)
             noise = torch.randn_like(x)
             x = self.ddim.reverse(x, pred_noise, t, noise, is_determin=True)
