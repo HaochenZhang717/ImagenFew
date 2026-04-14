@@ -161,17 +161,39 @@ def load_latents(path):
     return latents.to(torch.float32)
 
 
-def compute_latent_norm_stats(latents, eps=1e-6):
-    mean = latents.mean(dim=0)
-    std = latents.std(dim=0, unbiased=False).clamp_min(eps)
-    return {"mean": mean, "std": std}
+def resolve_latent_normalize_mode(args):
+    mode = getattr(args, "latent_normalize_mode", None)
+    if mode is None:
+        mode = "per_entry" if getattr(args, "latent_normalize", False) else "none"
+    mode = str(mode).lower()
+    if mode not in {"none", "global", "per_entry"}:
+        raise ValueError("latent_normalize_mode must be one of {'none', 'global', 'per_entry'}")
+    return mode
+
+
+def compute_latent_norm_stats(latents, mode="per_entry", eps=1e-6):
+    if mode == "none":
+        return None
+    if mode == "global":
+        mean = latents.mean().view(1, 1)
+        std = latents.std(unbiased=False).clamp_min(eps).view(1, 1)
+    elif mode == "per_entry":
+        mean = latents.mean(dim=0)
+        std = latents.std(dim=0, unbiased=False).clamp_min(eps)
+    else:
+        raise ValueError(f"Unsupported latent normalization mode: {mode}")
+    return {"mode": mode, "mean": mean, "std": std}
 
 
 def normalize_latents(latents, stats):
+    if stats is None:
+        return latents
     return (latents - stats["mean"]) / stats["std"]
 
 
 def unnormalize_latents(latents, stats):
+    if stats is None:
+        return latents
     return latents * stats["std"] + stats["mean"]
 
 
@@ -277,6 +299,7 @@ def parse_args():
     parser.add_argument("--ema-eval-every", type=int)
     parser.add_argument("--use-train-as-val", action="store_true")
     parser.add_argument("--latent-normalize", action="store_true")
+    parser.add_argument("--latent-normalize-mode", type=str)
     args = parser.parse_args()
 
     if args.config is not None:
@@ -310,6 +333,7 @@ def parse_args():
         "ema_eval_every": None,
         "use_train_as_val": False,
         "latent_normalize": False,
+        "latent_normalize_mode": None,
     }
     for key, value in defaults.items():
         if getattr(args, key) is None:
@@ -350,8 +374,9 @@ def main():
 
     latents = load_latents(args.latents)
     latent_norm_stats = None
-    if getattr(args, "latent_normalize", False):
-        latent_norm_stats = compute_latent_norm_stats(latents)
+    latent_normalize_mode = resolve_latent_normalize_mode(args)
+    if latent_normalize_mode != "none":
+        latent_norm_stats = compute_latent_norm_stats(latents, mode=latent_normalize_mode)
         latents = normalize_latents(latents, latent_norm_stats)
     seq_len, token_dim = latents.shape[1], latents.shape[2]
     if args.batch_size % world_size != 0:
@@ -502,7 +527,8 @@ def main():
                 "time_dist_shift": args.time_dist_shift,
             },
             "latent_norm": {
-                "enabled": bool(getattr(args, "latent_normalize", False)),
+                "enabled": latent_normalize_mode != "none",
+                "mode": latent_normalize_mode,
                 "mean": latent_norm_stats["mean"].clone() if latent_norm_stats is not None else None,
                 "std": latent_norm_stats["std"].clone() if latent_norm_stats is not None else None,
             },
