@@ -49,6 +49,8 @@ echo "CONFIG=$CONFIG"
 echo "WANDB_PROJECT=$WANDB_PROJECT"
 echo "SUBSET_P=$SUBSET_P"
 
+pip install gluonts
+
 python run_no_sample.py \
   --subset_p "$SUBSET_P" \
   --wandb \

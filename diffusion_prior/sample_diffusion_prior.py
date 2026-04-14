@@ -9,23 +9,37 @@ from omegaconf import OmegaConf
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
 
-from diffusion_prior.models import DiT1D
+from diffusion_prior.models import DiT1D, ResNet1D
 from diffusion_prior.models.transport import Sampler
 from diffusion_prior.models.transport import create_transport
 
 
 def build_model_from_ckpt(state, device):
     model_args = state["model_args"]
-    model = DiT1D(
-        seq_len=state["seq_len"],
-        token_dim=state["token_dim"],
-        hidden_size=model_args["hidden_size"],
-        depth=model_args["depth"],
-        num_heads=model_args["num_heads"],
-        mlp_ratio=model_args["mlp_ratio"],
-        use_qknorm=model_args["use_qknorm"],
-        use_rmsnorm=model_args["use_rmsnorm"],
-    ).to(device)
+    backbone = model_args.get("backbone", "dit1d").lower()
+    if backbone == "dit1d":
+        model = DiT1D(
+            seq_len=state["seq_len"],
+            token_dim=state["token_dim"],
+            hidden_size=model_args["hidden_size"],
+            depth=model_args["depth"],
+            num_heads=model_args["num_heads"],
+            mlp_ratio=model_args["mlp_ratio"],
+            use_qknorm=model_args["use_qknorm"],
+            use_rmsnorm=model_args["use_rmsnorm"],
+        ).to(device)
+    elif backbone in {"resnet1d", "cnn1d", "residual1d"}:
+        model = ResNet1D(
+            seq_len=state["seq_len"],
+            token_dim=state["token_dim"],
+            hidden_size=model_args["hidden_size"],
+            depth=model_args["depth"],
+            kernel_size=model_args.get("kernel_size", 3),
+            use_rmsnorm=model_args["use_rmsnorm"],
+            dropout=model_args.get("dropout", 0.0),
+        ).to(device)
+    else:
+        raise ValueError(f"Unsupported backbone {backbone}")
     model.load_state_dict(state["model"])
     model.eval()
     return model

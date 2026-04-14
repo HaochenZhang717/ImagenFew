@@ -9,6 +9,7 @@ from .stock import Stock
 from .energy import Energy
 from .mujoco import Mujoco
 from .air_quality import AirQuality
+from .aireadi import AIREADIGlucose
 
 from .MSL import MSL
 from .PSM import PSM

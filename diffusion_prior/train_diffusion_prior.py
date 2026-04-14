@@ -16,7 +16,7 @@ from torch.utils.data.distributed import DistributedSampler
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
 
-from models import create_transport, DiT1D
+from models import create_transport, DiT1D, ResNet1D
 
 
 def atomic_torch_save(state, path):
@@ -125,16 +125,30 @@ class EMA:
 
 
 def build_model(args, seq_len, token_dim, device):
-    model = DiT1D(
-        seq_len=seq_len,
-        token_dim=token_dim,
-        hidden_size=args.hidden_size,
-        depth=args.depth,
-        num_heads=args.num_heads,
-        mlp_ratio=args.mlp_ratio,
-        use_qknorm=args.use_qknorm,
-        use_rmsnorm=not args.no_rmsnorm,
-    ).to(device)
+    backbone = getattr(args, "backbone", "dit1d").lower()
+    if backbone == "dit1d":
+        model = DiT1D(
+            seq_len=seq_len,
+            token_dim=token_dim,
+            hidden_size=args.hidden_size,
+            depth=args.depth,
+            num_heads=args.num_heads,
+            mlp_ratio=args.mlp_ratio,
+            use_qknorm=args.use_qknorm,
+            use_rmsnorm=not args.no_rmsnorm,
+        ).to(device)
+    elif backbone in {"resnet1d", "cnn1d", "residual1d"}:
+        model = ResNet1D(
+            seq_len=seq_len,
+            token_dim=token_dim,
+            hidden_size=args.hidden_size,
+            depth=args.depth,
+            kernel_size=args.kernel_size,
+            use_rmsnorm=not args.no_rmsnorm,
+            dropout=args.dropout,
+        ).to(device)
+    else:
+        raise ValueError(f"Unsupported backbone {backbone}")
     return model
 
 
@@ -231,6 +245,9 @@ def parse_args():
     parser.add_argument("--depth", type=int)
     parser.add_argument("--num-heads", type=int)
     parser.add_argument("--mlp-ratio", type=float)
+    parser.add_argument("--backbone", type=str)
+    parser.add_argument("--kernel-size", type=int)
+    parser.add_argument("--dropout", type=float)
     parser.add_argument("--use-qknorm", action="store_true")
     parser.add_argument("--no-rmsnorm", action="store_true")
     parser.add_argument("--path-type", type=str, choices=["Linear", "GVP", "VP"])
@@ -264,6 +281,9 @@ def parse_args():
         "depth": 8,
         "num_heads": 8,
         "mlp_ratio": 4.0,
+        "backbone": "dit1d",
+        "kernel_size": 3,
+        "dropout": 0.0,
         "path_type": "Linear",
         "prediction": "velocity",
         "time_dist_type": "uniform",
@@ -444,10 +464,13 @@ def main():
             "seq_len": seq_len,
             "token_dim": token_dim,
             "model_args": {
+                "backbone": args.backbone,
                 "hidden_size": args.hidden_size,
                 "depth": args.depth,
                 "num_heads": args.num_heads,
                 "mlp_ratio": args.mlp_ratio,
+                "kernel_size": args.kernel_size,
+                "dropout": args.dropout,
                 "use_qknorm": args.use_qknorm,
                 "use_rmsnorm": not args.no_rmsnorm,
             },
