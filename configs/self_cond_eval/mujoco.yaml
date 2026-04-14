@@ -9,7 +9,7 @@ resume_ckpt: null
 pretrain_path: ""
 pretrained_vae_weights: ./logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE
 prior_ckpt: ./logs/diffusion_prior/dit1d_base_finetune/mujoco/diffusion_prior_latest.pt
-prior_use_ema: false
+prior_use_ema: true
 sample_source: both
 eval_metrics:
   - disc

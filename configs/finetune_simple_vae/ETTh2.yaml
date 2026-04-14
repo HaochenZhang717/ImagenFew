@@ -1,55 +1,32 @@
-seed: 0
-batch_size: 256
-num_workers: 0
-handler: models.conditional_generator.handler
-seq_len: 24
-cond_dim_in: 64
-cond_dim_out: 128
-resume_ckpt: null
-pretrain_path: ""
-pretrained_vae_weights: ./logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE
-prior_ckpt: ./logs/diffusion_prior/dit1d_base_finetune/AirQuality/diffusion_prior_latest.pt
-prior_use_ema: true
-sample_source: both
-eval_metrics:
-  - disc
-  - contextFID
-#  - pred
-diffusion:
-  channels: 128
-  n_scales: 3
-  num_steps: 50
-  beta_start: 0.0001
-  beta_end: 0.5
-  schedule: quad
-  diffusion_embedding_dim: 128
-  nheads: 8
-  layers: 10
-  multipatch_num: 3
-  base_patch: 3
-  L_patch_len: 2
-  condition_type: adaLN
-  n_stages: 5
-  side:
-    seq_len: 24
-    var_emb: 16
-    time_emb: 128
-multi_scale_vae:
-  z_channels: 64
-  ch: 64
-  ch_mult:
-    - 1
-    - 2
-    - 4
-  dynamic_size: 64
-  dropout: 0.0
+# training:
+epochs: 1001
+batch_size: 2048
+learning_rate: 0.0001
+weight_decay: 0.00001
+beta: 0.001
+
+# model:
+handler: models.MultiScaleVAE.simple_handler
+hidden_size: 128
+num_layers: 4
+num_heads: 4
+latent_dim: 16
+dynamic_size: [64, 64]
+encoder_channels: [64, 96, 128, 128]
+encoder_downsample_stages: 2
+decoder_channels: [128, 128, 96, 64]
+decoder_res_blocks: 2
+decoder_dropout: 0.0
+decoder_upsample_stages: 2
+
+# logging:
 logging_iter: 100
-tags:
-  - self-conditional-generator
-  - eval
-  - AirQuality
-run_dir: self_conditional_generator/eval/AirQuality
+tags: []
+run_dir: simple_vae_finetune/ETTh2/
+
+# data:
 datasets_dir: ./data/
+seq_len: 24
 pretrain: false
 datasets:
   - name: stock
@@ -115,8 +92,12 @@ datasets:
   - name: SharePriceIncrease
     data: UEA
     rel_path: UEA/SharePriceIncrease
-  - name: AirQuality
-    data: AirQuality
-    path: TSG/AirQuality/AirQualityUCI.csv
+  - name: ETTh2
+    data: ETTh2
+    embed: timeF
+    rel_path: TSF/ETT-small/ETTh2.csv
+    features: M
+    label_len: 7
+    pred_len: 0
 train_on_datasets:
-  - AirQuality
+  - ETTh2
