@@ -45,6 +45,16 @@ def build_model_from_ckpt(state, device):
     return model
 
 
+def maybe_unnormalize_latents(samples, state):
+    latent_norm = state.get("latent_norm", None)
+    if not latent_norm or not latent_norm.get("enabled", False):
+        return samples
+
+    mean = latent_norm["mean"].to(samples.device)
+    std = latent_norm["std"].to(samples.device)
+    return samples * std.unsqueeze(0) + mean.unsqueeze(0)
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default=None)
@@ -105,7 +115,7 @@ def main():
     )
     with torch.no_grad():
         xs = sample_fn(init, model)
-    samples = xs[-1].detach().cpu()
+    samples = maybe_unnormalize_latents(xs[-1], state).detach().cpu()
 
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
     torch.save(samples, args.output)

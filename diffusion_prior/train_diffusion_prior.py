@@ -161,6 +161,20 @@ def load_latents(path):
     return latents.to(torch.float32)
 
 
+def compute_latent_norm_stats(latents, eps=1e-6):
+    mean = latents.mean(dim=0)
+    std = latents.std(dim=0, unbiased=False).clamp_min(eps)
+    return {"mean": mean, "std": std}
+
+
+def normalize_latents(latents, stats):
+    return (latents - stats["mean"]) / stats["std"]
+
+
+def unnormalize_latents(latents, stats):
+    return latents * stats["std"] + stats["mean"]
+
+
 def make_loaders(latents, batch_size, num_workers, val_ratio, seed, use_train_as_val=False):
     dataset = TensorDataset(latents)
     val_size = int(len(dataset) * val_ratio)
@@ -262,6 +276,7 @@ def parse_args():
     parser.add_argument("--ema-decay", type=float)
     parser.add_argument("--ema-eval-every", type=int)
     parser.add_argument("--use-train-as-val", action="store_true")
+    parser.add_argument("--latent-normalize", action="store_true")
     args = parser.parse_args()
 
     if args.config is not None:
@@ -294,6 +309,7 @@ def parse_args():
         "ema_decay": 0.9999,
         "ema_eval_every": None,
         "use_train_as_val": False,
+        "latent_normalize": False,
     }
     for key, value in defaults.items():
         if getattr(args, key) is None:
@@ -333,6 +349,10 @@ def main():
         )
 
     latents = load_latents(args.latents)
+    latent_norm_stats = None
+    if getattr(args, "latent_normalize", False):
+        latent_norm_stats = compute_latent_norm_stats(latents)
+        latents = normalize_latents(latents, latent_norm_stats)
     seq_len, token_dim = latents.shape[1], latents.shape[2]
     if args.batch_size % world_size != 0:
         raise ValueError(
@@ -480,6 +500,11 @@ def main():
                 "loss_weight": args.loss_weight,
                 "time_dist_type": args.time_dist_type,
                 "time_dist_shift": args.time_dist_shift,
+            },
+            "latent_norm": {
+                "enabled": bool(getattr(args, "latent_normalize", False)),
+                "mean": latent_norm_stats["mean"].clone() if latent_norm_stats is not None else None,
+                "std": latent_norm_stats["std"].clone() if latent_norm_stats is not None else None,
             },
         }
 

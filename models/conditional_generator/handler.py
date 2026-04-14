@@ -11,7 +11,7 @@ from torchdiffeq import odeint
 
 from ..generative_handler import generativeHandler
 from .model import SelfConditionalGenerator
-from diffusion_prior.models import DiT1D
+from diffusion_prior.models import DiT1D, ResNet1D
 from diffusion_prior.models.transport import Sampler, create_transport
 
 
@@ -69,6 +69,7 @@ class Handler(generativeHandler):
         self._prior_sample_fn = None
         self._prior_seq_len = None
         self._prior_token_dim = None
+        self._prior_latent_norm = None
         self._prior_context_cache = None
         self._prior_context_cursor = 0
         self._prior_transport = None
@@ -367,16 +368,29 @@ class Handler(generativeHandler):
         model_args = state["model_args"]
         self._prior_seq_len = state["seq_len"]
         self._prior_token_dim = state["token_dim"]
-        self._prior_model = DiT1D(
-            seq_len=self._prior_seq_len,
-            token_dim=self._prior_token_dim,
-            hidden_size=model_args["hidden_size"],
-            depth=model_args["depth"],
-            num_heads=model_args["num_heads"],
-            mlp_ratio=model_args["mlp_ratio"],
-            use_qknorm=model_args["use_qknorm"],
-            use_rmsnorm=model_args["use_rmsnorm"],
-        ).to(self.device)
+        self._prior_latent_norm = state.get("latent_norm", None)
+        backbone = model_args.get("backbone", "dit1d").lower()
+        if backbone in {"resnet1d", "cnn1d", "residual1d"}:
+            self._prior_model = ResNet1D(
+                seq_len=self._prior_seq_len,
+                token_dim=self._prior_token_dim,
+                hidden_size=model_args["hidden_size"],
+                depth=model_args["depth"],
+                kernel_size=model_args.get("kernel_size", 3),
+                use_rmsnorm=model_args["use_rmsnorm"],
+                dropout=model_args.get("dropout", 0.0),
+            ).to(self.device)
+        else:
+            self._prior_model = DiT1D(
+                seq_len=self._prior_seq_len,
+                token_dim=self._prior_token_dim,
+                hidden_size=model_args["hidden_size"],
+                depth=model_args["depth"],
+                num_heads=model_args.get("num_heads", 8),
+                mlp_ratio=model_args.get("mlp_ratio", 4.0),
+                use_qknorm=model_args.get("use_qknorm", False),
+                use_rmsnorm=model_args["use_rmsnorm"],
+            ).to(self.device)
 
         prior_state = state["ema_model"] if getattr(self.args, "prior_use_ema", True) and "ema_model" in state else state["model"]
         self._prior_model.load_state_dict(prior_state, strict=True)
@@ -448,7 +462,12 @@ class Handler(generativeHandler):
             )
             with torch.no_grad():
                 xs = self._prior_sample_fn(init, self._prior_model)
-            chunks.append(xs[-1].detach().cpu())
+            samples = xs[-1]
+            if self._prior_latent_norm and self._prior_latent_norm.get("enabled", False):
+                mean = self._prior_latent_norm["mean"].to(samples.device)
+                std = self._prior_latent_norm["std"].to(samples.device)
+                samples = samples * std.unsqueeze(0) + mean.unsqueeze(0)
+            chunks.append(samples.detach().cpu())
             remaining -= bs
         return torch.cat(chunks, dim=0)
 
