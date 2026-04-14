@@ -50,6 +50,10 @@ echo "WANDB_PROJECT=$WANDB_PROJECT"
 echo "SUBSET_P=$SUBSET_P"
 
 pip install gluonts
+pip install sktime
+pip install omegaconf
+pip install wandb
+pip install torchdiffeq
 
 python run_no_sample.py \
   --subset_p "$SUBSET_P" \
