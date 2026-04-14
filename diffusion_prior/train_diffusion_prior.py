@@ -16,7 +16,7 @@ from torch.utils.data.distributed import DistributedSampler
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
 
-from models import create_transport, DiT1D, ResNet1D
+from diffusion_prior.models import create_transport, DiT1D, ResNet1D
 
 
 def atomic_torch_save(state, path):
