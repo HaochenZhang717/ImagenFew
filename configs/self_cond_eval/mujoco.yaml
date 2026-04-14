@@ -1,0 +1,122 @@
+seed: 0
+batch_size: 256
+num_workers: 0
+handler: models.conditional_generator.handler
+seq_len: 24
+cond_dim_in: 64
+cond_dim_out: 128
+resume_ckpt: null
+pretrain_path: ""
+pretrained_vae_weights: ./logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE
+prior_ckpt: ./logs/diffusion_prior/dit1d_base_finetune/mujoco/diffusion_prior_latest.pt
+prior_use_ema: false
+sample_source: prior
+eval_metrics:
+  - disc
+  - contextFID
+#  - pred
+diffusion:
+  channels: 128
+  n_scales: 3
+  num_steps: 50
+  beta_start: 0.0001
+  beta_end: 0.5
+  schedule: quad
+  diffusion_embedding_dim: 128
+  nheads: 8
+  layers: 10
+  multipatch_num: 3
+  base_patch: 3
+  L_patch_len: 2
+  condition_type: adaLN
+  n_stages: 5
+  side:
+    seq_len: 24
+    var_emb: 16
+    time_emb: 128
+multi_scale_vae:
+  z_channels: 64
+  ch: 64
+  ch_mult:
+    - 1
+    - 2
+    - 4
+  dynamic_size: 64
+  dropout: 0.0
+logging_iter: 100
+tags:
+  - self-conditional-generator
+  - eval
+  - mujoco
+run_dir: self_conditional_generator/eval/mujoco
+datasets_dir: ./data/
+pretrain: false
+datasets:
+  - name: stock
+    data: stock
+  - name: energy
+    data: energy
+  - name: ETTh1
+    data: ETTh1
+    embed: timeF
+    rel_path: TSF/ETT-small/ETTh1.csv
+    features: M
+    label_len: 7
+    pred_len: 0
+  - name: Exchange
+    data: custom
+    embed: timeF
+    rel_path: TSF/exchange_rate/exchange_rate.csv
+    features: M
+    label_len: 8
+    pred_len: 0
+  - name: MSL
+    data: MSL
+    rel_path: MSL
+  - name: PSM
+    data: PSM
+    rel_path: PSM
+  - name: SMAP
+    data: SMAP
+    rel_path: SMAP
+  - name: SMD
+    data: SMD
+    rel_path: SMD
+  - name: SelfRegulationSCP2
+    data: UEA
+    rel_path: UEA/SelfRegulationSCP2
+  - name: UWaveGestureLibrary
+    data: UEA
+    rel_path: UEA/UWaveGestureLibrary
+  - name: ECG5000
+    data: UEA
+    rel_path: UEA/ECG5000
+  - name: NonInvasiveFetalECGThorax1
+    data: UEA
+    rel_path: UEA/NonInvasiveFetalECGThorax1
+  - name: Blink
+    data: UEA
+    rel_path: UEA/Blink
+  - name: ElectricDevices
+    data: UEA
+    rel_path: UEA/ElectricDevices
+  - name: Trace
+    data: UEA
+    rel_path: UEA/Trace
+  - name: FordB
+    data: UEA
+    rel_path: UEA/FordB
+  - name: EMOPain
+    data: UEA
+    rel_path: UEA/EMOPain
+  - name: Chinatown
+    data: UEA
+    rel_path: UEA/Chinatown
+  - name: SharePriceIncrease
+    data: UEA
+    rel_path: UEA/SharePriceIncrease
+  - data: mujoco
+    name: mujoco
+    path: ./TSG/mujoco0.0
+train_on_datasets:
+  - mujoco
