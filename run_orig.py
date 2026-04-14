@@ -78,7 +78,7 @@ def main(args):
                         testset, class_label = dataset_loader.gen_dataloader(dataset)
                         handler.model.eval()
                         with torch.no_grad():
-                            generated_set = handler.sample(len(testset), class_label, metadatas[dataset])
+                            generated_set = handler.sample(len(testset), class_label, metadatas[dataset], testset)
                         generated_set = generated_set.cpu().detach().numpy()
                         real_set = testset.cpu().detach().numpy()
                         scores = evaluate_model_uncond(real_set, generated_set, dataset, args.device, args.eval_metrics,
