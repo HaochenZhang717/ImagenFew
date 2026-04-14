@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
-from .model_utils import GaussianFourierEmbedding, RMSNorm
+from .model_utils import GaussianFourierEmbedding, RMSNorm, modulate
 
 
 class ResBlock1D(nn.Module):
@@ -18,25 +19,30 @@ class ResBlock1D(nn.Module):
         self.conv1 = nn.Conv1d(hidden_size, hidden_size, kernel_size=kernel_size, padding=padding)
         self.conv2 = nn.Conv1d(hidden_size, hidden_size, kernel_size=kernel_size, padding=padding)
         self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
-        self.cond_proj = nn.Sequential(
+        self.adaLN_modulation = nn.Sequential(
             nn.SiLU(),
             nn.Linear(hidden_size, 4 * hidden_size),
         )
+        nn.init.zeros_(self.conv2.weight)
+        if self.conv2.bias is not None:
+            nn.init.zeros_(self.conv2.bias)
+        nn.init.zeros_(self.adaLN_modulation[-1].weight)
+        nn.init.zeros_(self.adaLN_modulation[-1].bias)
 
     def forward(self, x, c):
-        shift1, scale1, shift2, scale2 = self.cond_proj(c).chunk(4, dim=1)
+        shift1, scale1, shift2, scale2 = self.adaLN_modulation(c).chunk(4, dim=1)
 
-        h = self.norm1(x)
-        h = h * (1 + scale1.unsqueeze(1)) + shift1.unsqueeze(1)
+        h = modulate(self.norm1(x), shift1, scale1)
+        h = F.silu(h)
         h = h.transpose(1, 2)
         h = self.conv1(h)
         h = h.transpose(1, 2)
-        h = torch.nn.functional.silu(h)
 
-        h = self.norm2(h)
-        h = h * (1 + scale2.unsqueeze(1)) + shift2.unsqueeze(1)
+        h = modulate(self.norm2(h), shift2, scale2)
+        h = F.silu(h)
+        h = self.dropout(h)
         h = h.transpose(1, 2)
-        h = self.conv2(self.dropout(h))
+        h = self.conv2(h)
         h = h.transpose(1, 2)
         return x + h
 
@@ -60,7 +66,6 @@ class ResNet1D(nn.Module):
 
         self.x_embedder = nn.Linear(token_dim, hidden_size)
         self.t_embedder = GaussianFourierEmbedding(hidden_size)
-        self.pos_embed = nn.Parameter(torch.zeros(1, seq_len, hidden_size), requires_grad=True)
         self.blocks = nn.ModuleList(
             [
                 ResBlock1D(
@@ -92,7 +97,6 @@ class ResNet1D(nn.Module):
 
         nn.init.normal_(self.t_embedder.mlp[0].weight, std=0.02)
         nn.init.normal_(self.t_embedder.mlp[2].weight, std=0.02)
-        nn.init.normal_(self.pos_embed, std=0.02)
         nn.init.constant_(self.final_proj.bias, 0)
 
     def forward(self, x, t, y=None):
@@ -101,7 +105,7 @@ class ResNet1D(nn.Module):
         if x.shape[1] != self.seq_len:
             raise ValueError(f"Expected seq_len={self.seq_len}, got {x.shape[1]}")
 
-        h = self.x_embedder(x) + self.pos_embed
+        h = self.x_embedder(x)
         c = self.t_embedder(t)
         for block in self.blocks:
             h = block(h, c)
