@@ -1,0 +1,33 @@
+latents: ./logs/vae_latents/simple_pretrain_mu.pt
+output_dir: ./logs/diffusion_prior/resnet1d_simple_vae
+resume: null
+resume_ckpt: null
+finetune_ckpt: null
+seed: 0
+device: cuda
+wandb: true
+wandb_project: diffusion-prior
+wandb_name: resnet1d_simple_vae
+wandb_tags: [resnet1d, simple_vae]
+
+epochs: 2000
+batch_size: 2048
+num_workers: 0
+learning_rate: 0.0003
+weight_decay: 0.00001
+val_ratio: 0.02
+save_every: 100
+
+backbone: resnet1d
+hidden_size: 256
+depth: 8
+kernel_size: 3
+dropout: 0.0
+no_rmsnorm: false
+
+path_type: Linear
+prediction: velocity
+loss_weight: null
+time_dist_type: 'logit-normal_0.0_1.0'
+time_dist_shift: 1.0
+ema_decay: 0.9999
