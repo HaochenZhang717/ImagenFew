@@ -12,7 +12,7 @@ wandb_tags: [resnet1d, simple_vae]
 
 epochs: 2000
 batch_size: 2048
-num_workers: 0
+num_workers: 8
 learning_rate: 0.0003
 weight_decay: 0.00001
 val_ratio: 0.02
