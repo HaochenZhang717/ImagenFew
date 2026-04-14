@@ -38,7 +38,7 @@ fi
 export TORCH_DISTRIBUTED_DEBUG=DETAIL
 export NCCL_DEBUG=INFO
 
-python run.py \
+python run_orig.py \
 --subset_p 1.0 \
 --wandb \
 --wandb_project ImagenFew \
