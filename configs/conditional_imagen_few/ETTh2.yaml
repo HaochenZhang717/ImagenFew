@@ -22,7 +22,6 @@ ema_warmup: 100
 ft_method: all
 
 # conditioning:
-#pretrained_vae_weights: "/work/vb21/haochen/neurips_2026/ImagenFew/logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE_Epoch330"
 pretrained_vae_weights: "./logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE"
 multi_scale_vae:
   z_channels: 64

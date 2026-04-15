@@ -1,0 +1,151 @@
+import argparse
+import json
+import os
+import sys
+from importlib import import_module
+from types import SimpleNamespace
+
+import numpy as np
+import torch
+from omegaconf import OmegaConf
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
+from data_provider.combined_datasets import dataset_list
+from data_provider.data_provider import dataset_to_tensor, get_test, get_train
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Sample from a trained ImagenFew checkpoint using an existing finetune config.")
+    parser.add_argument("--config", type=str, required=True, help="Path to a config under configs/finetune.")
+    parser.add_argument("--model-ckpt", type=str, required=True, help="Path to the trained ImagenFew checkpoint (.pt).")
+    parser.add_argument("--dataset", type=str, default=None, help="Optional dataset override. Defaults to the only train_on_datasets entry in the config.")
+    parser.add_argument("--split", type=str, default="train", choices=["train", "test"], help="Dataset split to sample against for determining sample count and metadata.")
+    parser.add_argument("--max-samples", type=int, default=None, help="Optional cap on number of generated samples.")
+    parser.add_argument("--output", type=str, default=None, help="Optional explicit .npy output path. Defaults to the checkpoint directory.")
+    parser.add_argument("--seed", type=int, default=None, help="Random seed override.")
+    parser.add_argument("--no-ema-eval", action="store_true", help="Disable EMA weights during sampling.")
+    return parser.parse_args()
+
+
+def to_args_namespace(config_dict):
+    args = SimpleNamespace(**config_dict)
+    args.ddp = False
+    args.finetune = not getattr(args, "pretrain", False)
+    args.device = "cuda" if torch.cuda.is_available() else "cpu"
+    args.n_classes = len(dataset_list)
+    args.beta1 = getattr(args, "beta1", 1e-5)
+    args.betaT = getattr(args, "betaT", 1e-2)
+    args.deterministic = getattr(args, "deterministic", False)
+    args.input_channels = getattr(args, "input_channels", 1 if not getattr(args, "use_stft", False) else 2)
+    args.lora_dim = getattr(args, "lora_dim", 4)
+    args.dynamic_size = getattr(args, "dynamic_size", [128, 128])
+    args.subset_p = getattr(args, "subset_p", None)
+    args.subset_n = getattr(args, "subset_n", None)
+    args.find_unused_parameters = getattr(args, "find_unused_parameters", False)
+    args.train_on_datasets = [dataset for dataset in dataset_list if dataset in args.train_on_datasets]
+    args.seed = getattr(args, "seed", 42)
+    args.eval_metrics = getattr(args, "eval_metrics", ["disc", "contextFID", "pred"])
+    return args
+
+
+def resolve_dataset_name(args, cli_dataset):
+    if cli_dataset is not None:
+        return cli_dataset
+    if len(args.train_on_datasets) == 1:
+        return args.train_on_datasets[0]
+    raise ValueError("Please provide --dataset when the config includes multiple train_on_datasets.")
+
+
+def build_eval_tensor(args, dataset_name, split):
+    dataset_config = None
+    for config in args.datasets:
+        if config["name"] == dataset_name:
+            dataset_config = dict(config)
+            break
+    if dataset_config is None:
+        raise ValueError(f"Dataset {dataset_name} not found in config.")
+
+    dataset_config["seq_len"] = args.seq_len
+    dataset_config["datasets_dir"] = args.datasets_dir
+    dataset = get_train(dataset_config) if split == "train" else get_test(dataset_config)
+    return dataset_to_tensor(dataset, args)
+
+
+def maybe_slice_tensor(tensor, max_samples):
+    if max_samples is None:
+        return tensor
+    return tensor[:max_samples]
+
+
+def default_output_paths(model_ckpt, dataset_name, split):
+    ckpt_dir = os.path.dirname(os.path.abspath(model_ckpt))
+    npy_path = os.path.join(ckpt_dir, f"generated_{dataset_name}_{split}.npy")
+    json_path = os.path.join(ckpt_dir, f"generated_{dataset_name}_{split}.json")
+    return npy_path, json_path
+
+
+def main():
+    cli_args = parse_args()
+    config = OmegaConf.to_object(OmegaConf.load(cli_args.config))
+    args = to_args_namespace(config)
+
+    dataset_name = resolve_dataset_name(args, cli_args.dataset)
+    args.model_ckpt = cli_args.model_ckpt
+    if cli_args.seed is not None:
+        args.seed = cli_args.seed
+
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+
+    eval_tensor = build_eval_tensor(args, dataset_name, cli_args.split)
+    eval_tensor = maybe_slice_tensor(eval_tensor, cli_args.max_samples)
+    class_metadata = {"name": dataset_name, "channels": int(eval_tensor.shape[-1])}
+    class_label = dataset_list.index(dataset_name)
+
+    handler = import_module(args.handler).Handler(args=args, rank=args.device)
+    handler.model.eval()
+    if cli_args.no_ema_eval and hasattr(handler, "_model") and hasattr(handler._model, "use_ema"):
+        handler._model.use_ema = False
+
+    with torch.no_grad():
+        generated = handler.sample(
+            len(eval_tensor),
+            class_label,
+            class_metadata,
+            eval_tensor,
+        )
+
+    generated_np = generated.cpu().detach().numpy()
+
+    output_path, summary_path = default_output_paths(cli_args.model_ckpt, dataset_name, cli_args.split)
+    if cli_args.output:
+        output_path = os.path.abspath(cli_args.output)
+        summary_path = os.path.splitext(output_path)[0] + ".json"
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    np.save(output_path, generated_np)
+
+    summary = {
+        "dataset": dataset_name,
+        "split": cli_args.split,
+        "num_samples": int(len(eval_tensor)),
+        "config": os.path.abspath(cli_args.config),
+        "model_ckpt": os.path.abspath(cli_args.model_ckpt),
+        "output": output_path,
+        "use_ema_for_eval": not cli_args.no_ema_eval,
+        "seed": int(args.seed),
+        "sample_shape": list(generated_np.shape),
+    }
+    with open(summary_path, "w", encoding="utf-8") as f:
+        json.dump(summary, f, indent=2)
+
+    print(json.dumps(summary, indent=2))
+    print(f"Saved generated samples to {output_path}")
+    print(f"Saved summary to {summary_path}")
+
+
+if __name__ == "__main__":
+    main()

@@ -4,7 +4,7 @@ import numpy as np
 import torch.multiprocessing
 import logging
 from metrics import evaluate_model_uncond
-from utils.loggers import NeptuneLogger, PrintLogger, CompositeLogger
+from utils.loggers import NeptuneLogger, WandbLogger, PrintLogger, CompositeLogger
 from utils.utils import create_model_name_and_dir, print_model_params, log_config_and_tags
 from data_provider.data_provider import data_provider
 from utils.utils_args import parse_args_uncond
@@ -26,8 +26,8 @@ def main(args):
     # Model name and directory
     name = create_model_name_and_dir(args)
 
-    # set-up neptune logger. switch to your desired logger
-    with CompositeLogger([NeptuneLogger(), PrintLogger()]) if args.neptune and is_main_process() \
+    # set-up wandb logger. switch to your desired logger
+    with CompositeLogger([WandbLogger(project=args.wandb_project, name=args.run_id), PrintLogger()]) if args.wandb and is_main_process() \
             else CompositeLogger([PrintLogger()]) as logger:
 
         if args.finetune:

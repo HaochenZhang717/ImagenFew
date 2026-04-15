@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=imagen_few_airquality
+#SBATCH --job-name=imagen_few_mujoco
 #SBATCH --partition=all
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -38,9 +38,10 @@ fi
 export TORCH_DISTRIBUTED_DEBUG=DETAIL
 export NCCL_DEBUG=INFO
 
-python run_orig.py \
+
+python /playpen-shared/haochenz/ImagenFew/run_orig.py \
 --subset_p 1.0 \
 --wandb \
 --wandb_project ImagenFew \
---model_ckpt ./ImagenFew_ckpts/ImagenFew_24.ckpt \
---config ./configs/finetune/AirQuality.yaml
+--model_ckpt /playpen-shared/haochenz/ImagenFew/ImagenFew_ckpts/ImagenFew_24.ckpt \
+--config /playpen-shared/haochenz/ImagenFew/configs/finetune/Mujoco.yaml
