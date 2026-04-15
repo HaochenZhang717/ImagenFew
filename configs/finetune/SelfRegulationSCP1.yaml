@@ -21,7 +21,7 @@ logging_iter: 100
 tags: []
 run_dir: ImagenFew/SelfRegulationSCP1/
 # Data
-datasets_dir: ./data/
+datasets_dir: /playpen-shared/haochenz/ImagenFew/data/
 seq_len: 24
 pretrain: false
 datasets:
