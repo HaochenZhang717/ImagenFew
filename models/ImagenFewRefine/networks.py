@@ -44,18 +44,159 @@ class Linear(torch.nn.Module):
         return x
 
 
+
+class DynamicConv1d(torch.nn.Module):
+    def __init__(self,
+        dynamic_size, kernel, out_channels=None, bias=True, up=False, down=False,
+        resample_filter=[1, 1], fused_resample=False,
+        init_mode='kaiming_normal', init_weight=1, init_bias=0,
+    ):
+        assert not (up and down)
+        super().__init__()
+
+        if isinstance(dynamic_size, int):
+            dynamic_size = [dynamic_size, dynamic_size]
+        assert len(dynamic_size) == 2
+
+        self.dynamic_size = dynamic_size
+        self.out_channels = out_channels
+        self.up = up
+        self.down = down
+        self.fused_resample = fused_resample
+
+        init_kwargs = dict(
+            mode=init_mode,
+            fan_in=self.dynamic_size[0] * kernel,
+            fan_out=self.dynamic_size[1] * kernel
+        )
+
+        # [k, dyn_out, dyn_in]
+        self.dynamic_weights = torch.nn.Parameter(
+            weight_init([kernel, self.dynamic_size[1], self.dynamic_size[0]], **init_kwargs) * init_weight
+        ) if kernel else None
+
+        self.dynamic_bias = torch.nn.Parameter(
+            weight_init([self.dynamic_size[1]], **init_kwargs) * init_bias
+        ) if kernel and bias else None
+
+        # 1D resample filter
+        f = torch.as_tensor(resample_filter, dtype=torch.float32)
+        f = f[None, None, :] / f.sum()
+        self.register_buffer('resample_filter', f if up or down else None)
+
+    def forward(self, x, out_features=None):
+        # x: [B, C, L]
+
+        if out_features is None and self.out_channels is None:
+            raise Exception("out_features & self.out_channels cannot both be None")
+
+        out_features = self.out_channels if self.out_channels is not None else out_features
+
+        # ---- weight interpolation ----
+        if self.dynamic_weights is not None:
+            # [k, dyn_out, dyn_in] → treat as [N=k, C=1, L=dyn_out*dyn_in]
+            w = self.dynamic_weights.view(
+                self.dynamic_weights.shape[0], 1, -1
+            )
+
+            w = torch.nn.functional.interpolate(
+                w,
+                size=out_features * x.size(1),
+                mode='linear',
+                align_corners=False
+            )
+
+            w = w.view(
+                self.dynamic_weights.shape[0],
+                out_features,
+                x.size(1)
+            )
+
+            w = w.permute(1, 2, 0)  # [out, in, k]
+        else:
+            w = None
+
+        # ---- bias interpolation ----
+        if self.dynamic_bias is not None:
+            b = torch.nn.functional.interpolate(
+                self.dynamic_bias.view(1, 1, -1),
+                size=out_features,
+                mode='linear',
+                align_corners=False
+            ).view(-1)
+        else:
+            b = None
+
+        w = w.to(x.dtype) if w is not None else None
+        b = b.to(x.dtype) if b is not None else None
+        f = self.resample_filter.to(x.dtype) if self.resample_filter is not None else None
+
+        w_pad = w.shape[-1] // 2 if w is not None else 0
+        f_pad = (f.shape[-1] - 1) // 2 if f is not None else 0
+
+        # ---- fused resample ----
+        if self.fused_resample and self.up and w is not None:
+            x = torch.nn.functional.conv_transpose1d(
+                x,
+                f.mul(2).tile([x.shape[1], 1, 1]),
+                groups=x.shape[1],
+                stride=2,
+                padding=max(f_pad - w_pad, 0)
+            )
+            x = torch.nn.functional.conv1d(x, w, padding=max(w_pad - f_pad, 0))
+
+        elif self.fused_resample and self.down and w is not None:
+            x = torch.nn.functional.conv1d(x, w, padding=w_pad + f_pad)
+            x = torch.nn.functional.conv1d(
+                x,
+                f.tile([out_features, 1, 1]),
+                groups=out_features,
+                stride=2
+            )
+
+        else:
+            if self.up:
+                x = torch.nn.functional.conv_transpose1d(
+                    x,
+                    f.mul(2).tile([x.shape[1], 1, 1]),
+                    groups=x.shape[1],
+                    stride=2,
+                    padding=f_pad
+                )
+
+            if self.down:
+                x = torch.nn.functional.conv1d(
+                    x,
+                    f.tile([x.shape[1], 1, 1]),
+                    groups=x.shape[1],
+                    stride=2,
+                    padding=f_pad
+                )
+
+            if w is not None:
+                x = torch.nn.functional.conv1d(x, w, padding=w_pad)
+
+        if b is not None:
+            x = x.add_(b.reshape(1, -1, 1))
+
+        return x
+
+
 @persistence.persistent_class
 class ContextProjector1D(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels):
         super().__init__()
-        self.conv1 = torch.nn.Conv1d(in_channels, hidden_channels, kernel_size=3, padding=1, stride=2)
-        self.conv2 = torch.nn.Conv1d(hidden_channels, out_channels, kernel_size=3, padding=1, stride=2)
+        # self.conv1 = torch.nn.Conv1d(in_channels, hidden_channels, kernel_size=3, padding=1, stride=2)
+        self.conv1 = DynamicConv1d(dynamic_size=64, kernel=3, out_channels=hidden_channels)
+        self.conv2 = torch.nn.Conv1d(hidden_channels, hidden_channels, kernel_size=3, padding=1, stride=2)
+        self.conv3 = torch.nn.Conv1d(hidden_channels, out_channels, kernel_size=3, padding=1, stride=2)
 
     def forward(self, context):
         # context: (B, L, C)
         context = context.permute(0, 2, 1)
         context = silu(self.conv1(context))
-        context = self.conv2(context)
+        context = silu(self.conv2(context))
+        context = self.conv3(context)
         return context.permute(0, 2, 1)
 
 #----------------------------------------------------------------------------
