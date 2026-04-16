@@ -48,7 +48,7 @@ echo "CONFIG=${CONFIG}"
 echo "WANDB_PROJECT=${WANDB_PROJECT}"
 
 
-python -u "$ROOT_DIR/run.py" \
+python -u "/playpen-shared/haochenz/ImagenFew/run.py" \
   --subset_p "$SUBSET_P" \
   --wandb \
   --wandb_project "$WANDB_PROJECT" \
