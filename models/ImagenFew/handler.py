@@ -44,6 +44,9 @@ class Handler(generativeHandler):
                 align_corners=False,
             )
         return x_ts.permute(0, 2, 1)
+
+    def preprocess_time_series(self, x_ts):
+        return self._preprocess_time_series(x_ts)
     
     def train_iter(self, train_dataloader, logger):
         epoch = getattr(self, "epoch", None)

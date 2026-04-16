@@ -84,6 +84,7 @@ def main(args):
                     for dataset in args.train_on_datasets:
                         args.dataset = dataset
                         testset, class_label = dataset_loader.gen_dataloader(dataset)
+                        testset = handler.preprocess_time_series(testset.to(args.device)).detach().cpu()
                         handler.model.eval()
                         with torch.no_grad():
                             generated_set = handler.sample(len(testset), class_label, metadatas[dataset], testset)

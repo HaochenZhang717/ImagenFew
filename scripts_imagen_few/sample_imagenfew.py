@@ -111,6 +111,8 @@ def main():
     if cli_args.no_ema_eval and hasattr(handler, "_model") and hasattr(handler._model, "use_ema"):
         handler._model.use_ema = False
 
+    eval_tensor = handler.preprocess_time_series(eval_tensor.to(args.device)).detach().cpu()
+
     with torch.no_grad():
         generated = handler.sample(
             len(eval_tensor),
