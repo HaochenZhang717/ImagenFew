@@ -26,3 +26,4 @@ python /playpen-shared/haochenz/ImagenFew/scripts_cond_imagen_few/sample_posteri
   --output /playpen-shared/haochenz/ImagenFew/logs/CondImagenFewFinetune/mujoco/7a5fde19-f926-4ab5-82fb-98272fd4c5d5/posterior_samples.npy \
   --split train \
   --eval-metrics disc contextFID
+
