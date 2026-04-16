@@ -3,16 +3,37 @@ set -euo pipefail
 
 ROOT_DIR="/playpen-shared/haochenz/ImagenFew"
 SCRIPT="$ROOT_DIR/scripts_imagen_few/sample_imagenfew_local.sh"
-MODEL_CKPT="/playpen-shared/haochenz/ImagenFew/logs/ImagenFew"
-SPLIT="${SPLIT:-test}"
+SPLIT="${SPLIT:-train}"
 MAX_SAMPLES="${MAX_SAMPLES:-}"
-CONDA_ENV="${CONDA_ENV:-vlm}"
 USE_EMA_FOR_EVAL="${USE_EMA_FOR_EVAL:-1}"
-EVAL_METRICS="${EVAL_METRICS:-disc contextFID pred}"
+EVAL_METRICS="${EVAL_METRICS:-disc contextFID}"
 
 
-for dataset in AirQuality ETTh2 Mujoco; do
-  CONFIG="$ROOT_DIR/configs/finetune/${dataset}.yaml"
-  echo "[INFO] Sampling $dataset"
-  CONDA_ENV="$CONDA_ENV"   MODEL_CKPT="$MODEL_CKPT"   CONFIG="$CONFIG"   SPLIT="$SPLIT"   MAX_SAMPLES="$MAX_SAMPLES"   EVAL_METRICS="$EVAL_METRICS"   USE_EMA_FOR_EVAL="$USE_EMA_FOR_EVAL"   bash "$SCRIPT"
-done
+
+CONDA_ENV="vlm" \
+MODEL_CKPT="/playpen-shared/haochenz/ImagenFew/logs/ImagenFew/ETTh2/404bb2bf-e4b2-412c-87b5-032bac01e4f9/ImagenFew.pt" \
+CONFIG="/playpen-shared/haochenz/ImagenFew/configs/finetune/ETTh2.yaml" \
+SPLIT="train" \
+MAX_SAMPLES="$MAX_SAMPLES" \
+EVAL_METRICS="$EVAL_METRICS" \
+USE_EMA_FOR_EVAL="$USE_EMA_FOR_EVAL" \
+bash /playpen-shared/haochenz/ImagenFew/scripts_imagen_few/sample_imagenfew_local.sh
+
+CONDA_ENV="vlm" \
+MODEL_CKPT="/playpen-shared/haochenz/ImagenFew/logs/ImagenFew/AirQuality/d040753f-6f2d-4c58-bae3-ff2764e47492/ImagenFew.pt" \
+CONFIG="/playpen-shared/haochenz/ImagenFew/configs/finetune/AirQuality.yaml" \
+SPLIT="train" \
+MAX_SAMPLES="$MAX_SAMPLES" \
+EVAL_METRICS="$EVAL_METRICS" \
+USE_EMA_FOR_EVAL="$USE_EMA_FOR_EVAL" \
+bash /playpen-shared/haochenz/ImagenFew/scripts_imagen_few/sample_imagenfew_local.sh
+
+
+CONDA_ENV="vlm" \
+MODEL_CKPT="/playpen-shared/haochenz/ImagenFew/logs/ImagenFew/Mujoco/faed7452-4f59-41dd-9bb9-882467dcb5b0/ImagenFew.pt" \
+CONFIG="/playpen-shared/haochenz/ImagenFew/configs/finetune/Mujoco.yaml" \
+SPLIT="train" \
+MAX_SAMPLES="$MAX_SAMPLES" \
+EVAL_METRICS="$EVAL_METRICS" \
+USE_EMA_FOR_EVAL="$USE_EMA_FOR_EVAL" \
+bash /playpen-shared/haochenz/ImagenFew/scripts_imagen_few/sample_imagenfew_local.sh
