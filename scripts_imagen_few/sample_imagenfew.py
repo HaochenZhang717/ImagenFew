@@ -3,11 +3,9 @@ import json
 import os
 import sys
 from importlib import import_module
-from types import SimpleNamespace
 
 import numpy as np
 import torch
-from omegaconf import OmegaConf
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO_ROOT not in sys.path:
@@ -16,6 +14,7 @@ if REPO_ROOT not in sys.path:
 from data_provider.combined_datasets import dataset_list
 from data_provider.data_provider import dataset_to_tensor, get_test, get_train
 from metrics import evaluate_model_uncond
+from utils.utils_args import parse_args_uncond
 
 
 def parse_args():
@@ -34,24 +33,19 @@ def parse_args():
     return parser.parse_args()
 
 
-def to_args_namespace(config_dict):
-    args = SimpleNamespace(**config_dict)
+def load_training_args(config_path):
+    old_argv = sys.argv[:]
+    try:
+        sys.argv = [old_argv[0], "--config", config_path]
+        args = parse_args_uncond()
+    finally:
+        sys.argv = old_argv
+
     args.ddp = False
     args.finetune = not getattr(args, "pretrain", False)
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     args.n_classes = len(dataset_list)
-    args.beta1 = getattr(args, "beta1", 1e-5)
-    args.betaT = getattr(args, "betaT", 1e-2)
-    args.deterministic = getattr(args, "deterministic", False)
-    args.input_channels = getattr(args, "input_channels", 1 if not getattr(args, "use_stft", False) else 2)
-    args.lora_dim = getattr(args, "lora_dim", 4)
-    args.dynamic_size = getattr(args, "dynamic_size", [128, 128])
-    args.subset_p = getattr(args, "subset_p", None)
-    args.subset_n = getattr(args, "subset_n", None)
-    args.find_unused_parameters = getattr(args, "find_unused_parameters", False)
     args.train_on_datasets = [dataset for dataset in dataset_list if dataset in args.train_on_datasets]
-    args.seed = getattr(args, "seed", 42)
-    args.eval_metrics = getattr(args, "eval_metrics", ["disc", "contextFID", "pred"])
     return args
 
 
@@ -94,8 +88,7 @@ def default_output_paths(model_ckpt, dataset_name, split):
 
 def main():
     cli_args = parse_args()
-    config = OmegaConf.to_object(OmegaConf.load(cli_args.config))
-    args = to_args_namespace(config)
+    args = load_training_args(cli_args.config)
 
     dataset_name = resolve_dataset_name(args, cli_args.dataset)
     args.model_ckpt = cli_args.model_ckpt
