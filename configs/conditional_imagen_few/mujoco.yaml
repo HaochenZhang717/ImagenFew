@@ -11,7 +11,7 @@ embedding: 8
 
 # model:
 handler: models.ImagenFewCrossAttention.handler
-model_ckpt: "./logs/conditional_pretrain/da98bb2d-8b28-48ed-9713-cf99654039cd/ImagenFewCrossAttention.pt"
+model_ckpt: "/playpen-shared/haochenz/ImagenFew/logs/conditional_pretrain/da98bb2d-8b28-48ed-9713-cf99654039cd/ImagenFewCrossAttention.pt"
 img_resolution: 8
 unet_channels: 32
 ch_mult: [1,2,2,4]
@@ -22,7 +22,7 @@ ema_warmup: 100
 ft_method: all
 
 # conditioning:
-pretrained_vae_weights: "./logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE"
+pretrained_vae_weights: "/playpen-shared/haochenz/ImagenFew/logs/vae_pretrain/52131940-4465-42cb-85b4-93bd7f5ee944/MultiScaleVAE"
 multi_scale_vae:
   z_channels: 64
   ch: 64
@@ -36,7 +36,7 @@ tags: [conditional-finetune, cross-attention]
 run_dir: CondImagenFewFinetune/mujoco/
 
 # Data
-datasets_dir: ./data/
+datasets_dir: /playpen-shared/haochenz/ImagenFew/data/
 seq_len: 24
 pretrain: false
 datasets:
