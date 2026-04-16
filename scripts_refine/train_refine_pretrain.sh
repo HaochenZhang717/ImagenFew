@@ -34,4 +34,5 @@ python -u "$ROOT_DIR/run.py" \
   --wandb \
   --wandb_project "$WANDB_PROJECT" \
   --config "$CONFIG" \
+  --no_test_model \
   "$@"
