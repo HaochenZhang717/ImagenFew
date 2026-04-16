@@ -19,7 +19,7 @@ ema_warmup: 100
 # logging:
 logging_iter: 100
 tags: []
-run_dir: ImagenFew/SelfRegulationSCP1/
+run_dir: /playpen-shared/haochenz/ImagenFew/logs/ImagenFew/SelfRegulationSCP1/
 # Data
 datasets_dir: /playpen-shared/haochenz/ImagenFew/data/
 seq_len: 24

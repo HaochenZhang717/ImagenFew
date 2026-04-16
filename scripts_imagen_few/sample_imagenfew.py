@@ -15,6 +15,7 @@ if REPO_ROOT not in sys.path:
 
 from data_provider.combined_datasets import dataset_list
 from data_provider.data_provider import dataset_to_tensor, get_test, get_train
+from metrics import evaluate_model_uncond
 
 
 def parse_args():
@@ -25,6 +26,9 @@ def parse_args():
     parser.add_argument("--split", type=str, default="train", choices=["train", "test"], help="Dataset split to sample against for determining sample count and metadata.")
     parser.add_argument("--max-samples", type=int, default=None, help="Optional cap on number of generated samples.")
     parser.add_argument("--output", type=str, default=None, help="Optional explicit .npy output path. Defaults to the checkpoint directory.")
+    parser.add_argument("--output-json", type=str, default=None, help="Optional explicit metrics JSON output path. Defaults to the checkpoint directory.")
+    parser.add_argument("--eval-metrics", nargs="+", type=str, default=None, help="Metrics to compute. Defaults to the config's eval_metrics or disc/contextFID/pred.")
+    parser.add_argument("--ts2vec-dir", type=str, default=None, help="Directory for TS2VEC checkpoints/cache used by contextFID.")
     parser.add_argument("--seed", type=int, default=None, help="Random seed override.")
     parser.add_argument("--no-ema-eval", action="store_true", help="Disable EMA weights during sampling.")
     return parser.parse_args()
@@ -83,8 +87,9 @@ def maybe_slice_tensor(tensor, max_samples):
 def default_output_paths(model_ckpt, dataset_name, split):
     ckpt_dir = os.path.dirname(os.path.abspath(model_ckpt))
     npy_path = os.path.join(ckpt_dir, f"generated_{dataset_name}_{split}.npy")
-    json_path = os.path.join(ckpt_dir, f"generated_{dataset_name}_{split}.json")
-    return npy_path, json_path
+    json_path = os.path.join(ckpt_dir, f"generated_{dataset_name}_{split}_eval.json")
+    ts2vec_dir = os.path.join(ckpt_dir, "TS2VEC")
+    return npy_path, json_path, ts2vec_dir
 
 
 def main():
@@ -96,6 +101,8 @@ def main():
     args.model_ckpt = cli_args.model_ckpt
     if cli_args.seed is not None:
         args.seed = cli_args.seed
+    if cli_args.eval_metrics is not None:
+        args.eval_metrics = cli_args.eval_metrics
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -118,15 +125,33 @@ def main():
             eval_tensor,
         )
 
+    real_set = eval_tensor.cpu().detach().numpy()
     generated_np = generated.cpu().detach().numpy()
 
-    output_path, summary_path = default_output_paths(cli_args.model_ckpt, dataset_name, cli_args.split)
+    output_path, summary_path, default_ts2vec_dir = default_output_paths(cli_args.model_ckpt, dataset_name, cli_args.split)
     if cli_args.output:
         output_path = os.path.abspath(cli_args.output)
-        summary_path = os.path.splitext(output_path)[0] + ".json"
+    if cli_args.output_json:
+        summary_path = os.path.abspath(cli_args.output_json)
+    elif cli_args.output:
+        summary_path = os.path.splitext(output_path)[0] + '_eval.json'
+
+    ts2vec_dir = os.path.abspath(cli_args.ts2vec_dir) if cli_args.ts2vec_dir else default_ts2vec_dir
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    os.makedirs(os.path.dirname(summary_path), exist_ok=True)
+    if 'contextFID' in args.eval_metrics:
+        os.makedirs(ts2vec_dir, exist_ok=True)
+
     np.save(output_path, generated_np)
+    scores = evaluate_model_uncond(
+        real_set,
+        generated_np,
+        dataset_name,
+        args.device,
+        args.eval_metrics,
+        base_path=ts2vec_dir if 'contextFID' in args.eval_metrics else None,
+    )
 
     summary = {
         "dataset": dataset_name,
@@ -134,17 +159,21 @@ def main():
         "num_samples": int(len(eval_tensor)),
         "config": os.path.abspath(cli_args.config),
         "model_ckpt": os.path.abspath(cli_args.model_ckpt),
-        "output": output_path,
+        "generated_output": output_path,
+        "evaluation_output": summary_path,
+        "ts2vec_dir": ts2vec_dir if 'contextFID' in args.eval_metrics else None,
         "use_ema_for_eval": not cli_args.no_ema_eval,
         "seed": int(args.seed),
         "sample_shape": list(generated_np.shape),
+        "eval_metrics": list(args.eval_metrics),
+        "metrics": scores,
     }
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 
     print(json.dumps(summary, indent=2))
     print(f"Saved generated samples to {output_path}")
-    print(f"Saved summary to {summary_path}")
+    print(f"Saved evaluation results to {summary_path}")
 
 
 if __name__ == "__main__":

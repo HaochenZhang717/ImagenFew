@@ -19,7 +19,7 @@ ema_warmup: 100
 # logging:
 logging_iter: 100
 tags: []
-run_dir: ImagenFew/AirQuality/
+run_dir: /playpen-shared/haochenz/ImagenFew/logs/ImagenFew/AirQuality/
 
 # Data
 datasets_dir: /playpen-shared/haochenz/ImagenFew/data/
