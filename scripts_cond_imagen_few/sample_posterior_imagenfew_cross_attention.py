@@ -35,6 +35,7 @@ def parse_args():
     parser.add_argument("--eval-metrics", nargs="+", type=str, default=None, help="Metrics to compute.")
     parser.add_argument("--ts2vec-dir", type=str, default=None, help="Directory for TS2Vec checkpoints/features.")
     parser.add_argument("--output-json", type=str, default=None, help="Where to save evaluation metrics json.")
+    parser.add_argument("--output-jsonl", type=str, default=None, help="Where to append evaluation metrics jsonl.")
     parser.add_argument("--save-generated-dir", type=str, default=None, help="Optional directory to save generated samples.")
     parser.add_argument("--no-ema-eval", action="store_true", help="Use raw model instead of EMA model.")
     return parser.parse_args()
@@ -135,6 +136,26 @@ def make_default_output_json(dataset, split, model_ckpt, cond_path):
     return os.path.join(results_dir, filename)
 
 
+def make_default_output_jsonl(dataset):
+    results_dir = os.path.join("./logs", "conditional_imagen_few", "eval", dataset)
+    os.makedirs(results_dir, exist_ok=True)
+    return os.path.join(results_dir, "summary.jsonl")
+
+
+def variant_output_path(base_output, variant_name):
+    root, ext = os.path.splitext(base_output)
+    return f"{root}_{variant_name}{ext}"
+
+
+def run_posterior_sampling(handler, condition_ts, class_metadata, n_samples):
+    with torch.no_grad():
+        return handler._sample_with_posterior(
+            n_samples=n_samples,
+            class_metadata=class_metadata,
+            test_data=condition_ts,
+        )
+
+
 def main():
     cli_args = parse_args()
     config = OmegaConf.to_object(OmegaConf.load(cli_args.config))
@@ -154,7 +175,7 @@ def main():
     torch.manual_seed(args.seed)
     np.random.default_rng(args.seed)
 
-    condition_ts = load_time_series(cli_args.time_series_path)
+    external_condition_ts = load_time_series(cli_args.time_series_path)
     eval_tensor = build_eval_tensor(args, dataset_name, cli_args.split)
     eval_tensor = maybe_slice_tensor(eval_tensor, cli_args.max_samples)
     class_metadata = {
@@ -167,32 +188,46 @@ def main():
     if cli_args.no_ema_eval and hasattr(handler, "_model") and hasattr(handler._model, "use_ema"):
         handler._model.use_ema = False
 
-    with torch.no_grad():
-        generated = handler._sample_with_posterior(
-            n_samples=len(eval_tensor),
-            class_metadata=class_metadata,
-            test_data=condition_ts,
-        )
-
-    save_output(cli_args.output, generated)
-    generated_np = generated.cpu().detach().numpy()
     real_np = eval_tensor.cpu().detach().numpy()
-
     ts2vec_dir = cli_args.ts2vec_dir or os.path.join("./logs", "TS2VEC")
     os.makedirs(ts2vec_dir, exist_ok=True)
-    scores = evaluate_model_uncond(
-        real_np,
-        generated_np,
-        dataset_name,
-        args.device,
-        args.eval_metrics,
-        base_path=ts2vec_dir,
-    )
 
-    if cli_args.save_generated_dir:
-        os.makedirs(cli_args.save_generated_dir, exist_ok=True)
-        ext = os.path.splitext(cli_args.output)[1].lower() or ".pt"
-        save_output(os.path.join(cli_args.save_generated_dir, f"{dataset_name}_{cli_args.split}_posterior{ext}"), generated)
+    condition_variants = {
+        "external_condition": external_condition_ts,
+        "real_condition": eval_tensor,
+    }
+    all_scores = {}
+    saved_paths = {}
+
+    for variant_name, condition_ts in condition_variants.items():
+        generated = run_posterior_sampling(
+            handler,
+            condition_ts=condition_ts,
+            class_metadata=class_metadata,
+            n_samples=len(eval_tensor),
+        )
+        output_path = variant_output_path(cli_args.output, variant_name)
+        save_output(output_path, generated)
+        saved_paths[variant_name] = output_path
+
+        generated_np = generated.cpu().detach().numpy()
+        scores = evaluate_model_uncond(
+            real_np,
+            generated_np,
+            dataset_name,
+            args.device,
+            args.eval_metrics,
+            base_path=ts2vec_dir,
+        )
+        all_scores[variant_name] = scores
+
+        if cli_args.save_generated_dir:
+            os.makedirs(cli_args.save_generated_dir, exist_ok=True)
+            ext = os.path.splitext(cli_args.output)[1].lower() or ".pt"
+            save_output(
+                os.path.join(cli_args.save_generated_dir, f"{dataset_name}_{cli_args.split}_{variant_name}{ext}"),
+                generated,
+            )
 
     output_json = cli_args.output_json or make_default_output_json(
         dataset_name,
@@ -200,24 +235,30 @@ def main():
         cli_args.model_ckpt,
         cli_args.time_series_path,
     )
+    output_jsonl = cli_args.output_jsonl or make_default_output_jsonl(dataset_name)
     os.makedirs(os.path.dirname(output_json), exist_ok=True)
     result = {
         "dataset": dataset_name,
         "split": cli_args.split,
         "num_real_samples": int(len(eval_tensor)),
-        "num_condition_samples": int(len(condition_ts)),
+        "num_external_condition_samples": int(len(external_condition_ts)),
+        "num_real_condition_samples": int(len(eval_tensor)),
         "model_ckpt": cli_args.model_ckpt,
         "condition_time_series_path": cli_args.time_series_path,
-        "generated_output_path": cli_args.output,
+        "generated_output_paths": saved_paths,
         "use_ema_for_eval": not cli_args.no_ema_eval,
-        "metrics": {"posterior": scores},
+        "metrics": all_scores,
     }
     with open(output_json, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
+    os.makedirs(os.path.dirname(output_jsonl), exist_ok=True)
+    with open(output_jsonl, "a", encoding="utf-8") as f:
+        f.write(json.dumps(result) + "\n")
 
-    print(f"Saved posterior samples to {cli_args.output} with shape {tuple(generated.shape)}")
+    print(f"Saved posterior samples to {saved_paths}")
     print(json.dumps(result, indent=2))
     print(f"Saved metrics to {output_json}")
+    print(f"Appended metrics to {output_jsonl}")
 
 
 if __name__ == "__main__":
