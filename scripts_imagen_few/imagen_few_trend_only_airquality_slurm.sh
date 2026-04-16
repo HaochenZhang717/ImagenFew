@@ -38,6 +38,7 @@ fi
 export TORCH_DISTRIBUTED_DEBUG=DETAIL
 export NCCL_DEBUG=INFO
 
+pip install loralib
 python /playpen-shared/haochenz/ImagenFew/run_orig.py \
 --subset_p 1.0 \
 --wandb \

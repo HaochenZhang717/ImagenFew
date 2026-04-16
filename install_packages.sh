@@ -4,3 +4,4 @@ pip install sktime
 pip install omegaconf
 pip install wandb
 pip install torchdiffeq
+pip install loralib
