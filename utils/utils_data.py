@@ -5,6 +5,8 @@ import sys
 import torch
 import functools
 import torch.utils.data as Data
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 from torch.utils.data.distributed import DistributedSampler
 
@@ -80,6 +82,104 @@ def sine_data_generation(no: int, seq_len: int, dim: int) -> torch.Tensor:
 
     return data
 
+
+
+
+
+AIREADI_GLUCOSE_SPLIT_TO_FILE = {
+    "train": "glucose_train.parquet",
+    "val": "glucose_valid.parquet",
+    "valid": "glucose_valid.parquet",
+    "test": "glucose_test.parquet",
+}
+
+
+def resolve_aireadi_glucose_path(root_path, rel_path="AI-READI-processed", split="train"):
+    if split not in AIREADI_GLUCOSE_SPLIT_TO_FILE:
+        raise ValueError(f"Unsupported split {split}. Expected one of {sorted(AIREADI_GLUCOSE_SPLIT_TO_FILE)}")
+    return os.path.join(root_path, rel_path, AIREADI_GLUCOSE_SPLIT_TO_FILE[split])
+
+
+def read_aireadi_glucose_frame(root_path, rel_path="AI-READI-processed", split="train"):
+    return pd.read_parquet(resolve_aireadi_glucose_path(root_path, rel_path=rel_path, split=split))
+
+
+def fit_aireadi_glucose_scaler(root_path, rel_path="AI-READI-processed", drop_nan=True):
+    scaler = StandardScaler()
+    train_df = read_aireadi_glucose_frame(root_path, rel_path=rel_path, split="train")
+    all_values = []
+    for values in train_df["glucose"]:
+        arr = np.asarray(values, dtype=np.float32)
+        if drop_nan:
+            arr = arr[np.isfinite(arr)]
+        if arr.size > 0:
+            all_values.append(arr)
+
+    if not all_values:
+        raise ValueError("No valid glucose values found in AI-READI train split.")
+
+    scaler.fit(np.concatenate(all_values, axis=0).reshape(-1, 1))
+    return scaler
+
+
+def normalize_aireadi_glucose_values(values, scaler=None, drop_nan=True):
+    arr = np.asarray(values, dtype=np.float32)
+    if drop_nan:
+        arr = arr[np.isfinite(arr)]
+    if scaler is not None and arr.size > 0:
+        arr = scaler.transform(arr.reshape(-1, 1)).reshape(-1).astype(np.float32)
+    return arr
+
+
+def load_aireadi_glucose_windows(
+    root_path,
+    rel_path="AI-READI-processed",
+    split="train",
+    seq_len=24,
+    scale=True,
+    stride=1,
+    min_seq_len=None,
+    drop_nan=True,
+):
+    seq_len = int(seq_len)
+    stride = int(stride)
+    min_seq_len = int(min_seq_len) if min_seq_len is not None else seq_len
+
+    if seq_len <= 0:
+        raise ValueError("seq_len must be positive")
+    if stride <= 0:
+        raise ValueError("stride must be positive")
+    if min_seq_len < seq_len:
+        min_seq_len = seq_len
+
+    scaler = fit_aireadi_glucose_scaler(root_path, rel_path=rel_path, drop_nan=drop_nan) if scale else None
+    df = read_aireadi_glucose_frame(root_path, rel_path=rel_path, split=split)
+
+    samples = []
+    sample_index = []
+    for row_idx, row in enumerate(df.itertuples(index=False)):
+        values = normalize_aireadi_glucose_values(row.glucose, scaler=scaler, drop_nan=drop_nan)
+        if values.size < min_seq_len:
+            continue
+
+        patient_id = getattr(row, "patient_id", None)
+        max_start = values.shape[0] - seq_len
+        for start in range(0, max_start + 1, stride):
+            end = start + seq_len
+            samples.append(torch.from_numpy(values[start:end]).unsqueeze(-1))
+            sample_index.append({
+                "row_idx": row_idx,
+                "patient_id": patient_id[start] if isinstance(patient_id, np.ndarray) else patient_id,
+                "start": start,
+                "end": end,
+            })
+
+    if not samples:
+        raise ValueError(
+            f"No windows were created for split={split}. Check seq_len={seq_len} and stride={stride}."
+        )
+
+    return samples, sample_index, scaler
 
 
 def real_data_loading(data_name, seq_len, root_path):
