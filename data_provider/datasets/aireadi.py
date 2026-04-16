@@ -1,15 +1,32 @@
 import torch
 from torch.utils.data import Dataset
 
-from utils.utils_data import load_aireadi_glucose_windows
+from utils.utils_data import load_aireadi_windows
 
 
 def AIREADIGlucose(**config):
+    config = dict(config)
+    config["signal"] = "glucose"
+    return AIREADI(**config)
+
+
+def AIREADICalorie(**config):
+    config = dict(config)
+    config["signal"] = "calorie"
+    return AIREADI(**config)
+
+
+def AIREADI(**config):
+    signal = config.get("signal", config.get("target_col", "glucose"))
+    signal = signal.lower()
+    if signal not in {"glucose", "calorie"}:
+        raise ValueError(f"Unsupported AI-READI signal {signal}. Expected 'glucose' or 'calorie'.")
     return AIREADIGlucoseDataset(
         root_path=config["datasets_dir"],
         rel_path=config.get("rel_path", "AI-READI-processed"),
         flag=config["flag"],
         seq_len=config["seq_len"],
+        signal=signal,
         scale=config.get("scale", True),
         stride=config.get("window_stride", 1),
         min_seq_len=config.get("min_seq_len", None),
@@ -25,6 +42,7 @@ class AIREADIGlucoseDataset(Dataset):
         rel_path="AI-READI-processed",
         flag="train",
         seq_len=24,
+        signal="glucose",
         scale=True,
         stride=1,
         min_seq_len=None,
@@ -36,6 +54,7 @@ class AIREADIGlucoseDataset(Dataset):
         self.rel_path = rel_path
         self.flag = flag
         self.seq_len = int(seq_len)
+        self.signal = signal.lower()
         self.scale = scale
         self.stride = int(stride)
         self.min_seq_len = int(min_seq_len) if min_seq_len is not None else self.seq_len
@@ -48,8 +67,9 @@ class AIREADIGlucoseDataset(Dataset):
         self._build_dataset()
 
     def _build_dataset(self):
-        self.samples, self.sample_index, self.scaler = load_aireadi_glucose_windows(
+        self.samples, self.sample_index, self.scaler = load_aireadi_windows(
             root_path=self.root_path,
+            signal=self.signal,
             rel_path=self.rel_path,
             split=self.flag,
             seq_len=self.seq_len,

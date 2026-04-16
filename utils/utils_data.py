@@ -86,29 +86,40 @@ def sine_data_generation(no: int, seq_len: int, dim: int) -> torch.Tensor:
 
 
 
-AIREADI_GLUCOSE_SPLIT_TO_FILE = {
-    "train": "glucose_train.parquet",
-    "val": "glucose_valid.parquet",
-    "valid": "glucose_valid.parquet",
-    "test": "glucose_test.parquet",
+AIREADI_SIGNAL_TO_SPLIT_FILE = {
+    "glucose": {
+        "train": "glucose_train.parquet",
+        "val": "glucose_valid.parquet",
+        "valid": "glucose_valid.parquet",
+        "test": "glucose_test.parquet",
+    },
+    "calorie": {
+        "train": "calorie_train.parquet",
+        "val": "calorie_valid.parquet",
+        "valid": "calorie_valid.parquet",
+        "test": "calorie_test.parquet",
+    },
 }
 
 
-def resolve_aireadi_glucose_path(root_path, rel_path="AI-READI-processed", split="train"):
-    if split not in AIREADI_GLUCOSE_SPLIT_TO_FILE:
-        raise ValueError(f"Unsupported split {split}. Expected one of {sorted(AIREADI_GLUCOSE_SPLIT_TO_FILE)}")
-    return os.path.join(root_path, rel_path, AIREADI_GLUCOSE_SPLIT_TO_FILE[split])
+def resolve_aireadi_signal_path(root_path, signal="glucose", rel_path="AI-READI-processed", split="train"):
+    signal_to_file = AIREADI_SIGNAL_TO_SPLIT_FILE.get(signal)
+    if signal_to_file is None:
+        raise ValueError(f"Unsupported AI-READI signal {signal}. Expected one of {sorted(AIREADI_SIGNAL_TO_SPLIT_FILE)}")
+    if split not in signal_to_file:
+        raise ValueError(f"Unsupported split {split}. Expected one of {sorted(signal_to_file)}")
+    return os.path.join(root_path, rel_path, signal_to_file[split])
 
 
-def read_aireadi_glucose_frame(root_path, rel_path="AI-READI-processed", split="train"):
-    return pd.read_parquet(resolve_aireadi_glucose_path(root_path, rel_path=rel_path, split=split))
+def read_aireadi_signal_frame(root_path, signal="glucose", rel_path="AI-READI-processed", split="train"):
+    return pd.read_parquet(resolve_aireadi_signal_path(root_path, signal=signal, rel_path=rel_path, split=split))
 
 
-def fit_aireadi_glucose_scaler(root_path, rel_path="AI-READI-processed", drop_nan=True):
+def fit_aireadi_signal_scaler(root_path, signal="glucose", rel_path="AI-READI-processed", drop_nan=True):
     scaler = StandardScaler()
-    train_df = read_aireadi_glucose_frame(root_path, rel_path=rel_path, split="train")
+    train_df = read_aireadi_signal_frame(root_path, signal=signal, rel_path=rel_path, split="train")
     all_values = []
-    for values in train_df["glucose"]:
+    for values in train_df[signal]:
         arr = np.asarray(values, dtype=np.float32)
         if drop_nan:
             arr = arr[np.isfinite(arr)]
@@ -116,13 +127,13 @@ def fit_aireadi_glucose_scaler(root_path, rel_path="AI-READI-processed", drop_na
             all_values.append(arr)
 
     if not all_values:
-        raise ValueError("No valid glucose values found in AI-READI train split.")
+        raise ValueError(f"No valid {signal} values found in AI-READI train split.")
 
     scaler.fit(np.concatenate(all_values, axis=0).reshape(-1, 1))
     return scaler
 
 
-def normalize_aireadi_glucose_values(values, scaler=None, drop_nan=True):
+def normalize_aireadi_signal_values(values, scaler=None, drop_nan=True):
     arr = np.asarray(values, dtype=np.float32)
     if drop_nan:
         arr = arr[np.isfinite(arr)]
@@ -131,8 +142,9 @@ def normalize_aireadi_glucose_values(values, scaler=None, drop_nan=True):
     return arr
 
 
-def load_aireadi_glucose_windows(
+def load_aireadi_windows(
     root_path,
+    signal="glucose",
     rel_path="AI-READI-processed",
     split="train",
     seq_len=24,
@@ -152,13 +164,15 @@ def load_aireadi_glucose_windows(
     if min_seq_len < seq_len:
         min_seq_len = seq_len
 
-    scaler = fit_aireadi_glucose_scaler(root_path, rel_path=rel_path, drop_nan=drop_nan) if scale else None
-    df = read_aireadi_glucose_frame(root_path, rel_path=rel_path, split=split)
+    scaler = fit_aireadi_signal_scaler(
+        root_path, signal=signal, rel_path=rel_path, drop_nan=drop_nan
+    ) if scale else None
+    df = read_aireadi_signal_frame(root_path, signal=signal, rel_path=rel_path, split=split)
 
     samples = []
     sample_index = []
     for row_idx, row in enumerate(df.itertuples(index=False)):
-        values = normalize_aireadi_glucose_values(row.glucose, scaler=scaler, drop_nan=drop_nan)
+        values = normalize_aireadi_signal_values(getattr(row, signal), scaler=scaler, drop_nan=drop_nan)
         if values.size < min_seq_len:
             continue
 
@@ -176,10 +190,50 @@ def load_aireadi_glucose_windows(
 
     if not samples:
         raise ValueError(
-            f"No windows were created for split={split}. Check seq_len={seq_len} and stride={stride}."
+            f"No windows were created for signal={signal}, split={split}. "
+            f"Check seq_len={seq_len} and stride={stride}."
         )
 
     return samples, sample_index, scaler
+
+
+def resolve_aireadi_glucose_path(root_path, rel_path="AI-READI-processed", split="train"):
+    return resolve_aireadi_signal_path(root_path, signal="glucose", rel_path=rel_path, split=split)
+
+
+def read_aireadi_glucose_frame(root_path, rel_path="AI-READI-processed", split="train"):
+    return read_aireadi_signal_frame(root_path, signal="glucose", rel_path=rel_path, split=split)
+
+
+def fit_aireadi_glucose_scaler(root_path, rel_path="AI-READI-processed", drop_nan=True):
+    return fit_aireadi_signal_scaler(root_path, signal="glucose", rel_path=rel_path, drop_nan=drop_nan)
+
+
+def normalize_aireadi_glucose_values(values, scaler=None, drop_nan=True):
+    return normalize_aireadi_signal_values(values, scaler=scaler, drop_nan=drop_nan)
+
+
+def load_aireadi_glucose_windows(
+    root_path,
+    rel_path="AI-READI-processed",
+    split="train",
+    seq_len=24,
+    scale=True,
+    stride=1,
+    min_seq_len=None,
+    drop_nan=True,
+):
+    return load_aireadi_windows(
+        root_path=root_path,
+        signal="glucose",
+        rel_path=rel_path,
+        split=split,
+        seq_len=seq_len,
+        scale=scale,
+        stride=stride,
+        min_seq_len=min_seq_len,
+        drop_nan=drop_nan,
+    )
 
 
 def real_data_loading(data_name, seq_len, root_path):

@@ -38,6 +38,8 @@ dataset_list = [
             "SelfRegulationSCP1",
             "StarLightCurves",
             "AirQuality",
+            "AIREADIGlucose",
+            "AIREADICalorie",
             "Electricity",
         ]
 

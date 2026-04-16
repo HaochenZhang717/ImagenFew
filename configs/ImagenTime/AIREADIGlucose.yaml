@@ -1,0 +1,36 @@
+# training:
+epochs: 1001
+batch_size: 2048
+learning_rate: 0.0001 #1e-4
+weight_decay: 0.00001 #1e-5
+# transform:
+use_stft: false
+delay: 8
+embedding: 8
+# model:
+handler: models.ImagenTime.handler
+img_resolution: 8
+unet_channels: 32
+ch_mult: [1,2,2,4]
+attn_resolution: [8,4,2]
+diffusion_steps: 36
+ema: true
+ema_warmup: 100
+# logging:
+logging_iter: 100
+tags: [aireadi, glucose]
+run_dir: ImagenTime/AIREADIGlucose/
+# Data
+datasets_dir: ./
+seq_len: 24
+pretrain: false
+datasets:
+  - name: AIREADIGlucose
+    data: AIREADIGlucose
+    rel_path: AI-READI-processed
+    scale: true
+    window_stride: 1
+    min_seq_len: 24
+    drop_nan: true
+train_on_datasets:
+  - AIREADIGlucose

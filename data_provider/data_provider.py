@@ -1,4 +1,4 @@
-from data_provider.datasets import ETTh, ETTm, Custom, UEA, GLUONTS, Sine, Stock, Energy, Mujoco, PSM, MSL, SMAP, SMD, SWAT, AirQuality, AIREADIGlucose
+from data_provider.datasets import ETTh, ETTm, Custom, UEA, GLUONTS, Sine, Stock, Energy, Mujoco, PSM, MSL, SMAP, SMD, SWAT, AirQuality, AIREADI, AIREADICalorie, AIREADIGlucose
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader, Subset, TensorDataset
 from .multi_dataloader_iter import MultiDataloaderIter
@@ -23,6 +23,8 @@ data_dict = {
     'energy': Energy,
     'mujoco': Mujoco,
     'AirQuality': AirQuality,
+    'AIREADI': AIREADI,
+    'AIREADICalorie': AIREADICalorie,
     'AIREADIGlucose': AIREADIGlucose,
 }
 
