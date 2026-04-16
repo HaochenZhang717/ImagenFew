@@ -9,6 +9,7 @@ import logging
 import numpy as np
 from torch import nn
 import torch.nn.functional as F
+from tqdm import tqdm
 
    
 class Handler(generativeHandler):
@@ -45,7 +46,7 @@ class Handler(generativeHandler):
         avg_loss = 0.0
         epoch = getattr(self, "epoch", None)
 
-        for _, data in enumerate(train_dataloader, 1):
+        for _, data in tqdm(enumerate(train_dataloader, 1)):
             self.optimizer.zero_grad()
 
             # Full-resolution target and trend-only conditioning signal.
