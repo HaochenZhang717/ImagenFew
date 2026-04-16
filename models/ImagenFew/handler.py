@@ -96,15 +96,64 @@ class Handler(generativeHandler):
             state['ema_model'] = self._model.model_ema.state_dict()
         torch.save(state, ckpt_dir)
 
+    def _merge_state_dict_with_expanded_label_tokens(self, current_state, loaded_state):
+        merged_state = current_state.copy()
+        expanded_keys = []
+
+        for key, loaded_value in loaded_state.items():
+            if key not in merged_state:
+                continue
+
+            current_value = merged_state[key]
+            if current_value.shape == loaded_value.shape:
+                merged_state[key] = loaded_value
+                continue
+
+            is_label_map_weight = (
+                loaded_value.ndim == 2
+                and current_value.ndim == 2
+                and current_value.shape[0] == loaded_value.shape[0]
+                and current_value.shape[1] >= loaded_value.shape[1]
+                and (
+                    key.endswith("map_label.weight")
+                    or key.endswith("map_labelweight")
+                )
+            )
+
+            if is_label_map_weight:
+                current_value = current_value.clone()
+                current_value[:, :loaded_value.shape[1]] = loaded_value
+                merged_state[key] = current_value
+                expanded_keys.append((key, loaded_value.shape[1], current_value.shape[1]))
+
+        return merged_state, expanded_keys
+
     def _load_model(self, ckpt_dir, device):
         if not os.path.exists(ckpt_dir):
             logging.warning(f"No checkpoint found at {ckpt_dir}. "
                             f"Returned the same state as input")
         else:
             loaded_state = torch.load(ckpt_dir, map_location=device)
-            self.model.load_state_dict(loaded_state['model'], strict=False)
+            current_model_state = self.model.state_dict()
+            merged_model_state, expanded_model_keys = self._merge_state_dict_with_expanded_label_tokens(
+                current_model_state,
+                loaded_state['model'],
+            )
+            self.model.load_state_dict(merged_model_state, strict=False)
             if 'ema_model' in loaded_state and self.args.ema is not None:
-                self.model.model_ema.load_state_dict(loaded_state['ema_model'], strict=False)
+                current_ema_state = self.model.model_ema.state_dict()
+                merged_ema_state, expanded_ema_keys = self._merge_state_dict_with_expanded_label_tokens(
+                    current_ema_state,
+                    loaded_state['ema_model'],
+                )
+                self.model.model_ema.load_state_dict(merged_ema_state, strict=False)
+            else:
+                expanded_ema_keys = []
             if self.args.finetune and self.args.ema:
                 self.model.setup_finetune(self.args)
+            if expanded_model_keys or expanded_ema_keys:
+                for key, old_dim, new_dim in expanded_model_keys:
+                    logging.info(
+                        f"Expanded dataset token weights for {key}: loaded {old_dim} classes into current {new_dim} classes."
+                    )
             logging.info(f'Successfully loaded previous state')

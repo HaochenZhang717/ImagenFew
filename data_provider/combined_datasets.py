@@ -38,9 +38,9 @@ dataset_list = [
             "SelfRegulationSCP1",
             "StarLightCurves",
             "AirQuality",
+            "Electricity",
             "AIREADIGlucose",
             "AIREADICalorie",
-            "Electricity",
         ]
 
 def get_pretrained_datasets_names():

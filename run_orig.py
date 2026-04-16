@@ -18,18 +18,6 @@ from data_provider.combined_datasets import dataset_list
 from importlib import import_module
 
 
-def infer_n_classes_from_ckpt(ckpt_path, fallback_n_classes):
-    if not ckpt_path or not os.path.exists(ckpt_path):
-        return fallback_n_classes
-
-    loaded_state = torch.load(ckpt_path, map_location="cpu")
-    model_state = loaded_state.get("model", loaded_state)
-    for key, value in model_state.items():
-        if key.endswith("map_label.weight") and hasattr(value, "shape") and len(value.shape) == 2:
-            return int(value.shape[1])
-    return fallback_n_classes
-
-
 def main(args):
     # Set up basic attributes
     args.finetune = not args.pretrain
@@ -60,7 +48,7 @@ def main(args):
         # Setup Data
         dataset_loader, samplers, trainsets, metadatas = data_provider(args)
         args.n_classes = dataset_loader.num_datasets
-        args.n_classes = infer_n_classes_from_ckpt(args.model_ckpt, args.n_classes)
+        logging.info(f"Building ImagenFew with n_classes={args.n_classes}.")
         if len(args.datasets) > 1:
             logging.info(
                 f'all datasets are ready - Total number of sequences: {sum([len(trainset) for keya, trainset in trainsets.items()])}')

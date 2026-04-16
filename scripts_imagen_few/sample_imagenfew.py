@@ -45,6 +45,7 @@ def load_training_args(config_path):
     args.finetune = not getattr(args, "pretrain", False)
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
     args.n_classes = len(dataset_list)
+    args.all_dataset_tokens = list(dataset_list)
     args.train_on_datasets = [dataset for dataset in dataset_list if dataset in args.train_on_datasets]
     return args
 
