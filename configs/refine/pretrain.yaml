@@ -92,21 +92,21 @@ datasets:
     rel_path: UEA/SharePriceIncrease
 train_on_datasets:
   - stock
-   - energy
-   - ETTh1
-   - Exchange
-   - MSL
-   - PSM
-   - SMAP
-   - SMD
-   - SelfRegulationSCP2
-   - UWaveGestureLibrary
-   - ECG5000
-   - NonInvasiveFetalECGThorax1
-   - Blink
-   - ElectricDevices
-   - Trace
-   - FordB
-   - EMOPain
-   - Chinatown
-   - SharePriceIncrease
+  - energy
+  - ETTh1
+  - Exchange
+  - MSL
+  - PSM
+  - SMAP
+  - SMD
+  - SelfRegulationSCP2
+  - UWaveGestureLibrary
+  - ECG5000
+  - NonInvasiveFetalECGThorax1
+  - Blink
+  - ElectricDevices
+  - Trace
+  - FordB
+  - EMOPain
+  - Chinatown
+  - SharePriceIncrease
