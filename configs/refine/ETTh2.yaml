@@ -1,0 +1,42 @@
+# training:
+epochs: 1001
+batch_size: 2048
+learning_rate: 0.0001
+weight_decay: 0.00001
+
+# transform:
+use_stft: false
+delay: 8
+embedding: 8
+
+# model:
+handler: models.ImagenFewRefine.handler
+model_ckpt: null
+img_resolution: 8
+unet_channels: 32
+ch_mult: [1, 2, 2, 4]
+attn_resolution: [8, 4, 2]
+diffusion_steps: 36
+ema: true
+ema_warmup: 100
+ft_method: all
+
+# logging:
+logging_iter: 100
+tags: [refine-finetune, coarse-to-detailed]
+run_dir: /playpen-shared/haochenz/ImagenFew/ImagenFewRefine/ETTh2/
+
+# data:
+datasets_dir: /playpen-shared/haochenz/ImagenFew/data/
+seq_len: 24
+pretrain: false
+datasets:
+  - name: ETTh2
+    data: ETTh2
+    embed: timeF
+    rel_path: TSF/ETT-small/ETTh2.csv
+    features: M
+    label_len: 7
+    pred_len: 0
+train_on_datasets:
+  - ETTh2

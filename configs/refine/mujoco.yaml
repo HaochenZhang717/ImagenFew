@@ -1,0 +1,38 @@
+# training:
+epochs: 1001
+batch_size: 1024
+learning_rate: 0.0001
+weight_decay: 0.00001
+
+# transform:
+use_stft: false
+delay: 8
+embedding: 8
+
+# model:
+handler: models.ImagenFewRefine.handler
+model_ckpt: null
+img_resolution: 8
+unet_channels: 32
+ch_mult: [1, 2, 2, 4]
+attn_resolution: [8, 4, 2]
+diffusion_steps: 36
+ema: true
+ema_warmup: 100
+ft_method: all
+
+# logging:
+logging_iter: 100
+tags: [refine-finetune, coarse-to-detailed]
+run_dir: /playpen-shared/haochenz/ImagenFew/ImagenFewRefine/mujoco/
+
+# data:
+datasets_dir: /playpen-shared/haochenz/ImagenFew/data/
+seq_len: 24
+pretrain: false
+datasets:
+  - data: mujoco
+    name: mujoco
+    path: ./TSG/mujoco0.0
+train_on_datasets:
+  - mujoco
