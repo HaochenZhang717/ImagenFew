@@ -6,6 +6,7 @@ import os
 import torch
 import logging
 from torch import nn
+import torch.nn.functional as F
 
    
 class Handler(generativeHandler):
@@ -13,6 +14,8 @@ class Handler(generativeHandler):
     def __init__(self, args, rank=None):
         super().__init__(args, rank)
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.args.learning_rate, weight_decay=self.args.weight_decay)
+        self.downsample = nn.AvgPool1d(kernel_size=2, stride=2)
+        self.upsample = nn.Upsample(scale_factor=2, mode='linear', align_corners=False)
 
     def build_model(self):
         self.model = ImagenFew(self.args, self.args.device)
@@ -24,6 +27,23 @@ class Handler(generativeHandler):
             if self.args.model_ckpt is not None:
                 self._load_model(self.args.model_ckpt, self.args.device)
         return self.model
+
+    def _preprocess_time_series(self, x_ts):
+        if not getattr(self.args, "trend_only", False):
+            return x_ts
+
+        original_len = x_ts.shape[1]
+        x_ts = x_ts.permute(0, 2, 1)
+        x_ts = self.downsample(x_ts)
+        x_ts = self.upsample(x_ts)
+        if x_ts.shape[-1] != original_len:
+            x_ts = F.interpolate(
+                x_ts,
+                size=original_len,
+                mode='linear',
+                align_corners=False,
+            )
+        return x_ts.permute(0, 2, 1)
     
     def train_iter(self, train_dataloader, logger):
         epoch = getattr(self, "epoch", None)
@@ -34,6 +54,7 @@ class Handler(generativeHandler):
 
             # Time series & mask
             x_ts = data[0].to(self.args.device)
+            x_ts = self._preprocess_time_series(x_ts)
             x_ts_mask = torch.zeros_like(x_ts)
 
             # Convert time series & mask to image

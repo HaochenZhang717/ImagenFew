@@ -21,6 +21,11 @@ from importlib import import_module
 def main(args):
     # Set up basic attributes
     args.finetune = not args.pretrain
+    args.trend_only = getattr(args, "trend_only", False)
+    if args.trend_only and hasattr(args, "run_dir") and args.run_dir is not None:
+        normalized_run_dir = args.run_dir.rstrip("/")
+        if not normalized_run_dir.endswith("_trend_only"):
+            args.run_dir = f"{normalized_run_dir}_trend_only/"
     args.train_on_datasets = [dataset for dataset in dataset_list if dataset in args.train_on_datasets]
 
     # Model name and directory
@@ -37,6 +42,8 @@ def main(args):
 
         # log config and tags
         log_config_and_tags(args, logger, name, len(args.train_on_datasets) > 1)
+        if args.trend_only:
+            logging.info("trend_only is enabled: training inputs will be downsampled then upsampled before image conversion.")
 
         # Setup Data
         dataset_loader, samplers, trainsets, metadatas = data_provider(args)
