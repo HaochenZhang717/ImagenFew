@@ -13,8 +13,8 @@ embedding: 8
 handler: models.ImagenFewCrossAttention.handler
 model_ckpt: "/playpen-shared/haochenz/ImagenFew/logs/conditional_pretrain/da98bb2d-8b28-48ed-9713-cf99654039cd/ImagenFewCrossAttention.pt"
 img_resolution: 8
-unet_channels: 32
-ch_mult: [1,2,2,4]
+unet_channels: 64
+ch_mult: [1,2,4]
 attn_resolution: [8,4,2]
 diffusion_steps: 36
 ema: true
