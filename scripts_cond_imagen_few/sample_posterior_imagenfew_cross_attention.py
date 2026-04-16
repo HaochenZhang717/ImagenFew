@@ -70,6 +70,17 @@ def resolve_dataset_name(args, cli_dataset):
     raise ValueError("Please provide --dataset when config includes multiple train_on_datasets.")
 
 
+def infer_n_classes_from_ckpt(ckpt_path, fallback):
+    if ckpt_path is None or not os.path.exists(ckpt_path):
+        return fallback
+    state = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    model_state = state.get("model", state) if isinstance(state, dict) else state
+    weight = model_state.get("net.model.map_label.weight")
+    if torch.is_tensor(weight) and weight.ndim == 2:
+        return int(weight.shape[1])
+    return fallback
+
+
 def load_time_series(path):
     if not os.path.exists(path):
         raise FileNotFoundError(f"Time series file not found: {path}")
@@ -168,6 +179,7 @@ def main():
         args.seed = int(cli_args.seed)
     if cli_args.eval_metrics is not None:
         args.eval_metrics = cli_args.eval_metrics
+    args.n_classes = infer_n_classes_from_ckpt(args.model_ckpt, args.n_classes)
 
     dataset_name = resolve_dataset_name(args, cli_args.dataset)
     class_label = dataset_list.index(dataset_name)
