@@ -40,7 +40,7 @@ export NCCL_DEBUG=INFO
 
 CONFIG="${CONFIG:-./configs/ImagenTime/AIREADIGlucose.yaml}"
 WANDB_PROJECT="${WANDB_PROJECT:-ImagenTime}"
-SUBSET_N="${SUBSET_N:5000}"
+SUBSET_N="${SUBSET_N:-5000}"
 USE_WANDB="${USE_WANDB:-1}"
 
 CMD=(
