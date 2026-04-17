@@ -24,6 +24,8 @@ ft_method: all
 logging_iter: 100
 tags: [refine-finetune, coarse-to-detailed]
 run_dir: /playpen-shared/haochenz/ImagenFew/ImagenFewRefine/AirQuality/
+sample_source: both
+generated_trend_path: /playpen-shared/haochenz/ImagenFew/logs/ImagenFew/AirQuality_trend_only/e912f5d3-4654-485f-aebe-b674c1225210/generated_AirQuality_train_trend_only.npy
 
 # data:
 datasets_dir: /playpen-shared/haochenz/ImagenFew/data/

@@ -25,6 +25,8 @@ ft_method: all
 logging_iter: 100
 tags: [refine-finetune, coarse-to-detailed]
 run_dir: /playpen-shared/haochenz/ImagenFew/ImagenFewRefine/mujoco/
+sample_source: both
+generated_trend_path: /playpen-shared/haochenz/ImagenFew/logs/ImagenFew/Mujoco_trend_only/566bd493-c193-43ce-bf32-9cecad62054c/generated_mujoco_train_trend_only.npy
 
 # data:
 datasets_dir: /playpen-shared/haochenz/ImagenFew/data/

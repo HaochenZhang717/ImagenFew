@@ -25,6 +25,8 @@ ft_method: all
 logging_iter: 100
 tags: [refine-finetune, coarse-to-detailed]
 run_dir: /playpen-shared/haochenz/ImagenFew/ImagenFewRefine/ETTh2/
+sample_source: both
+generated_trend_path: /playpen-shared/haochenz/ImagenFew/logs/ImagenFew/ETTh2_trend_only/3b0d5aa8-14a2-46f9-9ff2-eced98ed6d02/generated_ETTh2_train_trend_only.npy
 
 # data:
 datasets_dir: /playpen-shared/haochenz/ImagenFew/data/
