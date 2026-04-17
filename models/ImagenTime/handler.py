@@ -49,9 +49,11 @@ class Handler(generativeHandler):
 
     def sample(self, n_samples, class_label, class_metadata):
         generated_set = []
+        sample_batch_size = min(getattr(self.args, "batch_size", n_samples), n_samples)
         with self._model.ema_scope():
             self.process = DiffusionProcess(self.args, self._model.net, (self.args.input_channels, self.args.img_resolution, self.args.img_resolution))
-            for sample_size in [min(self.args.batch_size, n_samples - i) for i in range(0, n_samples, self.args.batch_size)]:
+            for start in range(0, n_samples, sample_batch_size):
+                sample_size = min(sample_batch_size, n_samples - start)
                 class_labels = torch.full((sample_size,), class_label, device=self.args.device)
                 oh_class_labels = torch.nn.functional.one_hot(class_labels, num_classes=self.args.n_classes)
                 x_img_sampled = self.process.sampling(sample_size, class_labels = oh_class_labels)

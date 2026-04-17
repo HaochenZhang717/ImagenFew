@@ -55,9 +55,16 @@ class Handler(generativeHandler):
         logger.log(f'train/epoch', epoch, step=epoch)
 
     def sample(self, n_samples, class_label=None, class_metadata=None, test_data=None):
+        generated = []
+        sample_batch_size = min(getattr(self.args, "batch_size", n_samples), n_samples)
+
         with torch.no_grad():
             with self.ema_scope():
-                return self.model.generate_mts(batch_size=n_samples)
+                for start in range(0, n_samples, sample_batch_size):
+                    current_batch = min(sample_batch_size, n_samples - start)
+                    generated.append(self.model.generate_mts(batch_size=current_batch))
+
+        return torch.cat(generated, dim=0)
 
     def ema_scope(self):
         class EMAScope:
