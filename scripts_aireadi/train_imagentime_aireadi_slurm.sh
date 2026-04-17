@@ -44,7 +44,7 @@ SUBSET_P="${SUBSET_P:-1.0}"
 USE_WANDB="${USE_WANDB:-1}"
 
 CMD=(
-  python run_orig.py
+  python run_diffts_imagentime.py
   --config "$CONFIG"
   --subset_p "$SUBSET_P"
 )
