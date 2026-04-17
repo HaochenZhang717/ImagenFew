@@ -49,7 +49,7 @@ echo "WANDB_PROJECT=${WANDB_PROJECT}"
 
 pip install loralib
 
-python -u "/playpen-shared/haochenz/ImagenFew/run.py" \
+python -u "/playpen-shared/haochenz/ImagenFew/run_refine.py" \
   --subset_p "$SUBSET_P" \
   --wandb \
   --wandb_project "$WANDB_PROJECT" \

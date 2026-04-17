@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=imagen_few_pretrain
+#SBATCH --job-name=imagen_few_mujoco
 #SBATCH --partition=all
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -39,7 +39,7 @@ export TORCH_DISTRIBUTED_DEBUG=DETAIL
 export NCCL_DEBUG=INFO
 
 
-CONFIG="/playpen-shared/haochenz/ImagenFew/configs/refine/pretrain.yaml"
+CONFIG="/playpen-shared/haochenz/ImagenFew/configs/refine/mujoco_residual.yaml"
 WANDB_PROJECT=ImagenFewRefine
 SUBSET_P="${SUBSET_P:-1.0}"
 
@@ -47,11 +47,12 @@ echo "Running ImagenFewRefine pretrain on host $(hostname)"
 echo "CONFIG=${CONFIG}"
 echo "WANDB_PROJECT=${WANDB_PROJECT}"
 
+pip install loralib
 
 python -u "/playpen-shared/haochenz/ImagenFew/run_refine.py" \
   --subset_p "$SUBSET_P" \
   --wandb \
   --wandb_project "$WANDB_PROJECT" \
   --config "$CONFIG" \
-  --no_test_model \
+  --refine_target residual \
   "$@"

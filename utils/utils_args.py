@@ -78,6 +78,8 @@ def parse_args_uncond():
     parser.add_argument('--ft_method', type = str, default = 'all', help='ft method', choices=['all', 'lora', 'attn', 'non_attn','decoder'])
     parser.add_argument('--dynamic_size', type=int, default = [128,128], help='ch mut', nargs='+')
     parser.add_argument('--trend_only', action='store_true', help='apply downsample-then-upsample preprocessing to raw time series during training')
+    parser.add_argument('--refine_target', type=str, default='full', choices=['full', 'residual'],
+                        help='Target type for refine models: learn the full series or only the residual relative to the coarse trend.')
 
     # --- KoVAE ---
     parser.add_argument('--batch_norm', type=bool, default=True)

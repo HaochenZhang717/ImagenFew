@@ -30,6 +30,12 @@ class Handler(generativeHandler):
         if not self.args.finetune:
             self._load_optimizer_state(self.args.model_ckpt, self.args.device)
 
+    def _get_refine_target(self):
+        refine_target = str(getattr(self.args, "refine_target", "full")).lower()
+        if refine_target not in {"full", "residual"}:
+            raise ValueError("refine_target must be one of {'full', 'residual'}.")
+        return refine_target
+
 
     def build_model(self):
         self.model = ImagenFew(self.args, self.args.device)
@@ -52,10 +58,12 @@ class Handler(generativeHandler):
             # Full-resolution target and trend-only conditioning signal.
             x_ts = data[0].to(self.args.device, dtype=torch.float32)
             trend_ts = self._build_trend_condition(x_ts)
-            x_ts_mask = torch.zeros_like(x_ts)
+            refine_target = self._get_refine_target()
+            target_ts = x_ts if refine_target == "full" else (x_ts - trend_ts)
+            x_ts_mask = torch.zeros_like(target_ts)
 
             # Convert time series & mask to image
-            x_img = self.model.ts_to_img(x_ts)
+            x_img = self.model.ts_to_img(target_ts)
             x_img_mask = self.model.ts_to_img(x_ts_mask, pad_val=1)
 
             output, time_weight = self.model(x_img, x_img_mask, context=trend_ts)
@@ -97,17 +105,22 @@ class Handler(generativeHandler):
 
     def _sample_with_condition(self, n_samples, class_metadata, condition_data):
         generated_set = []
+        refine_target = self._get_refine_target()
         with self._model.ema_scope():
             self.process = DiffusionProcess(self.args, self._model.net, (class_metadata['channels'], self.args.img_resolution, self.args.img_resolution))
-            context_bank = self._prepare_sample_context(condition_data)
+            raw_condition_bank = self._prepare_raw_condition(condition_data)
+            context_bank = self._encode_context(raw_condition_bank)
             for sample_size in [min(self.args.batch_size, n_samples - i) for i in range(0, n_samples, self.args.batch_size)]:
-                indices = torch.randperm(context_bank.shape[0], device=context_bank.device)[:sample_size]
+                indices = torch.randperm(raw_condition_bank.shape[0], device=raw_condition_bank.device)[:sample_size]
+                batch_condition = raw_condition_bank[indices]
                 batch_context = context_bank[indices]
 
                 x_img = torch.zeros(sample_size, class_metadata['channels'], self.args.img_resolution, self.args.img_resolution).to(self.args.device)
                 x_ts_mask = self._model.ts_to_img(torch.zeros(sample_size, self.args.seq_len, class_metadata['channels']).to(self.args.device), pad_val=1)
                 x_img_sampled = self.process.interpolate(x_img, x_ts_mask, context=batch_context)
                 x_ts = self._model.img_to_ts(x_img_sampled)[:,:,:class_metadata['channels']]
+                if refine_target == "residual":
+                    x_ts = x_ts + batch_condition[:, :, :class_metadata['channels']]
                 generated_set.append(x_ts)
         return torch.concat(generated_set, dim=0)
     
@@ -212,7 +225,7 @@ class Handler(generativeHandler):
     def _encode_context(self, trend_ts):
         return trend_ts.to(self.args.device, dtype=torch.float32).contiguous()
 
-    def _prepare_sample_context(self, context_source):
+    def _prepare_raw_condition(self, context_source):
         if context_source is None:
             return None
 
@@ -228,9 +241,7 @@ class Handler(generativeHandler):
         if context_source.ndim != 3:
             raise ValueError(f"Expected context source with shape (B, L, C) or (L, C), got {tuple(context_source.shape)}.")
 
-        context = self._encode_context(self._build_trend_condition(context_source))
-
-        return context
+        return self._build_trend_condition(context_source)
 
     def _load_generated_trend_context(self):
         generated_trend_path = getattr(self.args, "generated_trend_path", None)
