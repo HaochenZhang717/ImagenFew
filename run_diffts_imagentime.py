@@ -76,6 +76,9 @@ def main(args):
                     for dataset in args.train_on_datasets:
                         args.dataset = dataset
                         testset, class_label = dataset_loader.gen_dataloader(dataset)
+                        if args.subset_n is not None:
+                            eval_n = min(int(args.subset_n), len(testset))
+                            testset = testset[:eval_n]
                         handler.model.eval()
                         with torch.no_grad():
                             generated_set = handler.sample(len(testset), class_label, metadatas[dataset])
