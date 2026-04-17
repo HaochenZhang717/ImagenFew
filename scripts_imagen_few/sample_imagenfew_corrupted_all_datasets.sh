@@ -50,6 +50,7 @@ run_one \
   "/playpen-shared/haochenz/ImagenFew/logs/ImagenFew/AirQuality_trend_only/e912f5d3-4654-485f-aebe-b674c1225210/ImagenFew.pt" \
   "AirQuality"
 
+
 run_one \
   "/playpen-shared/haochenz/ImagenFew/configs/finetune/Mujoco.yaml" \
   "/playpen-shared/haochenz/ImagenFew/logs/ImagenFew/Mujoco_trend_only/566bd493-c193-43ce-bf32-9cecad62054c/ImagenFew.pt" \
