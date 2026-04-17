@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=imagen_few_airquality
+#SBATCH --job-name=imagen_few_mujoco
 #SBATCH --partition=all
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -47,6 +47,7 @@ echo "Running ImagenFewRefine pretrain on host $(hostname)"
 echo "CONFIG=${CONFIG}"
 echo "WANDB_PROJECT=${WANDB_PROJECT}"
 
+pip install loralib
 
 python -u "/playpen-shared/haochenz/ImagenFew/run.py" \
   --subset_p "$SUBSET_P" \

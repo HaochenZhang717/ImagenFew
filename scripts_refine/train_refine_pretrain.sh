@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=imagen_few_airquality
+#SBATCH --job-name=imagen_few_pretrain
 #SBATCH --partition=all
 #SBATCH --nodes=1
 #SBATCH --ntasks=1

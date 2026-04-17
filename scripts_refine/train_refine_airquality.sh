@@ -47,7 +47,7 @@ echo "Running ImagenFewRefine pretrain on host $(hostname)"
 echo "CONFIG=${CONFIG}"
 echo "WANDB_PROJECT=${WANDB_PROJECT}"
 
-
+pip install loralib
 python -u "/playpen-shared/haochenz/ImagenFew/run.py" \
   --subset_p "$SUBSET_P" \
   --wandb \
