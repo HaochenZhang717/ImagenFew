@@ -11,7 +11,7 @@ embedding: 8
 
 # model:
 handler: models.ImagenFewRefine.handler
-model_ckpt: null
+model_ckpt: /playpen-shared/haochenz/ImagenFew/logs/ImagenFewRefine/pretrain/04f944c2-fda9-4b67-a705-4d97d6857ae7/ImagenFewRefine.pt
 img_resolution: 8
 unet_channels: 32
 ch_mult: [1, 2, 2, 4]

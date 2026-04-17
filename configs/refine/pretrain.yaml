@@ -20,7 +20,7 @@ ema_warmup: 100
 # logging:
 logging_iter: 100
 tags: [refine-pretrain, coarse-to-detailed]
-run_dir: /playpen-shared/haochenz/ImagenFew/ImagenFewRefine/pretrain/
+run_dir: /playpen-shared/haochenz/ImagenFew/logs/ImagenFewRefine/pretrain/
 
 # Data
 datasets_dir: /playpen-shared/haochenz/ImagenFew/data/
