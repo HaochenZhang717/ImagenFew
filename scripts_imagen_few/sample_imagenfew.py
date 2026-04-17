@@ -30,6 +30,7 @@ def parse_args():
     parser.add_argument("--ts2vec-dir", type=str, default=None, help="Directory for TS2VEC checkpoints/cache used by contextFID.")
     parser.add_argument("--seed", type=int, default=None, help="Random seed override.")
     parser.add_argument("--no-ema-eval", action="store_true", help="Disable EMA weights during sampling.")
+    parser.add_argument("--trend_only", action="store_true", help="Apply downsample-then-upsample preprocessing before sampling and evaluation, matching trend_only training.")
     return parser.parse_args()
 
 
@@ -79,10 +80,11 @@ def maybe_slice_tensor(tensor, max_samples):
     return tensor[:max_samples]
 
 
-def default_output_paths(model_ckpt, dataset_name, split):
+def default_output_paths(model_ckpt, dataset_name, split, trend_only=False):
     ckpt_dir = os.path.dirname(os.path.abspath(model_ckpt))
-    npy_path = os.path.join(ckpt_dir, f"generated_{dataset_name}_{split}.npy")
-    json_path = os.path.join(ckpt_dir, f"generated_{dataset_name}_{split}_eval.json")
+    suffix = "_trend_only" if trend_only else ""
+    npy_path = os.path.join(ckpt_dir, f"generated_{dataset_name}_{split}{suffix}.npy")
+    json_path = os.path.join(ckpt_dir, f"generated_{dataset_name}_{split}{suffix}_eval.json")
     ts2vec_dir = os.path.join(ckpt_dir, "TS2VEC")
     return npy_path, json_path, ts2vec_dir
 
@@ -97,6 +99,7 @@ def main():
         args.seed = cli_args.seed
     if cli_args.eval_metrics is not None:
         args.eval_metrics = cli_args.eval_metrics
+    args.trend_only = bool(cli_args.trend_only or getattr(args, "trend_only", False))
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -124,7 +127,12 @@ def main():
     real_set = eval_tensor.cpu().detach().numpy()
     generated_np = generated.cpu().detach().numpy()
 
-    output_path, summary_path, default_ts2vec_dir = default_output_paths(cli_args.model_ckpt, dataset_name, cli_args.split)
+    output_path, summary_path, default_ts2vec_dir = default_output_paths(
+        cli_args.model_ckpt,
+        dataset_name,
+        cli_args.split,
+        trend_only=args.trend_only,
+    )
     if cli_args.output:
         output_path = os.path.abspath(cli_args.output)
     if cli_args.output_json:
@@ -159,6 +167,7 @@ def main():
         "evaluation_output": summary_path,
         "ts2vec_dir": ts2vec_dir if 'contextFID' in args.eval_metrics else None,
         "use_ema_for_eval": not cli_args.no_ema_eval,
+        "trend_only": bool(args.trend_only),
         "seed": int(args.seed),
         "sample_shape": list(generated_np.shape),
         "eval_metrics": list(args.eval_metrics),

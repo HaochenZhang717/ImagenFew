@@ -77,9 +77,23 @@ class Handler(generativeHandler):
         return self._sample_with_condition(n_samples, class_metadata, test_data)
 
     def sample_variants(self, n_samples, class_label, class_metadata, test_data):
-        return {
-            "refine": self.sample(n_samples, class_label, class_metadata, test_data),
-        }
+        sample_source = self._get_sample_source()
+        if sample_source == "real_trend":
+            return {
+                "real_trend": self._sample_with_condition(n_samples, class_metadata, test_data),
+            }
+        if sample_source == "generated_trend":
+            generated_trend = self._load_generated_trend_context()
+            return {
+                "generated_trend": self._sample_with_condition(n_samples, class_metadata, generated_trend),
+            }
+        if sample_source == "both":
+            generated_trend = self._load_generated_trend_context()
+            return {
+                "real_trend": self._sample_with_condition(n_samples, class_metadata, test_data),
+                "generated_trend": self._sample_with_condition(n_samples, class_metadata, generated_trend),
+            }
+        raise ValueError(f"Unsupported sample_source for ImagenFewRefine: {sample_source}")
 
     def _sample_with_condition(self, n_samples, class_metadata, condition_data):
         generated_set = []
@@ -218,13 +232,60 @@ class Handler(generativeHandler):
 
         return context
 
+    def _load_generated_trend_context(self):
+        generated_trend_path = getattr(self.args, "generated_trend_path", None)
+        if not generated_trend_path:
+            raise ValueError(
+                "sample_source='generated_trend' or 'both' requires args.generated_trend_path "
+                "to point to a tensor file (.pt/.pth) or numpy file (.npy)."
+            )
+        if not os.path.exists(generated_trend_path):
+            raise FileNotFoundError(f"Generated trend file not found: {generated_trend_path}")
+
+        ext = os.path.splitext(generated_trend_path)[1].lower()
+        if ext == ".npy":
+            trend = np.load(generated_trend_path)
+            trend = torch.from_numpy(trend)
+        elif ext in {".pt", ".pth"}:
+            trend = torch.load(generated_trend_path, map_location="cpu", weights_only=False)
+            if isinstance(trend, dict):
+                for key in ("samples", "generated", "trend", "data", "tensor"):
+                    if key in trend:
+                        trend = trend[key]
+                        break
+            if not torch.is_tensor(trend):
+                trend = torch.as_tensor(trend)
+        else:
+            raise ValueError(
+                f"Unsupported generated trend file extension '{ext}'. "
+                "Expected one of .npy, .pt, .pth."
+            )
+
+        trend = trend.to(torch.float32)
+        if trend.ndim == 2:
+            trend = trend.unsqueeze(0)
+        if trend.ndim != 3:
+            raise ValueError(
+                f"Expected generated trend tensor with shape (B, L, C) or (L, C), got {tuple(trend.shape)}."
+            )
+        return trend
+
     def _get_sample_source(self):
         sample_source = getattr(self.args, "sample_source", None)
         if sample_source is None:
-            return "refine"
+            return "real_trend"
         sample_source = str(sample_source).lower()
-        if sample_source not in {"refine", "posterior"}:
-            raise ValueError("ImagenFewRefine sample_source must be 'refine' or 'posterior'.")
+        aliases = {
+            "refine": "real_trend",
+            "posterior": "real_trend",
+            "real": "real_trend",
+            "real_trend": "real_trend",
+            "generated": "generated_trend",
+            "generated_trend": "generated_trend",
+        }
+        sample_source = aliases.get(sample_source, sample_source)
+        if sample_source not in {"real_trend", "generated_trend", "both"}:
+            raise ValueError("ImagenFewRefine sample_source must be one of {'real_trend', 'generated_trend', 'both'}.")
         return sample_source
 
     def _looks_like_raw_timeseries(self, tensor):

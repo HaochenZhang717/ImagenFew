@@ -16,6 +16,7 @@ EVAL_METRICS="${EVAL_METRICS:-}"
 TS2VEC_DIR="${TS2VEC_DIR:-}"
 SEED="${SEED:-}"
 USE_EMA_FOR_EVAL="${USE_EMA_FOR_EVAL:-1}"
+TREND_ONLY="${TREND_ONLY:-0}"
 CONDA_ENV="${CONDA_ENV:-vlm}"
 
 if [[ -z "$MODEL_CKPT" ]]; then
@@ -80,6 +81,10 @@ fi
 
 if [[ "$USE_EMA_FOR_EVAL" == "0" ]]; then
   CMD+=(--no-ema-eval)
+fi
+
+if [[ "$TREND_ONLY" == "1" ]]; then
+  CMD+=(--trend_only)
 fi
 
 echo "[INFO] Running command:"

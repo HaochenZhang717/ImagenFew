@@ -76,10 +76,7 @@ def main(args):
                 if not args.no_test_model:
                     sample_source = str(getattr(args, "sample_source", "prior" if getattr(args, "prior_ckpt", None) else "posterior")).lower()
                     eval_variants = ["prior", "posterior"] if sample_source == "both" else [sample_source]
-                    scores_mean = {
-                        variant: {'disc_mean': [], 'disc_std': [], 'pred_mean': [], 'pred_std': [], 'context_fid': []}
-                        for variant in eval_variants
-                    }
+                    scores_mean = {}
                     for dataset in args.train_on_datasets:
                         args.dataset = dataset
                         testset, class_label = dataset_loader.gen_dataloader(dataset)
@@ -90,6 +87,14 @@ def main(args):
                             generated_sets = handler.sample_variants(len(testset), class_label, metadatas[dataset], testset)
                         real_set = testset.cpu().detach().numpy()
                         for variant_name, generated_set in generated_sets.items():
+                            if variant_name not in scores_mean:
+                                scores_mean[variant_name] = {
+                                    'disc_mean': [],
+                                    'disc_std': [],
+                                    'pred_mean': [],
+                                    'pred_std': [],
+                                    'context_fid': [],
+                                }
                             generated_set = generated_set.cpu().detach().numpy()
                             scores = evaluate_model_uncond(real_set, generated_set, dataset, args.device, args.eval_metrics, base_path=args.ts2vec_dir)
                             scores_mean[variant_name]['disc_mean'].append(scores[f'disc_mean'])
@@ -108,7 +113,7 @@ def main(args):
                             logger.log(f'test/{variant_name}/context_fid', np.mean(variant_scores['context_fid']), step=epoch)
 
                         # --- save checkpoint ---
-                        save_variant = "prior" if "prior" in scores_mean else eval_variants[0]
+                        save_variant = "prior" if "prior" in scores_mean else next(iter(scores_mean))
                         disc_mean = np.mean(scores_mean[save_variant]['disc_mean'])
                         if disc_mean < best_score:
                             best_score = disc_mean
