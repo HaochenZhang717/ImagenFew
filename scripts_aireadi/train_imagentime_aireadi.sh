@@ -17,7 +17,7 @@ if [[ -n "${GPU}" ]]; then
 fi
 
 CMD=(
-  python run.py
+  python run_orig.py
   --config "$CONFIG"
   --subset_p "$SUBSET_P"
 )
