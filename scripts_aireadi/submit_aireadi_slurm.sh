@@ -7,7 +7,7 @@ cd "$ROOT_DIR"
 
 CONDA_ENV_VALUE="${CONDA_ENV:-vlm}"
 SLURM_TIME_VALUE="${SLURM_TIME:-2-00:00:00}"
-SUBSET_P="${SUBSET_P:-0.001}"
+SUBSET_N="${SUBSET_N:-8000}"
 
 IMAGENTIME_JOB=$(CONDA_ENV="$CONDA_ENV_VALUE" SUBSET_P="$SUBSET_P" sbatch --parsable --time="$SLURM_TIME_VALUE" "$ROOT_DIR/scripts_aireadi/train_imagentime_aireadi_slurm.sh")
 DIFFUSIONTS_JOB=$(CONDA_ENV="$CONDA_ENV_VALUE" SUBSET_P="$SUBSET_P" sbatch --parsable --time="$SLURM_TIME_VALUE" "$ROOT_DIR/scripts_aireadi/train_diffusionts_aireadi_slurm.sh")

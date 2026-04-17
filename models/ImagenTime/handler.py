@@ -47,7 +47,7 @@ class Handler(generativeHandler):
 
         logger.log(f'train/karras loss', train_loss / num_batches, step=epoch)
 
-    def sample(self, n_samples, class_label, class_metadata, test_data):
+    def sample(self, n_samples, class_label, class_metadata):
         generated_set = []
         with self._model.ema_scope():
             self.process = DiffusionProcess(self.args, self._model.net, (self.args.input_channels, self.args.img_resolution, self.args.img_resolution))

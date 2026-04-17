@@ -40,13 +40,13 @@ export NCCL_DEBUG=INFO
 
 CONFIG="${CONFIG:-./configs/DiffusionTS/AIREADIGlucose.yaml}"
 WANDB_PROJECT="${WANDB_PROJECT:-DiffusionTS}"
-SUBSET_P="${SUBSET_P:-1.0}"
+SUBSET_N="${SUBSET_N:-5000}"
 USE_WANDB="${USE_WANDB:-1}"
 
 CMD=(
   python run_diffts_imagentime.py
   --config "$CONFIG"
-  --subset_p "$SUBSET_P"
+  --subset_n "$SUBSET_N"
 )
 
 if [[ "$USE_WANDB" == "1" ]]; then
