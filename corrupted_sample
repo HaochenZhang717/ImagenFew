@@ -1,0 +1,170 @@
+# Consistent Trend-Conditioned Refinement Pipeline
+
+## 1. Motivation
+
+In the current pipeline, the second-stage model is trained with **real trend** but tested with **generated trend**, leading to a **distribution mismatch**:
+
+- Training:
+  p(x | t_real)
+
+- Inference:
+  p(x | t_hat), where t_hat ~ G1
+
+This mismatch degrades generation quality.
+
+---
+
+## 2. Key Idea
+
+We construct **imperfect but paired conditions** by:
+
+1. Starting from real trend t_real
+2. Applying forward diffusion corruption:
+   t_s ~ q_s(t_real)
+3. Optionally applying partial reverse using the trend generator:
+   t_tilde = R_theta(t_s)
+
+This ensures:
+
+- imperfect condition (like generated trend)
+- still aligned with the original sample
+
+---
+
+## 3. Condition Construction
+
+### Step 1: Sample noise level
+
+s ~ Uniform(s_min, s_max)
+
+### Step 2: Forward diffusion
+
+t_s = sqrt(alpha_s) * t_real + sqrt(1 - alpha_s) * noise
+noise ~ N(0, I)
+
+### Step 3: Partial reverse (optional)
+
+t_tilde = trend_generator.partial_reverse(t_s)
+
+---
+
+## 4. Condition Mixing Strategy
+
+Define condition c as:
+
+c =
+    t_real      with probability p1
+    t_s         with probability p2
+    t_tilde     with probability p3
+
+Recommended:
+
+p1 = 0.4
+p2 = 0.3
+p3 = 0.3
+
+---
+
+## 5. Training Target (Residual Formulation)
+
+Define residual:
+
+r = x - c
+
+Model predicts:
+
+r_pred = G2(c)
+
+Reconstruction:
+
+x_hat = c + r_pred
+
+Loss:
+
+L = || r_pred - (x - c) ||^2
+
+---
+
+## 6. Training Algorithm (Pseudo-code)
+
+for batch x:
+
+    # Step 1: extract real trend
+    t_real = trend_extractor(x)
+
+    # Step 2: sample noise level
+    s = Uniform(s_min, s_max)
+
+    # Step 3: forward diffusion
+    noise = torch.randn_like(t_real)
+    t_s = sqrt(alpha_s) * t_real + sqrt(1 - alpha_s) * noise
+
+    # Step 4: optional partial reverse
+    t_tilde = trend_generator.partial_reverse(t_s)
+
+    # Step 5: sample condition
+    u = random()
+    if u < p1:
+        c = t_real
+    elif u < p1 + p2:
+        c = t_s
+    else:
+        c = t_tilde.detach()
+
+    # Step 6: residual target
+    r_target = x - c
+
+    # Step 7: model prediction
+    r_pred = model(c)
+
+    # Step 8: loss
+    loss = mse(r_pred, r_target)
+
+---
+
+## 7. Inference
+
+1. Sample trend:
+   t_hat ~ G1
+
+2. Predict residual:
+   r_hat = G2(t_hat)
+
+3. Final output:
+   x_hat = t_hat + r_hat
+
+---
+
+## 8. Important Design Choices
+
+### Noise range
+
+s_min = 0.05
+s_max = 0.5
+
+---
+
+### Partial reverse steps
+
+- 1–5 reverse steps recommended
+- do NOT fully denoise
+
+---
+
+### Stop-gradient
+
+c = t_tilde.detach()
+
+---
+
+## 9. Summary
+
+This pipeline ensures:
+
+- Train/test condition consistency
+- Robustness to imperfect trend
+- Stable supervision (always supervised by x)
+
+Key principle:
+
+Train the refinement model on the SAME condition distribution it will see at inference time.
