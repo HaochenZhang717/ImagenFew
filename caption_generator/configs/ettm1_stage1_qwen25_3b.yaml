@@ -80,9 +80,9 @@ training:
       train_llm: false
     - name: joint_caption
       num_epochs: 10
-      batch_size: 8
-      eval_batch_size: 8
-      gradient_accumulation_steps: 4
+      batch_size: 32
+      eval_batch_size: 32
+      gradient_accumulation_steps: 1
       vae_lr: 5.0e-5
       projector_lr: 2.0e-4
       llm_lr: 5.0e-5
