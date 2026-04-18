@@ -13,7 +13,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
+  WORK_DIR="$SLURM_SUBMIT_DIR"
+else
+  WORK_DIR="$SCRIPT_DIR"
+fi
+cd "$WORK_DIR"
 mkdir -p /playpen-shared/haochenz/logs/slurm
 
 source ~/.zshrc >/dev/null 2>&1 || true
@@ -44,6 +49,7 @@ NPROC_PER_NODE="${NPROC_PER_NODE:-4}"
 
 echo "Running caption Stage 1 ETTm1 on host $(hostname)"
 echo "SLURM_JOB_ID=${SLURM_JOB_ID:-}"
+echo "WORK_DIR=$WORK_DIR"
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<managed by slurm>}"
 echo "CONFIG=$CONFIG"
 echo "NPROC_PER_NODE=$NPROC_PER_NODE"
@@ -52,7 +58,7 @@ echo "HF_HOME=$HF_HOME"
 torchrun \
   --standalone \
   --nproc_per_node="$NPROC_PER_NODE" \
-  train_stage1.py \
+  "$WORK_DIR/train_stage1.py" \
   --config "$CONFIG" \
   --override training.ddp=true \
   "$@"
