@@ -15,6 +15,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 from transformers import AutoTokenizer, get_cosine_schedule_with_warmup
+from transformers import get_constant_schedule_with_warmup
+
 try:
     import wandb
 except ImportError:
@@ -416,6 +418,12 @@ def main():
                 num_warmup_steps=warmup_steps,
                 num_training_steps=max(total_steps, 1),
             )
+
+            # scheduler = get_constant_schedule_with_warmup(
+            #     optimizer,
+            #     num_warmup_steps=warmup_steps,
+            # )
+
             best_val = float("inf")
 
             for epoch in range(1, phase_cfg["num_epochs"] + 1):

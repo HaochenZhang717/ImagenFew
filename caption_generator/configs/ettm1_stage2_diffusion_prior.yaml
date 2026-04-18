@@ -1,0 +1,67 @@
+seed: 42
+device: auto
+output_dir: ./logs/caption_generator/ettm1_stage2_diffusion_prior
+
+wandb:
+  enabled: true
+  project: caption_generator_stage2
+  entity:
+  name: ettm1_stage2_diffusion_prior
+  tags: [stage2, ettm1, diffusion-prior]
+  notes:
+  mode: online
+  resume: allow
+
+stage1:
+  config_path: ./configs/ettm1_stage1_qwen25_3b.yaml
+  checkpoint_path: ./logs/caption_generator/ettm1_stage1_qwen25_3b/joint_caption_best.pt
+
+data:
+  dataset_root: ../data/VerbalTSDatasets/ETTm1
+  eval_split: valid
+  latent_source: mu
+  encode_batch_size: 128
+  num_workers: 0
+
+diffusion_model:
+  name: dit1d
+  seq_len: 32
+  token_dim: 64
+  kwargs:
+    hidden_size: 512
+    depth: 8
+    num_heads: 8
+    mlp_ratio: 4.0
+    use_qknorm: false
+    use_rmsnorm: true
+
+transport:
+  path_type: Linear
+  prediction: velocity
+  loss_weight: null
+  train_eps:
+  sample_eps:
+  time_dist_type: 'logit-normal_0.0_1.0'
+  time_dist_shift: 1.0
+
+training:
+  num_epochs: 1000
+  batch_size: 512
+  eval_batch_size: 512
+  learning_rate: 3.0e-4
+  weight_decay: 1e-5
+  warmup_ratio: 0.03
+  max_grad_norm: 1.0
+  ema_decay: 0.9995
+  ema_warmup_steps: 100
+
+sampling:
+  sample_every_epochs: 5
+  num_decode_samples: 8
+  ode_method: dopri5
+  ode_num_steps: 50
+  ode_atol: 1.0e-6
+  ode_rtol: 1.0e-3
+  max_new_tokens: 192
+  temperature: 0.8
+  top_p: 0.95
