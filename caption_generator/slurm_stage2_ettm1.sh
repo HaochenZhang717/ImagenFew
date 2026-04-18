@@ -61,14 +61,25 @@ echo "STAGE1_CONFIG_PATH=$STAGE1_CONFIG_PATH"
 echo "STAGE1_CKPT_PATH=$STAGE1_CKPT_PATH"
 echo "HF_HOME=$HF_HOME"
 
-torchrun \
-  --standalone \
-  --nproc_per_node="$NPROC_PER_NODE" \
-  --master_port="$MASTER_PORT" \
-  "$WORK_DIR/train_stage2.py" \
-  --config "$CONFIG" \
-  --override \
-  training.ddp=true \
-  stage1.config_path="$STAGE1_CONFIG_PATH" \
-  stage1.checkpoint_path="$STAGE1_CKPT_PATH" \
-  "$@"
+CMD=(
+  torchrun
+  --standalone
+  --nproc_per_node="$NPROC_PER_NODE"
+  --master_port="$MASTER_PORT"
+  "$WORK_DIR/train_stage2.py"
+  --config "$CONFIG"
+  --override
+  training.ddp=true
+  "stage1.config_path=$STAGE1_CONFIG_PATH"
+  "stage1.checkpoint_path=$STAGE1_CKPT_PATH"
+)
+
+if [[ "$#" -gt 0 ]]; then
+  CMD+=("$@")
+fi
+
+printf 'FINAL_CMD:'
+printf ' %q' "${CMD[@]}"
+printf '\n'
+
+"${CMD[@]}"

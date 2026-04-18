@@ -62,15 +62,16 @@ def setup_distributed(cfg: Dict):
             "is_main": True,
         }
 
+    backend = "nccl" if torch.cuda.is_available() else "gloo"
+    local_rank = int(os.environ.get("LOCAL_RANK", os.environ.get("RANK", "0")))
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_rank)
+
     if not dist.is_initialized():
-        backend = "nccl" if torch.cuda.is_available() else "gloo"
         dist.init_process_group(backend=backend)
 
     rank = dist.get_rank()
     world_size = dist.get_world_size()
-    local_rank = int(os.environ.get("LOCAL_RANK", rank))
-    if torch.cuda.is_available():
-        torch.cuda.set_device(local_rank)
 
     return {
         "enabled": True,
@@ -83,6 +84,7 @@ def setup_distributed(cfg: Dict):
 
 def cleanup_distributed(ddp_state: Dict) -> None:
     if ddp_state["enabled"] and dist.is_initialized():
+        distributed_barrier(ddp_state)
         dist.destroy_process_group()
 
 
@@ -97,6 +99,20 @@ def reduce_scalar(value: float, device: torch.device, ddp_state: Dict) -> float:
     dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
     tensor /= ddp_state["world_size"]
     return float(tensor.item())
+
+
+def distributed_barrier(ddp_state: Dict) -> None:
+    if not ddp_state["enabled"]:
+        return
+    if torch.cuda.is_available():
+        dist.barrier(device_ids=[ddp_state["local_rank"]])
+    else:
+        dist.barrier()
+
+
+def rank0_print(ddp_state: Dict, message: str) -> None:
+    if ddp_state["is_main"]:
+        print(message, flush=True)
 
 
 def resolve_local_batch_size(global_batch_size: int, ddp_state: Dict, field_name: str) -> int:
@@ -282,8 +298,7 @@ def prepare_cached_latents(
         )
         del vae_model
 
-    if ddp_state["enabled"]:
-        dist.barrier()
+    distributed_barrier(ddp_state)
 
     if not os.path.exists(cache_path):
         raise FileNotFoundError(f"Latent cache was expected but not found: {cache_path}")
@@ -304,8 +319,7 @@ def prepare_cached_latents(
             )
         )
 
-    if ddp_state["enabled"]:
-        dist.barrier()
+    distributed_barrier(ddp_state)
 
     return train_latents, valid_latents
 
@@ -613,9 +627,28 @@ def main():
     ema_decay = float(cfg["training"].get("ema_decay", 0.9995))
     ema_warmup_steps = int(cfg["training"].get("ema_warmup_steps", 0))
     sample_every_epochs = int(cfg["sampling"].get("sample_every_epochs", 1))
+    rank0_print(
+        ddp_state,
+        json.dumps(
+            {
+                "output_dir": cfg["output_dir"],
+                "num_epochs": int(cfg["training"]["num_epochs"]),
+                "batch_size_global": int(cfg["training"]["batch_size"]),
+                "eval_batch_size_global": int(
+                    cfg["training"].get("eval_batch_size", cfg["training"]["batch_size"])
+                ),
+                "sample_every_epochs": sample_every_epochs,
+                "num_decode_samples": int(cfg["sampling"].get("num_decode_samples", 0)),
+                "training_ddp": bool(cfg["training"].get("ddp", False)),
+                "world_size": ddp_state["world_size"],
+            },
+            indent=2,
+        ),
+    )
 
     try:
         for epoch in range(1, cfg["training"]["num_epochs"] + 1):
+            rank0_print(ddp_state, f"[stage2] starting epoch {epoch}/{cfg['training']['num_epochs']}")
             if train_sampler is not None:
                 train_sampler.set_epoch(epoch)
             model.train()
@@ -689,6 +722,7 @@ def main():
                     )
 
             if ddp_state["is_main"] and sample_every_epochs > 0 and epoch % sample_every_epochs == 0:
+                rank0_print(ddp_state, f"[stage2] sampling at epoch {epoch}")
                 _, decoded = sample_and_decode(
                     model_for_sampling=ema_model,
                     decoder=decoder,
@@ -716,14 +750,18 @@ def main():
                     wandb.log({"samples/decoded_text": table}, step=global_step)
 
                 print(json.dumps({"epoch": epoch, "decoded_samples": sample_rows}, ensure_ascii=False, indent=2))
+                rank0_print(ddp_state, f"[stage2] finished sampling at epoch {epoch}")
 
             if ddp_state["is_main"]:
                 print(json.dumps(metrics, indent=2))
-            if ddp_state["enabled"]:
-                dist.barrier()
+            distributed_barrier(ddp_state)
     finally:
+        distributed_barrier(ddp_state)
+        rank0_print(ddp_state, "[stage2] all ranks reached training shutdown barrier")
         if wandb_run is not None:
+            rank0_print(ddp_state, "[stage2] finishing wandb run")
             wandb_run.finish()
+            rank0_print(ddp_state, "[stage2] finished wandb run")
         cleanup_distributed(ddp_state)
 
 
