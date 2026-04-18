@@ -83,25 +83,33 @@ def log_to_wandb(run, metrics: Dict) -> None:
     wandb.log(metrics, step=metrics.get("global_step"))
 
 
-def build_optimizer(model: Stage1LatentCaptionModel, cfg: Dict):
-    train_cfg = cfg["training"]
+def get_phase_value(train_cfg: Dict, phase_cfg: Dict, key: str, default=None):
+    return phase_cfg.get(key, train_cfg.get(key, default))
+
+
+def build_optimizer(model: Stage1LatentCaptionModel, train_cfg: Dict, phase_cfg: Dict):
     vae_params = list(model.vae.parameters())
     prompt_params = list(model.soft_prompt.parameters())
     llm_params = [p for n, p in model.llm.named_parameters() if p.requires_grad]
 
+    default_lr = get_phase_value(train_cfg, phase_cfg, "learning_rate", 2.0e-4)
     param_groups = [
-        {"params": vae_params, "lr": train_cfg.get("vae_lr", train_cfg["learning_rate"])},
-        {"params": prompt_params, "lr": train_cfg.get("projector_lr", train_cfg["learning_rate"])},
+        {"params": vae_params, "lr": get_phase_value(train_cfg, phase_cfg, "vae_lr", default_lr)},
+        {"params": prompt_params, "lr": get_phase_value(train_cfg, phase_cfg, "projector_lr", default_lr)},
     ]
     if llm_params:
         param_groups.append(
-            {"params": llm_params, "lr": train_cfg.get("llm_lr", train_cfg["learning_rate"])}
+            {"params": llm_params, "lr": get_phase_value(train_cfg, phase_cfg, "llm_lr", default_lr)}
         )
-    return torch.optim.AdamW(param_groups, weight_decay=train_cfg.get("weight_decay", 0.0))
+    return torch.optim.AdamW(
+        param_groups,
+        weight_decay=get_phase_value(train_cfg, phase_cfg, "weight_decay", 0.0),
+    )
 
 
-def set_joint_phase_trainability(model: Stage1LatentCaptionModel, cfg: Dict) -> None:
-    joint_cfg = cfg["training"].get("joint_phase", {})
+def set_joint_phase_trainability(model: Stage1LatentCaptionModel, cfg: Dict, phase_cfg: Dict) -> None:
+    joint_cfg = dict(cfg["training"].get("joint_phase", {}))
+    joint_cfg.update(phase_cfg.get("joint_phase", {}))
     train_vae = bool(joint_cfg.get("train_vae", True))
     train_soft_prompt = bool(joint_cfg.get("train_soft_prompt", True))
     train_llm = bool(joint_cfg.get("train_llm", True))
@@ -211,23 +219,6 @@ def main():
         normalization_stats=stats,
     )
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=train_cfg["batch_size"],
-        shuffle=True,
-        num_workers=data_cfg.get("num_workers", 0),
-        collate_fn=collator,
-        pin_memory=torch.cuda.is_available(),
-    )
-    valid_loader = DataLoader(
-        valid_dataset,
-        batch_size=train_cfg.get("eval_batch_size", train_cfg["batch_size"]),
-        shuffle=False,
-        num_workers=data_cfg.get("num_workers", 0),
-        collate_fn=collator,
-        pin_memory=torch.cuda.is_available(),
-    )
-
     model = Stage1LatentCaptionModel(cfg)
     if cfg["vae"].get("init_ckpt"):
         model.load_vae_weights(cfg["vae"]["init_ckpt"], map_location="cpu")
@@ -259,18 +250,42 @@ def main():
 
             if phase_cfg["name"] == "vae_pretrain":
                 model.configure_trainable_modules(
-                    train_vae=True,
-                    train_soft_prompt=False,
-                    train_llm=False,
+                    train_vae=bool(phase_cfg.get("train_vae", True)),
+                    train_soft_prompt=bool(phase_cfg.get("train_soft_prompt", False)),
+                    train_llm=bool(phase_cfg.get("train_llm", False)),
                 )
             elif phase_cfg["name"] == "joint_caption":
-                set_joint_phase_trainability(model, cfg)
+                set_joint_phase_trainability(model, cfg, phase_cfg)
 
-            optimizer = build_optimizer(model, cfg)
-            grad_accum_steps = train_cfg.get("gradient_accumulation_steps", 1)
+            phase_batch_size = get_phase_value(train_cfg, phase_cfg, "batch_size", 1)
+            phase_eval_batch_size = get_phase_value(
+                train_cfg,
+                phase_cfg,
+                "eval_batch_size",
+                phase_batch_size,
+            )
+            train_loader = DataLoader(
+                train_dataset,
+                batch_size=phase_batch_size,
+                shuffle=True,
+                num_workers=data_cfg.get("num_workers", 0),
+                collate_fn=collator,
+                pin_memory=torch.cuda.is_available(),
+            )
+            valid_loader = DataLoader(
+                valid_dataset,
+                batch_size=phase_eval_batch_size,
+                shuffle=False,
+                num_workers=data_cfg.get("num_workers", 0),
+                collate_fn=collator,
+                pin_memory=torch.cuda.is_available(),
+            )
+
+            optimizer = build_optimizer(model, train_cfg, phase_cfg)
+            grad_accum_steps = get_phase_value(train_cfg, phase_cfg, "gradient_accumulation_steps", 1)
             steps_per_epoch = math.ceil(len(train_loader) / grad_accum_steps)
             total_steps = steps_per_epoch * phase_cfg["num_epochs"]
-            warmup_steps = int(total_steps * train_cfg.get("warmup_ratio", 0.03))
+            warmup_steps = int(total_steps * get_phase_value(train_cfg, phase_cfg, "warmup_ratio", 0.03))
             scheduler = get_cosine_schedule_with_warmup(
                 optimizer,
                 num_warmup_steps=warmup_steps,
@@ -324,7 +339,7 @@ def main():
                             scaler.unscale_(optimizer)
                         torch.nn.utils.clip_grad_norm_(
                             [p for p in model.parameters() if p.requires_grad],
-                            train_cfg.get("max_grad_norm", 1.0),
+                            get_phase_value(train_cfg, phase_cfg, "max_grad_norm", 1.0),
                         )
                         if scaler.is_enabled():
                             scaler.step(optimizer)
@@ -346,6 +361,9 @@ def main():
                     "phase": phase_cfg["name"],
                     "phase_epoch": epoch,
                     "global_step": global_step,
+                    "batch_size": phase_batch_size,
+                    "eval_batch_size": phase_eval_batch_size,
+                    "gradient_accumulation_steps": grad_accum_steps,
                     "lr": scheduler.get_last_lr()[0],
                     **train_metrics,
                     **val_metrics,

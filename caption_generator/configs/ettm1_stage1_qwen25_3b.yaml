@@ -42,8 +42,7 @@ vae:
   num_layers: 2
   num_heads: 4
   latent_dim: 64
-  beta: 0.001
-  dynamic_size: 8
+  beta: 0.01
   encoder_channels: [64, 96, 128, 128]
   encoder_downsample_stages: 2
   decoder_channels: [128, 128, 96, 64]
@@ -68,8 +67,31 @@ training:
     train_llm: true
   phases:
     - name: vae_pretrain
-      num_epochs: 5
+      num_epochs: 2
+      batch_size: 128
+      eval_batch_size: 128
+      gradient_accumulation_steps: 1
+      vae_lr: 1.0e-4
+      weight_decay: 0.0
+      warmup_ratio: 0.03
+      max_grad_norm: 1.0
+      train_vae: true
+      train_soft_prompt: false
+      train_llm: false
     - name: joint_caption
       num_epochs: 10
+      batch_size: 8
+      eval_batch_size: 8
+      gradient_accumulation_steps: 4
+      vae_lr: 5.0e-5
+      projector_lr: 2.0e-4
+      llm_lr: 5.0e-5
+      weight_decay: 0.0
+      warmup_ratio: 0.03
+      max_grad_norm: 1.0
       caption_loss_weight: 1.0
       kl_loss_weight: 0.01
+      joint_phase:
+        train_vae: true
+        train_soft_prompt: true
+        train_llm: true
