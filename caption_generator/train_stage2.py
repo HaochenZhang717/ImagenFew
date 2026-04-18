@@ -8,8 +8,11 @@ from typing import Dict, Optional
 
 import numpy as np
 import torch
+import torch.distributed as dist
 from omegaconf import OmegaConf
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 from transformers import AutoTokenizer, get_cosine_schedule_with_warmup
 
@@ -44,6 +47,70 @@ def to_plain_dict(cfg) -> Dict:
     return OmegaConf.to_container(cfg, resolve=True)
 
 
+def setup_distributed(cfg: Dict):
+    training_cfg = cfg.get("training", {})
+    ddp_requested = bool(training_cfg.get("ddp", False))
+    world_size = int(os.environ.get("WORLD_SIZE", "1"))
+    use_ddp = ddp_requested or world_size > 1
+
+    if not use_ddp:
+        return {
+            "enabled": False,
+            "rank": 0,
+            "world_size": 1,
+            "local_rank": 0,
+            "is_main": True,
+        }
+
+    if not dist.is_initialized():
+        backend = "nccl" if torch.cuda.is_available() else "gloo"
+        dist.init_process_group(backend=backend)
+
+    rank = dist.get_rank()
+    world_size = dist.get_world_size()
+    local_rank = int(os.environ.get("LOCAL_RANK", rank))
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_rank)
+
+    return {
+        "enabled": True,
+        "rank": rank,
+        "world_size": world_size,
+        "local_rank": local_rank,
+        "is_main": rank == 0,
+    }
+
+
+def cleanup_distributed(ddp_state: Dict) -> None:
+    if ddp_state["enabled"] and dist.is_initialized():
+        dist.destroy_process_group()
+
+
+def unwrap_model(model):
+    return model.module if isinstance(model, DDP) else model
+
+
+def reduce_scalar(value: float, device: torch.device, ddp_state: Dict) -> float:
+    if not ddp_state["enabled"]:
+        return value
+    tensor = torch.tensor(value, device=device, dtype=torch.float64)
+    dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+    tensor /= ddp_state["world_size"]
+    return float(tensor.item())
+
+
+def resolve_local_batch_size(global_batch_size: int, ddp_state: Dict, field_name: str) -> int:
+    world_size = ddp_state["world_size"]
+    if global_batch_size < 1:
+        raise ValueError(f"{field_name} must be >= 1, got {global_batch_size}")
+    if global_batch_size % world_size != 0:
+        raise ValueError(
+            f"{field_name}={global_batch_size} must be divisible by world_size={world_size} "
+            "when using DDP so the YAML value remains a true global batch size."
+        )
+    return global_batch_size // world_size
+
+
 def maybe_cast_dtype(dtype_name: Optional[str]):
     if dtype_name is None or dtype_name == "auto":
         return None
@@ -52,7 +119,9 @@ def maybe_cast_dtype(dtype_name: Optional[str]):
     return getattr(torch, dtype_name)
 
 
-def initialize_wandb(cfg: Dict):
+def initialize_wandb(cfg: Dict, ddp_state: Dict):
+    if not ddp_state["is_main"]:
+        return None
     wandb_cfg = cfg.get("wandb", {})
     if not wandb_cfg.get("enabled", False):
         return None
@@ -119,6 +188,13 @@ def load_stage1_config_and_checkpoint(cfg: Dict):
     return stage1_cfg, stage1_ckpt
 
 
+def resolve_latent_cache_path(cfg: Dict) -> str:
+    cache_path = cfg["data"].get("latents_cache_path")
+    if cache_path:
+        return cache_path
+    return os.path.join(cfg["output_dir"], "stage1_latents_cache.pt")
+
+
 @torch.no_grad()
 def encode_split_latents(
     vae_model: SimpleVAE,
@@ -144,6 +220,94 @@ def encode_split_latents(
             raise ValueError(f"Unsupported latent_source: {latent_source}")
         storage.append(latent.cpu())
     return torch.cat(storage, dim=0)
+
+
+def prepare_cached_latents(
+    cfg: Dict,
+    stage1_cfg: Dict,
+    stage1_ckpt: Dict,
+    ts_stats: Dict[str, float],
+    ddp_state: Dict,
+    device: torch.device,
+):
+    dataset_root = cfg["data"].get("dataset_root", stage1_cfg["data"]["dataset_root"])
+    eval_split = cfg["data"].get("eval_split", "valid")
+    latent_source = cfg["data"].get("latent_source", "mu")
+    encode_batch_size = cfg["data"].get("encode_batch_size", cfg["training"]["batch_size"])
+    cache_path = resolve_latent_cache_path(cfg)
+    rebuild_cache = bool(cfg["data"].get("rebuild_latents_cache", False))
+
+    if ddp_state["is_main"] and (rebuild_cache or not os.path.exists(cache_path)):
+        os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
+        vae_model = build_simple_vae(stage1_cfg).to(device)
+        vae_state = stage1_ckpt["model"]
+        vae_state = {k.replace("vae.", "", 1): v for k, v in vae_state.items() if k.startswith("vae.")}
+        missing, unexpected = vae_model.load_state_dict(vae_state, strict=False)
+        if missing:
+            print(f"[warn] missing {len(missing)} VAE keys when loading Stage 1 checkpoint")
+        if unexpected:
+            print(f"[warn] unexpected {len(unexpected)} VAE keys when loading Stage 1 checkpoint")
+        vae_model.eval().requires_grad_(False)
+
+        train_latents = encode_split_latents(
+            vae_model=vae_model,
+            dataset_root=dataset_root,
+            split="train",
+            stats=ts_stats,
+            latent_source=latent_source,
+            batch_size=encode_batch_size,
+            device=device,
+        )
+        valid_latents = encode_split_latents(
+            vae_model=vae_model,
+            dataset_root=dataset_root,
+            split=eval_split,
+            stats=ts_stats,
+            latent_source=latent_source,
+            batch_size=encode_batch_size,
+            device=device,
+        )
+        torch.save(
+            {
+                "train_latents": train_latents,
+                "valid_latents": valid_latents,
+                "meta": {
+                    "dataset_root": dataset_root,
+                    "eval_split": eval_split,
+                    "latent_source": latent_source,
+                    "stage1_checkpoint_path": cfg["stage1"]["checkpoint_path"],
+                },
+            },
+            cache_path,
+        )
+        del vae_model
+
+    if ddp_state["enabled"]:
+        dist.barrier()
+
+    if not os.path.exists(cache_path):
+        raise FileNotFoundError(f"Latent cache was expected but not found: {cache_path}")
+
+    latent_cache = torch.load(cache_path, map_location="cpu")
+    train_latents = latent_cache["train_latents"].float()
+    valid_latents = latent_cache["valid_latents"].float()
+
+    if ddp_state["is_main"]:
+        print(
+            json.dumps(
+                {
+                    "latent_cache_path": cache_path,
+                    "train_latents_shape": list(train_latents.shape),
+                    "valid_latents_shape": list(valid_latents.shape),
+                },
+                indent=2,
+            )
+        )
+
+    if ddp_state["enabled"]:
+        dist.barrier()
+
+    return train_latents, valid_latents
 
 
 def build_backbone(cfg: Dict):
@@ -195,8 +359,9 @@ def save_checkpoint(
     global_step: int,
     cfg: Dict,
 ) -> None:
+    base_model = unwrap_model(model)
     ckpt = {
-        "model": model.state_dict(),
+        "model": base_model.state_dict(),
         "ema": ema_model.state_dict(),
         "optimizer": optimizer.state_dict(),
         "scheduler": scheduler.state_dict(),
@@ -208,16 +373,18 @@ def save_checkpoint(
 
 
 @torch.no_grad()
-def evaluate(model, dataloader, transport, device: torch.device) -> Dict[str, float]:
+def evaluate(model, dataloader, transport, device: torch.device, ddp_state: Dict) -> Dict[str, float]:
     model.eval()
+    base_model = unwrap_model(model)
     losses = []
-    for (latent_batch,) in tqdm(dataloader, desc="eval", leave=False):
+    for (latent_batch,) in tqdm(dataloader, desc="eval", leave=False, disable=not ddp_state["is_main"]):
         latent_batch = latent_batch.to(device)
-        terms = transport.training_losses(model, latent_batch)
+        terms = transport.training_losses(base_model, latent_batch)
         losses.append(float(terms["loss"].mean().detach().cpu()))
     if not losses:
         raise RuntimeError("Validation dataloader is empty.")
-    return {"loss": sum(losses) / len(losses)}
+    local_loss = sum(losses) / len(losses)
+    return {"loss": reduce_scalar(local_loss, device=device, ddp_state=ddp_state)}
 
 
 def build_stage1_decoder(
@@ -318,20 +485,27 @@ def main():
     if args.override:
         cfg = OmegaConf.merge(cfg, OmegaConf.from_dotlist(args.override))
     cfg = to_plain_dict(cfg)
+    ddp_state = setup_distributed(cfg)
 
     os.makedirs(cfg["output_dir"], exist_ok=True)
-    with open(os.path.join(cfg["output_dir"], "resolved_config.json"), "w", encoding="utf-8") as fp:
-        json.dump(cfg, fp, indent=2)
+    if ddp_state["is_main"]:
+        with open(os.path.join(cfg["output_dir"], "resolved_config.json"), "w", encoding="utf-8") as fp:
+            json.dump(cfg, fp, indent=2)
 
-    wandb_run = initialize_wandb(cfg)
-    set_seed(int(cfg.get("seed", 42)))
+    wandb_run = initialize_wandb(cfg, ddp_state)
+    set_seed(int(cfg.get("seed", 42)) + ddp_state["rank"])
 
     requested_device = cfg.get("device", "auto")
     if requested_device == "auto":
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            device = torch.device(f"cuda:{ddp_state['local_rank']}" if ddp_state["enabled"] else "cuda")
+        else:
+            device = torch.device("cpu")
     elif requested_device == "cuda" and not torch.cuda.is_available():
         print("Requested CUDA but it is unavailable. Falling back to CPU.")
         device = torch.device("cpu")
+    elif requested_device == "cuda" and torch.cuda.is_available():
+        device = torch.device(f"cuda:{ddp_state['local_rank']}" if ddp_state["enabled"] else "cuda")
     else:
         device = torch.device(requested_device)
 
@@ -341,58 +515,78 @@ def main():
 
     train_ts, _, _ = load_split_arrays(dataset_root, "train")
     ts_stats = compute_train_normalization_stats(train_ts)
-    with open(os.path.join(cfg["output_dir"], "ts_normalization_stats.json"), "w", encoding="utf-8") as fp:
-        json.dump(ts_stats, fp, indent=2)
+    if ddp_state["is_main"]:
+        with open(os.path.join(cfg["output_dir"], "ts_normalization_stats.json"), "w", encoding="utf-8") as fp:
+            json.dump(ts_stats, fp, indent=2)
 
-    vae_model = build_simple_vae(stage1_cfg).to(device)
-    vae_state = stage1_ckpt["model"]
-    vae_state = {k.replace("vae.", "", 1): v for k, v in vae_state.items() if k.startswith("vae.")}
-    missing, unexpected = vae_model.load_state_dict(vae_state, strict=False)
-    if missing:
-        print(f"[warn] missing {len(missing)} VAE keys when loading Stage 1 checkpoint")
-    if unexpected:
-        print(f"[warn] unexpected {len(unexpected)} VAE keys when loading Stage 1 checkpoint")
-    vae_model.eval().requires_grad_(False)
-
-    latent_source = cfg["data"].get("latent_source", "mu")
-    encode_batch_size = cfg["data"].get("encode_batch_size", cfg["training"]["batch_size"])
-    train_latents = encode_split_latents(
-        vae_model=vae_model,
-        dataset_root=dataset_root,
-        split="train",
-        stats=ts_stats,
-        latent_source=latent_source,
-        batch_size=encode_batch_size,
-        device=device,
-    )
-    valid_latents = encode_split_latents(
-        vae_model=vae_model,
-        dataset_root=dataset_root,
-        split=cfg["data"].get("eval_split", "valid"),
-        stats=ts_stats,
-        latent_source=latent_source,
-        batch_size=encode_batch_size,
+    train_latents, valid_latents = prepare_cached_latents(
+        cfg=cfg,
+        stage1_cfg=stage1_cfg,
+        stage1_ckpt=stage1_ckpt,
+        ts_stats=ts_stats,
+        ddp_state=ddp_state,
         device=device,
     )
 
     cfg["diffusion_model"]["seq_len"] = int(train_latents.shape[1])
     cfg["diffusion_model"]["token_dim"] = int(train_latents.shape[2])
 
+    train_batch_size = resolve_local_batch_size(
+        cfg["training"]["batch_size"],
+        ddp_state,
+        "batch_size",
+    )
+    eval_batch_size = resolve_local_batch_size(
+        cfg["training"].get("eval_batch_size", cfg["training"]["batch_size"]),
+        ddp_state,
+        "eval_batch_size",
+    )
+    train_dataset = TensorDataset(train_latents)
+    valid_dataset = TensorDataset(valid_latents)
+
+    train_sampler = (
+        DistributedSampler(
+            train_dataset,
+            num_replicas=ddp_state["world_size"],
+            rank=ddp_state["rank"],
+            shuffle=True,
+        )
+        if ddp_state["enabled"]
+        else None
+    )
+    valid_sampler = (
+        DistributedSampler(
+            valid_dataset,
+            num_replicas=ddp_state["world_size"],
+            rank=ddp_state["rank"],
+            shuffle=False,
+        )
+        if ddp_state["enabled"]
+        else None
+    )
+
     train_loader = DataLoader(
-        TensorDataset(train_latents),
-        batch_size=cfg["training"]["batch_size"],
-        shuffle=True,
+        train_dataset,
+        batch_size=train_batch_size,
+        shuffle=train_sampler is None,
+        sampler=train_sampler,
         num_workers=cfg["data"].get("num_workers", 0),
+        pin_memory=torch.cuda.is_available(),
     )
     valid_loader = DataLoader(
-        TensorDataset(valid_latents),
-        batch_size=cfg["training"].get("eval_batch_size", cfg["training"]["batch_size"]),
+        valid_dataset,
+        batch_size=eval_batch_size,
         shuffle=False,
+        sampler=valid_sampler,
         num_workers=cfg["data"].get("num_workers", 0),
+        pin_memory=torch.cuda.is_available(),
     )
 
     model = build_backbone(cfg).to(device)
-    ema_model = deepcopy(model).to(device)
+    if ddp_state["enabled"]:
+        ddp_kwargs = {"device_ids": [ddp_state["local_rank"]]} if device.type == "cuda" else {}
+        model = DDP(model, **ddp_kwargs)
+    ema_model = deepcopy(unwrap_model(model)).to(device)
     ema_model.eval().requires_grad_(False)
 
     optimizer = torch.optim.AdamW(
@@ -422,10 +616,17 @@ def main():
 
     try:
         for epoch in range(1, cfg["training"]["num_epochs"] + 1):
+            if train_sampler is not None:
+                train_sampler.set_epoch(epoch)
             model.train()
             running_loss = 0.0
 
-            progress = tqdm(train_loader, desc=f"stage2 epoch {epoch}", leave=False)
+            progress = tqdm(
+                train_loader,
+                desc=f"stage2 epoch {epoch}",
+                leave=False,
+                disable=not ddp_state["is_main"],
+            )
             for step, (latent_batch,) in enumerate(progress, start=1):
                 latent_batch = latent_batch.to(device)
                 optimizer.zero_grad(set_to_none=True)
@@ -436,18 +637,19 @@ def main():
                 optimizer.step()
                 scheduler.step()
 
+                base_model = unwrap_model(model)
                 if global_step < ema_warmup_steps:
-                    ema_model.load_state_dict(model.state_dict())
+                    ema_model.load_state_dict(base_model.state_dict())
                 else:
-                    update_ema(ema_model, model, decay=ema_decay)
+                    update_ema(ema_model, base_model, decay=ema_decay)
 
                 running_loss += float(loss.detach().cpu())
                 global_step += 1
                 progress.set_postfix(loss=f"{running_loss / step:.4f}")
 
-            train_loss = running_loss / len(train_loader)
-            valid_metrics = evaluate(model, valid_loader, transport, device)
-            ema_valid_metrics = evaluate(ema_model, valid_loader, transport, device)
+            train_loss = reduce_scalar(running_loss / len(train_loader), device=device, ddp_state=ddp_state)
+            valid_metrics = evaluate(model, valid_loader, transport, device, ddp_state)
+            ema_valid_metrics = evaluate(ema_model, valid_loader, transport, device, ddp_state)
 
             metrics = {
                 "epoch": epoch,
@@ -458,24 +660,13 @@ def main():
                 "valid_ema/loss": ema_valid_metrics["loss"],
             }
 
-            with open(history_path, "a", encoding="utf-8") as fp:
-                fp.write(json.dumps(metrics) + "\n")
-            log_to_wandb(wandb_run, metrics)
+            if ddp_state["is_main"]:
+                with open(history_path, "a", encoding="utf-8") as fp:
+                    fp.write(json.dumps(metrics) + "\n")
+                log_to_wandb(wandb_run, metrics)
 
-            save_checkpoint(
-                output_path=os.path.join(cfg["output_dir"], "stage2_latest.pt"),
-                model=model,
-                ema_model=ema_model,
-                optimizer=optimizer,
-                scheduler=scheduler,
-                epoch=epoch,
-                global_step=global_step,
-                cfg=cfg,
-            )
-            if ema_valid_metrics["loss"] < best_val:
-                best_val = ema_valid_metrics["loss"]
                 save_checkpoint(
-                    output_path=os.path.join(cfg["output_dir"], "stage2_best.pt"),
+                    output_path=os.path.join(cfg["output_dir"], "stage2_latest.pt"),
                     model=model,
                     ema_model=ema_model,
                     optimizer=optimizer,
@@ -484,8 +675,20 @@ def main():
                     global_step=global_step,
                     cfg=cfg,
                 )
+                if ema_valid_metrics["loss"] < best_val:
+                    best_val = ema_valid_metrics["loss"]
+                    save_checkpoint(
+                        output_path=os.path.join(cfg["output_dir"], "stage2_best.pt"),
+                        model=model,
+                        ema_model=ema_model,
+                        optimizer=optimizer,
+                        scheduler=scheduler,
+                        epoch=epoch,
+                        global_step=global_step,
+                        cfg=cfg,
+                    )
 
-            if sample_every_epochs > 0 and epoch % sample_every_epochs == 0:
+            if ddp_state["is_main"] and sample_every_epochs > 0 and epoch % sample_every_epochs == 0:
                 _, decoded = sample_and_decode(
                     model_for_sampling=ema_model,
                     decoder=decoder,
@@ -514,10 +717,14 @@ def main():
 
                 print(json.dumps({"epoch": epoch, "decoded_samples": sample_rows}, ensure_ascii=False, indent=2))
 
-            print(json.dumps(metrics, indent=2))
+            if ddp_state["is_main"]:
+                print(json.dumps(metrics, indent=2))
+            if ddp_state["enabled"]:
+                dist.barrier()
     finally:
         if wandb_run is not None:
             wandb_run.finish()
+        cleanup_distributed(ddp_state)
 
 
 if __name__ == "__main__":
