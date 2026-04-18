@@ -3,6 +3,7 @@ import json
 import math
 import os
 import random
+import traceback
 from copy import deepcopy
 from typing import Dict, Optional
 
@@ -617,8 +618,6 @@ def main():
     )
 
     transport, sample_fn = build_transport_and_sampler(cfg)
-    decoder, tokenizer = build_stage1_decoder(stage1_cfg, stage1_ckpt, device=device)
-
     history_path = os.path.join(cfg["output_dir"], "metrics.jsonl")
     decoded_path = os.path.join(cfg["output_dir"], "decoded_samples.jsonl")
     global_step = 0
@@ -627,6 +626,12 @@ def main():
     ema_decay = float(cfg["training"].get("ema_decay", 0.9995))
     ema_warmup_steps = int(cfg["training"].get("ema_warmup_steps", 0))
     sample_every_epochs = int(cfg["sampling"].get("sample_every_epochs", 1))
+    decoder = None
+    tokenizer = None
+    if ddp_state["is_main"] and sample_every_epochs > 0:
+        rank0_print(ddp_state, "[stage2] loading stage1 decoder for sampling")
+        decoder, tokenizer = build_stage1_decoder(stage1_cfg, stage1_ckpt, device=device)
+        rank0_print(ddp_state, "[stage2] finished loading stage1 decoder for sampling")
     rank0_print(
         ddp_state,
         json.dumps(
@@ -723,14 +728,19 @@ def main():
 
             if ddp_state["is_main"] and sample_every_epochs > 0 and epoch % sample_every_epochs == 0:
                 rank0_print(ddp_state, f"[stage2] sampling at epoch {epoch}")
-                _, decoded = sample_and_decode(
-                    model_for_sampling=ema_model,
-                    decoder=decoder,
-                    tokenizer=tokenizer,
-                    sample_fn=sample_fn,
-                    cfg=cfg,
-                    device=device,
-                )
+                try:
+                    _, decoded = sample_and_decode(
+                        model_for_sampling=ema_model,
+                        decoder=decoder,
+                        tokenizer=tokenizer,
+                        sample_fn=sample_fn,
+                        cfg=cfg,
+                        device=device,
+                    )
+                except Exception as exc:
+                    rank0_print(ddp_state, f"[stage2] sampling failed at epoch {epoch}: {exc!r}")
+                    rank0_print(ddp_state, traceback.format_exc())
+                    raise
 
                 sample_rows = []
                 for sample_id, text in enumerate(decoded):
