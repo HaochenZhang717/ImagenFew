@@ -51,6 +51,8 @@ vae:
   decoder_upsample_stages: 2
 
 training:
+  ddp: false
+  # batch_size and eval_batch_size are interpreted as global batch sizes.
   batch_size: 8
   eval_batch_size: 8
   gradient_accumulation_steps: 4

@@ -8,8 +8,11 @@ from typing import Dict
 
 import numpy as np
 import torch
+import torch.distributed as dist
 from omegaconf import OmegaConf
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 from transformers import AutoTokenizer, get_cosine_schedule_with_warmup
 try:
@@ -46,6 +49,58 @@ def to_plain_dict(cfg) -> Dict:
     return OmegaConf.to_container(cfg, resolve=True)
 
 
+def setup_distributed(cfg: Dict):
+    training_cfg = cfg.get("training", {})
+    ddp_requested = bool(training_cfg.get("ddp", False))
+    world_size = int(os.environ.get("WORLD_SIZE", "1"))
+    use_ddp = ddp_requested or world_size > 1
+
+    if not use_ddp:
+        return {
+            "enabled": False,
+            "rank": 0,
+            "world_size": 1,
+            "local_rank": 0,
+            "is_main": True,
+        }
+
+    if not dist.is_initialized():
+        backend = "nccl" if torch.cuda.is_available() else "gloo"
+        dist.init_process_group(backend=backend)
+
+    rank = dist.get_rank()
+    world_size = dist.get_world_size()
+    local_rank = int(os.environ.get("LOCAL_RANK", rank))
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_rank)
+
+    return {
+        "enabled": True,
+        "rank": rank,
+        "world_size": world_size,
+        "local_rank": local_rank,
+        "is_main": rank == 0,
+    }
+
+
+def cleanup_distributed(ddp_state: Dict) -> None:
+    if ddp_state["enabled"] and dist.is_initialized():
+        dist.destroy_process_group()
+
+
+def unwrap_model(model):
+    return model.module if isinstance(model, DDP) else model
+
+
+def reduce_scalar(value: float, device: torch.device, ddp_state: Dict) -> float:
+    if not ddp_state["enabled"]:
+        return value
+    tensor = torch.tensor(value, device=device, dtype=torch.float64)
+    dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+    tensor /= ddp_state["world_size"]
+    return float(tensor.item())
+
+
 def move_batch_to_device(batch: Dict, device: torch.device) -> Dict:
     output = {}
     for key, value in batch.items():
@@ -56,7 +111,9 @@ def move_batch_to_device(batch: Dict, device: torch.device) -> Dict:
     return output
 
 
-def initialize_wandb(cfg: Dict):
+def initialize_wandb(cfg: Dict, ddp_state: Dict):
+    if not ddp_state["is_main"]:
+        return None
     wandb_cfg = cfg.get("wandb", {})
     if not wandb_cfg.get("enabled", False):
         return None
@@ -87,16 +144,34 @@ def get_phase_value(train_cfg: Dict, phase_cfg: Dict, key: str, default=None):
     return phase_cfg.get(key, train_cfg.get(key, default))
 
 
+def resolve_local_batch_size(global_batch_size: int, ddp_state: Dict, field_name: str) -> int:
+    world_size = ddp_state["world_size"]
+    if global_batch_size < 1:
+        raise ValueError(f"{field_name} must be >= 1, got {global_batch_size}")
+    if global_batch_size % world_size != 0:
+        raise ValueError(
+            f"{field_name}={global_batch_size} must be divisible by world_size={world_size} "
+            "when using DDP so the YAML value remains a true global batch size."
+        )
+    return global_batch_size // world_size
+
+
 def build_optimizer(model: Stage1LatentCaptionModel, train_cfg: Dict, phase_cfg: Dict):
-    vae_params = list(model.vae.parameters())
-    prompt_params = list(model.soft_prompt.parameters())
-    llm_params = [p for n, p in model.llm.named_parameters() if p.requires_grad]
+    base_model = unwrap_model(model)
+    vae_params = [p for p in base_model.vae.parameters() if p.requires_grad]
+    prompt_params = [p for p in base_model.soft_prompt.parameters() if p.requires_grad]
+    llm_params = [p for _, p in base_model.llm.named_parameters() if p.requires_grad]
 
     default_lr = get_phase_value(train_cfg, phase_cfg, "learning_rate", 2.0e-4)
-    param_groups = [
-        {"params": vae_params, "lr": get_phase_value(train_cfg, phase_cfg, "vae_lr", default_lr)},
-        {"params": prompt_params, "lr": get_phase_value(train_cfg, phase_cfg, "projector_lr", default_lr)},
-    ]
+    param_groups = []
+    if vae_params:
+        param_groups.append(
+            {"params": vae_params, "lr": get_phase_value(train_cfg, phase_cfg, "vae_lr", default_lr)}
+        )
+    if prompt_params:
+        param_groups.append(
+            {"params": prompt_params, "lr": get_phase_value(train_cfg, phase_cfg, "projector_lr", default_lr)}
+        )
     if llm_params:
         param_groups.append(
             {"params": llm_params, "lr": get_phase_value(train_cfg, phase_cfg, "llm_lr", default_lr)}
@@ -108,13 +183,14 @@ def build_optimizer(model: Stage1LatentCaptionModel, train_cfg: Dict, phase_cfg:
 
 
 def set_joint_phase_trainability(model: Stage1LatentCaptionModel, cfg: Dict, phase_cfg: Dict) -> None:
+    base_model = unwrap_model(model)
     joint_cfg = dict(cfg["training"].get("joint_phase", {}))
     joint_cfg.update(phase_cfg.get("joint_phase", {}))
     train_vae = bool(joint_cfg.get("train_vae", True))
     train_soft_prompt = bool(joint_cfg.get("train_soft_prompt", True))
     train_llm = bool(joint_cfg.get("train_llm", True))
 
-    model.configure_trainable_modules(
+    base_model.configure_trainable_modules(
         train_vae=train_vae,
         train_soft_prompt=train_soft_prompt,
         train_llm=train_llm,
@@ -122,8 +198,9 @@ def set_joint_phase_trainability(model: Stage1LatentCaptionModel, cfg: Dict, pha
 
 
 @torch.no_grad()
-def evaluate(model, dataloader, device, use_amp: bool, amp_dtype, phase_cfg: Dict):
+def evaluate(model, dataloader, device, use_amp: bool, amp_dtype, phase_cfg: Dict, ddp_state: Dict):
     model.eval()
+    base_model = unwrap_model(model)
     totals = {
         "loss": 0.0,
         "caption_loss": 0.0,
@@ -133,16 +210,16 @@ def evaluate(model, dataloader, device, use_amp: bool, amp_dtype, phase_cfg: Dic
     }
     num_batches = 0
 
-    for batch in tqdm(dataloader, desc="eval", leave=False):
+    for batch in tqdm(dataloader, desc="eval", leave=False, disable=not ddp_state["is_main"]):
         batch = move_batch_to_device(batch, device)
         autocast_ctx = (
             torch.autocast(device_type=device.type, dtype=amp_dtype) if use_amp else nullcontext()
         )
         with autocast_ctx:
             if phase_cfg["name"] == "vae_pretrain":
-                outputs = model.vae_pretrain_step(ts=batch["ts"])
+                outputs = base_model.vae_pretrain_step(ts=batch["ts"])
             elif phase_cfg["name"] == "joint_caption":
-                outputs = model.joint_caption_step(
+                outputs = base_model.joint_caption_step(
                     ts=batch["ts"],
                     input_ids=batch["input_ids"],
                     attention_mask=batch["attention_mask"],
@@ -158,7 +235,12 @@ def evaluate(model, dataloader, device, use_amp: bool, amp_dtype, phase_cfg: Dic
 
     if num_batches == 0:
         raise RuntimeError("Evaluation dataloader is empty.")
-    return {key: value / num_batches for key, value in totals.items()}
+
+    local_metrics = {key: value / num_batches for key, value in totals.items()}
+    return {
+        key: reduce_scalar(value, device=device, ddp_state=ddp_state)
+        for key, value in local_metrics.items()
+    }
 
 
 def main():
@@ -167,20 +249,27 @@ def main():
     if args.override:
         cfg = OmegaConf.merge(cfg, OmegaConf.from_dotlist(args.override))
     cfg = to_plain_dict(cfg)
+    ddp_state = setup_distributed(cfg)
 
     os.makedirs(cfg["output_dir"], exist_ok=True)
-    with open(os.path.join(cfg["output_dir"], "resolved_config.json"), "w", encoding="utf-8") as fp:
-        json.dump(cfg, fp, indent=2)
-    wandb_run = initialize_wandb(cfg)
+    if ddp_state["is_main"]:
+        with open(os.path.join(cfg["output_dir"], "resolved_config.json"), "w", encoding="utf-8") as fp:
+            json.dump(cfg, fp, indent=2)
+    wandb_run = initialize_wandb(cfg, ddp_state)
 
-    set_seed(int(cfg.get("seed", 42)))
+    set_seed(int(cfg.get("seed", 42)) + ddp_state["rank"])
 
     requested_device = cfg.get("device", "auto")
     if requested_device == "auto":
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            device = torch.device(f"cuda:{ddp_state['local_rank']}" if ddp_state["enabled"] else "cuda")
+        else:
+            device = torch.device("cpu")
     elif requested_device == "cuda" and not torch.cuda.is_available():
         print("Requested CUDA but it is unavailable. Falling back to CPU.")
         device = torch.device("cpu")
+    elif requested_device == "cuda" and torch.cuda.is_available():
+        device = torch.device(f"cuda:{ddp_state['local_rank']}" if ddp_state["enabled"] else "cuda")
     else:
         device = torch.device(requested_device)
     train_cfg = cfg["training"]
@@ -189,7 +278,8 @@ def main():
 
     train_ts, _, _ = load_split_arrays(data_cfg["dataset_root"], "train")
     stats = compute_train_normalization_stats(train_ts)
-    save_normalization_stats(stats, os.path.join(cfg["output_dir"], "normalization_stats.json"))
+    if ddp_state["is_main"]:
+        save_normalization_stats(stats, os.path.join(cfg["output_dir"], "normalization_stats.json"))
 
     tokenizer = AutoTokenizer.from_pretrained(
         model_cfg["llm_name"],
@@ -223,6 +313,9 @@ def main():
     if cfg["vae"].get("init_ckpt"):
         model.load_vae_weights(cfg["vae"]["init_ckpt"], map_location="cpu")
     model.to(device)
+    if ddp_state["enabled"]:
+        ddp_kwargs = {"device_ids": [ddp_state["local_rank"]]} if device.type == "cuda" else {}
+        model = DDP(model, find_unused_parameters=True, **ddp_kwargs)
 
     use_amp = device.type == "cuda" and model_cfg.get("torch_dtype") in {"float16", "bfloat16"}
     amp_dtype = getattr(torch, model_cfg["torch_dtype"]) if use_amp else None
@@ -249,7 +342,7 @@ def main():
                 continue
 
             if phase_cfg["name"] == "vae_pretrain":
-                model.configure_trainable_modules(
+                unwrap_model(model).configure_trainable_modules(
                     train_vae=bool(phase_cfg.get("train_vae", True)),
                     train_soft_prompt=bool(phase_cfg.get("train_soft_prompt", False)),
                     train_llm=bool(phase_cfg.get("train_llm", False)),
@@ -257,17 +350,48 @@ def main():
             elif phase_cfg["name"] == "joint_caption":
                 set_joint_phase_trainability(model, cfg, phase_cfg)
 
-            phase_batch_size = get_phase_value(train_cfg, phase_cfg, "batch_size", 1)
-            phase_eval_batch_size = get_phase_value(
+            phase_global_batch_size = get_phase_value(train_cfg, phase_cfg, "batch_size", 1)
+            phase_global_eval_batch_size = get_phase_value(
                 train_cfg,
                 phase_cfg,
                 "eval_batch_size",
-                phase_batch_size,
+                phase_global_batch_size,
+            )
+            phase_batch_size = resolve_local_batch_size(
+                phase_global_batch_size,
+                ddp_state,
+                "batch_size",
+            )
+            phase_eval_batch_size = resolve_local_batch_size(
+                phase_global_eval_batch_size,
+                ddp_state,
+                "eval_batch_size",
+            )
+            train_sampler = (
+                DistributedSampler(
+                    train_dataset,
+                    num_replicas=ddp_state["world_size"],
+                    rank=ddp_state["rank"],
+                    shuffle=True,
+                )
+                if ddp_state["enabled"]
+                else None
+            )
+            valid_sampler = (
+                DistributedSampler(
+                    valid_dataset,
+                    num_replicas=ddp_state["world_size"],
+                    rank=ddp_state["rank"],
+                    shuffle=False,
+                )
+                if ddp_state["enabled"]
+                else None
             )
             train_loader = DataLoader(
                 train_dataset,
                 batch_size=phase_batch_size,
-                shuffle=True,
+                shuffle=train_sampler is None,
+                sampler=train_sampler,
                 num_workers=data_cfg.get("num_workers", 0),
                 collate_fn=collator,
                 pin_memory=torch.cuda.is_available(),
@@ -276,6 +400,7 @@ def main():
                 valid_dataset,
                 batch_size=phase_eval_batch_size,
                 shuffle=False,
+                sampler=valid_sampler,
                 num_workers=data_cfg.get("num_workers", 0),
                 collate_fn=collator,
                 pin_memory=torch.cuda.is_available(),
@@ -294,7 +419,10 @@ def main():
             best_val = float("inf")
 
             for epoch in range(1, phase_cfg["num_epochs"] + 1):
+                if train_sampler is not None:
+                    train_sampler.set_epoch(epoch)
                 model.train()
+                base_model = unwrap_model(model)
                 running = {
                     "loss": 0.0,
                     "caption_loss": 0.0,
@@ -304,7 +432,12 @@ def main():
                 }
                 optimizer.zero_grad(set_to_none=True)
 
-                progress = tqdm(train_loader, desc=f"{phase_cfg['name']} epoch {epoch}", leave=False)
+                progress = tqdm(
+                    train_loader,
+                    desc=f"{phase_cfg['name']} epoch {epoch}",
+                    leave=False,
+                    disable=not ddp_state["is_main"],
+                )
                 for step, batch in enumerate(progress, start=1):
                     batch = move_batch_to_device(batch, device)
                     autocast_ctx = (
@@ -312,9 +445,9 @@ def main():
                     )
                     with autocast_ctx:
                         if phase_cfg["name"] == "vae_pretrain":
-                            outputs = model.vae_pretrain_step(ts=batch["ts"])
+                            outputs = base_model.vae_pretrain_step(ts=batch["ts"])
                         elif phase_cfg["name"] == "joint_caption":
-                            outputs = model.joint_caption_step(
+                            outputs = base_model.joint_caption_step(
                                 ts=batch["ts"],
                                 input_ids=batch["input_ids"],
                                 attention_mask=batch["attention_mask"],
@@ -353,45 +486,60 @@ def main():
                     avg_loss = running["loss"] / step
                     progress.set_postfix(loss=f"{avg_loss:.4f}")
 
-                train_metrics = {f"train/{key}": value / len(train_loader) for key, value in running.items()}
-                val_metrics = evaluate(model, valid_loader, device, use_amp, amp_dtype, phase_cfg)
+                train_metrics = {
+                    f"train/{key}": reduce_scalar(
+                        value / len(train_loader),
+                        device=device,
+                        ddp_state=ddp_state,
+                    )
+                    for key, value in running.items()
+                }
+                val_metrics = evaluate(model, valid_loader, device, use_amp, amp_dtype, phase_cfg, ddp_state)
                 val_metrics = {f"valid/{key}": value for key, value in val_metrics.items()}
 
                 merged_metrics = {
                     "phase": phase_cfg["name"],
                     "phase_epoch": epoch,
                     "global_step": global_step,
+                    "global_batch_size": phase_global_batch_size,
+                    "global_eval_batch_size": phase_global_eval_batch_size,
                     "batch_size": phase_batch_size,
                     "eval_batch_size": phase_eval_batch_size,
                     "gradient_accumulation_steps": grad_accum_steps,
                     "lr": scheduler.get_last_lr()[0],
+                    "rank": ddp_state["rank"],
+                    "world_size": ddp_state["world_size"],
                     **train_metrics,
                     **val_metrics,
                 }
-                with open(history_path, "a", encoding="utf-8") as fp:
-                    fp.write(json.dumps(merged_metrics) + "\n")
-                log_to_wandb(wandb_run, merged_metrics)
+                if ddp_state["is_main"]:
+                    with open(history_path, "a", encoding="utf-8") as fp:
+                        fp.write(json.dumps(merged_metrics) + "\n")
+                    log_to_wandb(wandb_run, merged_metrics)
 
-                ckpt = {
-                    "model": model.state_dict(),
-                    "optimizer": optimizer.state_dict(),
-                    "scheduler": scheduler.state_dict(),
-                    "phase": phase_cfg["name"],
-                    "phase_epoch": epoch,
-                    "global_step": global_step,
-                    "config": cfg,
-                }
-                torch.save(ckpt, os.path.join(cfg["output_dir"], f"{phase_cfg['name']}_latest.pt"))
+                    ckpt = {
+                        "model": unwrap_model(model).state_dict(),
+                        "optimizer": optimizer.state_dict(),
+                        "scheduler": scheduler.state_dict(),
+                        "phase": phase_cfg["name"],
+                        "phase_epoch": epoch,
+                        "global_step": global_step,
+                        "config": cfg,
+                    }
+                    torch.save(ckpt, os.path.join(cfg["output_dir"], f"{phase_cfg['name']}_latest.pt"))
 
-                current_val = val_metrics["valid/loss"]
-                if current_val < best_val:
-                    best_val = current_val
-                    torch.save(ckpt, os.path.join(cfg["output_dir"], f"{phase_cfg['name']}_best.pt"))
+                    current_val = val_metrics["valid/loss"]
+                    if current_val < best_val:
+                        best_val = current_val
+                        torch.save(ckpt, os.path.join(cfg["output_dir"], f"{phase_cfg['name']}_best.pt"))
 
-                print(json.dumps(merged_metrics, indent=2))
+                    print(json.dumps(merged_metrics, indent=2))
+                if ddp_state["enabled"]:
+                    dist.barrier()
     finally:
         if wandb_run is not None:
             wandb_run.finish()
+        cleanup_distributed(ddp_state)
 
 
 if __name__ == "__main__":
