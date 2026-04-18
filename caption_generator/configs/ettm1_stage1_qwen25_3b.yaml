@@ -2,6 +2,16 @@ seed: 42
 device: auto
 output_dir: ./logs/caption_generator/ettm1_stage1_qwen25_3b
 
+wandb:
+  enabled: true
+  project: caption_generator
+  entity:
+  name: ettm1_stage1_qwen25_3b
+  tags: [stage1, ettm1, qwen25-3b]
+  notes:
+  mode: online
+  resume: allow
+
 data:
   dataset_root: ../data/VerbalTSDatasets/ETTm1
   prompt_template: Generate caption for the following time series.
