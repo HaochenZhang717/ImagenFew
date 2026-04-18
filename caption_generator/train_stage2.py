@@ -3,6 +3,7 @@ import json
 import math
 import os
 import random
+import time
 import traceback
 from copy import deepcopy
 from typing import Dict, Optional
@@ -658,6 +659,7 @@ def main():
     try:
         for epoch in range(1, cfg["training"]["num_epochs"] + 1):
             rank0_print(ddp_state, f"[stage2] starting epoch {epoch}/{cfg['training']['num_epochs']}")
+            epoch_start_time = time.perf_counter()
             if train_sampler is not None:
                 train_sampler.set_epoch(epoch)
             model.train()
@@ -701,6 +703,13 @@ def main():
                 "valid/loss": valid_metrics["loss"],
                 "valid_ema/loss": ema_valid_metrics["loss"],
             }
+            epoch_duration_seconds = reduce_scalar(
+                time.perf_counter() - epoch_start_time,
+                device=device,
+                ddp_state=ddp_state,
+            )
+            metrics["timing/epoch_seconds"] = epoch_duration_seconds
+            metrics["timing/epoch_minutes"] = epoch_duration_seconds / 60.0
 
             if ddp_state["is_main"]:
                 with open(history_path, "a", encoding="utf-8") as fp:

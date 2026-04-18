@@ -48,9 +48,9 @@ transport:
 
 training:
   ddp: false
-  num_epochs: 1000
-  batch_size: 512
-  eval_batch_size: 512
+  num_epochs: 2000
+  batch_size: 1024
+  eval_batch_size: 1024
   learning_rate: 3.0e-4
   weight_decay: 1e-5
   warmup_ratio: 0.03
@@ -59,7 +59,7 @@ training:
   ema_warmup_steps: 100
 
 sampling:
-  sample_every_epochs: 5
+  sample_every_epochs: 100
   num_decode_samples: 8
   ode_method: dopri5
   ode_num_steps: 50
