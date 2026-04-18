@@ -440,10 +440,14 @@ def decode_sampled_latents(
         add_special_tokens=True,
     )
     tokenized = {k: v.to(device) for k, v in tokenized.items()}
-    caption_latent = sampled_latents.to(device)
+    llm_embed_module = decoder.llm.get_input_embeddings()
+    llm_embed_dtype = llm_embed_module.weight.dtype
+    caption_latent = sampled_latents.to(device=device, dtype=decoder.soft_prompt.positional.dtype)
     soft_prompt_embeds = decoder.soft_prompt(caption_latent)
-    token_embeds = decoder.llm.get_input_embeddings()(tokenized["input_ids"])
-    inputs_embeds = torch.cat([soft_prompt_embeds, token_embeds], dim=1)
+    token_embeds = llm_embed_module(tokenized["input_ids"])
+    soft_prompt_embeds = soft_prompt_embeds.to(dtype=llm_embed_dtype)
+    token_embeds = token_embeds.to(dtype=llm_embed_dtype)
+    inputs_embeds = torch.cat([soft_prompt_embeds, token_embeds], dim=1).to(dtype=llm_embed_dtype)
     prefix_mask = torch.ones(
         tokenized["attention_mask"].size(0),
         decoder.soft_prompt_tokens,
