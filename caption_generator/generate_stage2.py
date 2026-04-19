@@ -12,8 +12,8 @@ from torch import Tensor
 from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
 
-from caption_generator.stage1_dataset import load_split_arrays
-from caption_generator.train_stage2 import (
+from stage1_dataset import load_split_arrays
+from train_stage2 import (
     build_backbone,
     build_stage1_decoder,
     build_transport_and_sampler,
