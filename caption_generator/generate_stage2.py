@@ -92,6 +92,11 @@ def set_seed(seed: int) -> None:
 def resolve_config(args, checkpoint: Dict) -> Dict:
     if args.config is not None:
         cfg = OmegaConf.load(args.config)
+        if "config" in checkpoint:
+            checkpoint_cfg = to_plain_dict(OmegaConf.create(checkpoint["config"]))
+            for key in ("seq_len", "token_dim"):
+                if "diffusion_model" in checkpoint_cfg and key in checkpoint_cfg["diffusion_model"]:
+                    cfg.diffusion_model[key] = checkpoint_cfg["diffusion_model"][key]
     elif "config" in checkpoint:
         cfg = OmegaConf.create(checkpoint["config"])
     else:
@@ -105,6 +110,15 @@ def resolve_config(args, checkpoint: Dict) -> Dict:
         cfg["sampling"]["num_decode_samples"] = args.num_samples
 
     return cfg
+
+
+def align_diffusion_shape_from_checkpoint(cfg: Dict, checkpoint: Dict) -> None:
+    state_dict = checkpoint.get("ema") or checkpoint["model"]
+    if "pos_embed" in state_dict:
+        cfg["diffusion_model"]["seq_len"] = int(state_dict["pos_embed"].shape[1])
+
+    if "x_embedder.proj.weight" in state_dict:
+        cfg["diffusion_model"]["token_dim"] = int(state_dict["x_embedder.proj.weight"].shape[1])
 
 
 def resolve_device(cfg: Dict) -> torch.device:
@@ -256,6 +270,7 @@ def main():
     args = parse_args()
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
     cfg = resolve_config(args, checkpoint)
+    align_diffusion_shape_from_checkpoint(cfg, checkpoint)
     device = resolve_device(cfg)
     set_seed(args.seed)
 
