@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=caption_stage2_ettm1
+#SBATCH --job-name=caption_stage1
 #SBATCH --partition=all
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -44,34 +44,53 @@ export HF_HOME="${HF_HOME:-/playpen-shared/haochenz/hf_cache}"
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
 
-CONFIG="${CONFIG:-configs/ettm1_stage2_diffusion_prior.yaml}"
+DATASET="${DATASET:-ettm1}"
 NPROC_PER_NODE="${NPROC_PER_NODE:-4}"
-MASTER_PORT="${MASTER_PORT:-29688}"
-STAGE1_CONFIG_PATH="${STAGE1_CONFIG_PATH:-./configs/ettm1_stage1_qwen25_3b.yaml}"
-STAGE1_CKPT_PATH="${STAGE1_CKPT_PATH:-/playpen-shared/haochenz/ImagenFew/caption_generator/logs/caption_generator/ettm1_stage1_qwen25_3b/joint_caption_best.pt}"
 
-echo "Running caption Stage 2 ETTm1 on host $(hostname)"
+case "${DATASET}" in
+  ettm1)
+    CONFIG="${CONFIG:-configs/ettm1_stage1_qwen25_3b.yaml}"
+    ;;
+  istanbul|istanbul_traffic)
+    DATASET="istanbul"
+    CONFIG="${CONFIG:-configs/istanbul_stage1_qwen25_3b.yaml}"
+    ;;
+  synthetic_u)
+    CONFIG="${CONFIG:-configs/synthetic_u_stage1_qwen25_3b.yaml}"
+    ;;
+  synthetic_m)
+    CONFIG="${CONFIG:-configs/synthetic_m_stage1_qwen25_3b.yaml}"
+    ;;
+  blindways|BlindWays)
+    DATASET="blindways"
+    CONFIG="${CONFIG:-configs/blindways_stage1_qwen25_3b.yaml}"
+    ;;
+  weather|Weather)
+    DATASET="weather"
+    CONFIG="${CONFIG:-configs/weather_stage1_qwen25_3b.yaml}"
+    ;;
+  *)
+    echo "Unsupported DATASET=${DATASET}" >&2
+    exit 1
+    ;;
+esac
+
+echo "Running caption Stage 1 for dataset ${DATASET} on host $(hostname)"
 echo "SLURM_JOB_ID=${SLURM_JOB_ID:-}"
 echo "WORK_DIR=$WORK_DIR"
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<managed by slurm>}"
 echo "CONFIG=$CONFIG"
 echo "NPROC_PER_NODE=$NPROC_PER_NODE"
-echo "MASTER_PORT=$MASTER_PORT"
-echo "STAGE1_CONFIG_PATH=$STAGE1_CONFIG_PATH"
-echo "STAGE1_CKPT_PATH=$STAGE1_CKPT_PATH"
 echo "HF_HOME=$HF_HOME"
 
 CMD=(
   torchrun
   --standalone
   --nproc_per_node="$NPROC_PER_NODE"
-  --master_port="$MASTER_PORT"
-  "$WORK_DIR/train_stage2.py"
+  "$WORK_DIR/train_stage1.py"
   --config "$CONFIG"
   --override
   training.ddp=true
-  "stage1.config_path=$STAGE1_CONFIG_PATH"
-  "stage1.checkpoint_path=$STAGE1_CKPT_PATH"
 )
 
 if [[ "$#" -gt 0 ]]; then

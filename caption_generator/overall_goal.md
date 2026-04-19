@@ -185,9 +185,9 @@ p_\theta(z_{t-1} | z_t)
 
 Training objective:
 
-\[
+$$
 \mathcal{L}_{diff} = \mathbb{E}_{z_0, t, \epsilon} \left[ \| \epsilon - \epsilon_\theta(z_t, t) \|^2 \right]
-\]
+$$
 
 where:
 - \( z_0 \): latent from VAE encoder
@@ -252,21 +252,7 @@ Given a time series \( x \):
 
 - **Latent variable as interface** between time series and language
 - **Soft prompt conditioning** via projected latent embeddings
-- **Natural language prompt conditioning** for controllability
 - **Diffusion prior** to model dataset-level latent distribution
-- **Two-phase Stage 1 training**: reconstruction pretraining followed by joint caption alignment
-
----
-
-## Potential Extensions
-
-- Use sequence latent instead of a single vector
-- Replace VAE with hierarchical latent models
-- Add conditional diffusion for controlled generation
-- Learn prompt tuning jointly with latent projection
-- Explore different prompt templates for better alignment
-
----
 
 ## Summary
 

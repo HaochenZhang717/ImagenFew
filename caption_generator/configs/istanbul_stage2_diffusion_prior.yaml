@@ -1,23 +1,23 @@
 seed: 42
 device: auto
-output_dir: ./logs/caption_generator/ettm1_stage2_diffusion_prior
+output_dir: ./logs/caption_generator/istanbul_stage2_diffusion_prior
 
 wandb:
   enabled: true
   project: caption_generator_stage2
   entity:
-  name: ettm1_stage2_diffusion_prior
-  tags: [stage2, ettm1, diffusion-prior]
+  name: istanbul_stage2_diffusion_prior
+  tags: [stage2, istanbul, diffusion-prior]
   notes:
   mode: online
   resume: allow
 
 stage1:
-  config_path: ./configs/ettm1_stage1_qwen25_3b.yaml
-  checkpoint_path: ./logs/caption_generator/ettm1_stage1_qwen25_3b/joint_caption_best.pt
+  config_path: ./configs/istanbul_stage1_qwen25_3b.yaml
+  checkpoint_path: ./logs/caption_generator/istanbul_stage1_qwen25_3b/joint_caption_best.pt
 
 data:
-  dataset_root: ../data/VerbalTSDatasets/ETTm1
+  dataset_root: ../data/VerbalTSDatasets/istanbul_traffic
   eval_split: valid
   latent_source: mu
   encode_batch_size: 128
@@ -27,7 +27,7 @@ data:
 
 diffusion_model:
   name: dit1d
-  seq_len: 30
+  seq_len: 36
   token_dim: 64
   kwargs:
     hidden_size: 512
