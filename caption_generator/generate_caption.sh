@@ -1,3 +1,6 @@
+
+export HF_HOME="${HF_HOME:-/playpen-shared/haochenz/hf_cache}"
+
 python generate_stage2.py \
   --checkpoint ./logs/caption_generator/ettm1_stage2_diffusion_prior/stage2_best.pt \
   --config ./configs/ettm1_stage2_diffusion_prior.yaml \
