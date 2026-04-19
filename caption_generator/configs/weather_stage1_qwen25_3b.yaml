@@ -69,7 +69,7 @@ training:
     train_llm: true
   phases:
     - name: vae_pretrain
-      num_epochs: 200
+      num_epochs: 50
       batch_size: 128
       eval_batch_size: 128
       gradient_accumulation_steps: 1
