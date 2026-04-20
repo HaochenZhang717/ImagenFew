@@ -88,8 +88,8 @@ printf '  %s\n' "${DATASETS[@]}"
 
 for dataset in "${DATASETS[@]}"; do
   generated_path="../data/VerbalTSDatasets/${dataset}/generated_text_caps.npy"
-  real_path="$../data/VerbalTSDatasets/${dataset}/test_text_caps.npy"
-  output_dir="$./visuals/${dataset}"
+  real_path="../data/VerbalTSDatasets/${dataset}/test_text_caps.npy"
+  output_dir="./visuals/${dataset}"
   mkdir -p output_dir
   CMD=(
     python "visualize_caption_embedding_distribution.py"
