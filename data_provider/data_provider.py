@@ -114,6 +114,14 @@ def random_subset(dataset, subset_p=None, subset_n=None):
     indices = torch.arange(0, num_samples, dtype=int) % len(dataset)
     return Subset(dataset, indices)
 
+
+def _has_effective_subset(subset_p=None, subset_n=None, dataset_len=None):
+    if subset_n is not None:
+        return dataset_len is None or int(subset_n) < int(dataset_len)
+    if subset_p is not None:
+        return float(subset_p) < 1.0
+    return False
+
 def data_provider(args):
 
     trainsets = {}
@@ -135,7 +143,7 @@ def data_provider(args):
 
         # Randomly permute train/testsets
         trainset, testset = random_permute(trainset, testset)
-        if (subset_n is not None or subset_p is not None) and (not 'subset_n' in config.keys()):
+        if _has_effective_subset(subset_p, subset_n, len(trainset)) and (not 'subset_n' in config.keys()):
             trainset, testset = random_subset(trainset, subset_p, subset_n), trainset
         trainset, testset = dataset_to_tensor(trainset, args), dataset_to_tensor(testset, args)
         trainset = _attach_verbalts_context(args, config, "train", trainset)
