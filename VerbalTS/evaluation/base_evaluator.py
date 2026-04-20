@@ -121,7 +121,7 @@ class BaseEvaluator:
         self.dataset = dataset
         folder = self.dataset.configs['folder']
         self.long_clip_embeds_test = torch.load(
-            os.path.join(folder, f"generated_embeds_long_clip.pt"),
+            os.path.join(folder, f"test_embeds_long_clip.pt"),
             map_location="cuda"
         )
 
