@@ -12,14 +12,21 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-
 if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
   WORK_DIR="$SLURM_SUBMIT_DIR"
 else
-  WORK_DIR="$ROOT_DIR"
+  WORK_DIR="$(pwd)"
 fi
+
+if [[ -d "$WORK_DIR/caption_generator" && -d "$WORK_DIR/scripts" ]]; then
+  ROOT_DIR="$WORK_DIR"
+elif [[ "$(basename "$WORK_DIR")" == "caption_generator" && -d "$WORK_DIR/../scripts" ]]; then
+  ROOT_DIR="$(cd "$WORK_DIR/.." && pwd)"
+else
+  echo "Could not infer project root from WORK_DIR=$WORK_DIR" >&2
+  exit 1
+fi
+
 cd "$WORK_DIR"
 mkdir -p /playpen-shared/haochenz/logs/slurm
 
@@ -80,12 +87,12 @@ echo "DATASETS:"
 printf '  %s\n' "${DATASETS[@]}"
 
 for dataset in "${DATASETS[@]}"; do
-  generated_path="$ROOT_DIR/data/VerbalTSDatasets/${dataset}/generated_text_caps.npy"
-  real_path="$ROOT_DIR/data/VerbalTSDatasets/${dataset}/test_text_caps.npy"
-  output_dir="$ROOT_DIR/visuals/${dataset}"
-
+  generated_path="../data/VerbalTSDatasets/${dataset}/generated_text_caps.npy"
+  real_path="$../data/VerbalTSDatasets/${dataset}/test_text_caps.npy"
+  output_dir="$./visuals/${dataset}"
+  mkdir -p output_dir
   CMD=(
-    python "$ROOT_DIR/scripts/visualize_caption_embedding_distribution.py"
+    python "visualize_caption_embedding_distribution.py"
     --generated-path "$generated_path"
     --real-path "$real_path"
     --output-dir "$output_dir"
