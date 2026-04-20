@@ -174,7 +174,7 @@ logs/
 *.csv
 results/
 wandb/
-visuals/
+#visuals/
 vae_vis/
 ImagenFew_ckpts/
 *.tar
