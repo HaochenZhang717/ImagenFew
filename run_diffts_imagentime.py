@@ -18,6 +18,14 @@ from data_provider.combined_datasets import dataset_list
 from importlib import import_module
 
 
+def _extract_real_tensor(dataset):
+    if hasattr(dataset, "tensors"):
+        return dataset.tensors[0]
+    if isinstance(dataset, (tuple, list)):
+        return dataset[0]
+    return dataset
+
+
 def main(args):
     # Set up basic attributes
     args.finetune = not args.pretrain
@@ -84,12 +92,15 @@ def main(args):
                         testset, class_label = dataset_loader.gen_dataloader(dataset)
                         if args.subset_n is not None:
                             eval_n = min(int(args.subset_n), len(testset))
-                            testset = testset[:eval_n]
+                            if hasattr(testset, "tensors"):
+                                testset = type(testset)(*(tensor[:eval_n] for tensor in testset.tensors))
+                            else:
+                                testset = testset[:eval_n]
                         handler.model.eval()
                         with torch.no_grad():
-                            generated_set = handler.sample(len(testset), class_label, metadatas[dataset])
+                            generated_set = handler.sample(len(testset), class_label, metadatas[dataset], testset)
                         generated_set = generated_set.cpu().detach().numpy()
-                        real_set = testset.cpu().detach().numpy()
+                        real_set = _extract_real_tensor(testset).cpu().detach().numpy()
                         scores = evaluate_model_uncond(real_set, generated_set, dataset, args.device, args.eval_metrics,
                                                        base_path=args.ts2vec_dir)
                         scores_mean['disc_mean'].append(scores[f'disc_mean'])

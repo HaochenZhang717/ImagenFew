@@ -9,6 +9,7 @@ import torch
 import logging
 import numpy as np
 from torchdiffeq import odeint
+from torch.utils.data import TensorDataset
 
 from diffusion_prior.models import DiT1D
 from diffusion_prior.models.transport import Sampler, create_transport
@@ -17,7 +18,10 @@ from diffusion_prior.models.transport import Sampler, create_transport
 class Handler(generativeHandler):
 
     def __init__(self, args, rank=None):
+        self.use_precomputed_context = bool(getattr(args, "use_precomputed_context", False))
         if getattr(args, "context_dim", None) is None:
+            if self.use_precomputed_context:
+                raise ValueError("Unable to infer context_dim for precomputed context. Please set args.context_dim before building the handler.")
             z_channels = getattr(args, "z_channels", None)
             if z_channels is None:
                 z_channels = getattr(args, "latent_channels", None)
@@ -31,7 +35,7 @@ class Handler(generativeHandler):
 
         super().__init__(args, rank)
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.args.learning_rate, weight_decay=self.args.weight_decay)
-        self.pretrained_vae = DualVAE(**args.multi_scale_vae).to(self.args.device)
+        self.pretrained_vae = None
         self.resume_epoch = 0
         self.best_score = float("inf")
         self._prior_model = None
@@ -43,12 +47,14 @@ class Handler(generativeHandler):
         self._prior_transport = None
         self._prior_sampler = None
 
-        pretrained_vae_weights = torch.load(args.pretrained_vae_weights, map_location="cpu")
-        self.pretrained_vae.load_state_dict(pretrained_vae_weights['model'])
-        print("loaded pretrained VAE weights from {}".format(args.pretrained_vae_weights))
-        for param in self.pretrained_vae.parameters():
-            param.requires_grad = False
-        self.pretrained_vae.eval()
+        if not self.use_precomputed_context:
+            self.pretrained_vae = DualVAE(**args.multi_scale_vae).to(self.args.device)
+            pretrained_vae_weights = torch.load(args.pretrained_vae_weights, map_location="cpu")
+            self.pretrained_vae.load_state_dict(pretrained_vae_weights['model'])
+            print("loaded pretrained VAE weights from {}".format(args.pretrained_vae_weights))
+            for param in self.pretrained_vae.parameters():
+                param.requires_grad = False
+            self.pretrained_vae.eval()
 
         if not self.args.finetune:
             self._load_optimizer_state(self.args.model_ckpt, self.args.device)
@@ -72,10 +78,9 @@ class Handler(generativeHandler):
         for _, data in enumerate(train_dataloader, 1):
             self.optimizer.zero_grad()
 
-            # Time series & mask
-            # x_ts = data[0].to(self.args.device)
-            x_ts = data[0].to(self.args.device, dtype=torch.float32)
-            context = self._encode_context(x_ts)
+            x_ts, context_source, _ = self._split_train_batch(data)
+            x_ts = x_ts.to(self.args.device, dtype=torch.float32)
+            context = self._prepare_sample_context(context_source) if context_source is not None else self._encode_context(x_ts)
             x_ts_mask = torch.zeros_like(x_ts)
 
             # Convert time series & mask to image
@@ -123,7 +128,8 @@ class Handler(generativeHandler):
             self.process = DiffusionProcess(self.args, self._model.net, (class_metadata['channels'], self.args.img_resolution, self.args.img_resolution))
             if test_data is None:
                 raise ValueError("test_data must be provided for posterior sampling.")
-            context_bank = self._prepare_sample_context(test_data)
+            _, context_source = self._split_condition_data(test_data)
+            context_bank = self._prepare_sample_context(context_source)
             for sample_size in [min(self.args.batch_size, n_samples - i) for i in range(0, n_samples, self.args.batch_size)]:
                 indices = torch.randperm(context_bank.shape[0], device=context_bank.device)[:sample_size]
                 batch_context = context_bank[indices]
@@ -238,14 +244,46 @@ class Handler(generativeHandler):
             random.setstate(loaded_state['python_rng_state'])
 
     def _encode_context(self, x_ts):
+        if self.pretrained_vae is None:
+            raise ValueError("No pretrained VAE is available. Provide precomputed context embeddings instead.")
         with torch.no_grad():
             z_low_freq, z_mid_freq, z_high_freq = self.pretrained_vae.ts_to_z(x_ts, sample=False)
         context = torch.cat([z_low_freq, z_mid_freq, z_high_freq], dim=-1).permute(0, 2, 1).contiguous()
         return context.to(self.args.device, dtype=torch.float32)
 
+    def _split_train_batch(self, data):
+        sample = data[0]
+        class_labels = data[1] if isinstance(data, (tuple, list)) and len(data) > 1 else None
+
+        if isinstance(sample, (tuple, list)):
+            x_ts = sample[0]
+            context_source = sample[1] if len(sample) > 1 else None
+        else:
+            x_ts = sample
+            context_source = None
+        return x_ts, context_source, class_labels
+
+    def _split_condition_data(self, condition_data):
+        if isinstance(condition_data, TensorDataset):
+            tensors = condition_data.tensors
+            return tensors[0], tensors[1] if len(tensors) > 1 else None
+        if isinstance(condition_data, (tuple, list)):
+            x_ts = condition_data[0]
+            context_source = condition_data[1] if len(condition_data) > 1 else None
+            return x_ts, context_source
+        if torch.is_tensor(condition_data):
+            return condition_data, None
+        raise TypeError(
+            "Expected condition data to be a TensorDataset, a tensor, or a tuple/list of "
+            "(time_series, context_embeddings)."
+        )
+
     def _prepare_sample_context(self, context_source):
         if context_source is None:
             return None
+
+        if isinstance(context_source, TensorDataset):
+            context_source = context_source.tensors[-1]
 
         if not torch.is_tensor(context_source):
             raise TypeError(

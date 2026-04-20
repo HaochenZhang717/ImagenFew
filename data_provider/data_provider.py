@@ -4,6 +4,67 @@ from torch.utils.data import DataLoader, Subset, TensorDataset
 from .multi_dataloader_iter import MultiDataloaderIter
 import functools
 import torch
+import os
+
+
+def _get_primary_tensor(dataset):
+    return dataset.tensors[0] if isinstance(dataset, TensorDataset) else dataset
+
+
+def _replace_primary_tensor(dataset, primary_tensor):
+    if isinstance(dataset, TensorDataset):
+        return TensorDataset(primary_tensor, *dataset.tensors[1:])
+    return primary_tensor
+
+
+def _load_context_embeddings(path):
+    embeds = torch.load(path, map_location="cpu", weights_only=False)
+    if isinstance(embeds, dict):
+        if "embeddings" in embeds:
+            embeds = embeds["embeddings"]
+        else:
+            raise ValueError(f"Expected embedding dict at {path} to contain 'embeddings'.")
+    if not torch.is_tensor(embeds):
+        raise TypeError(f"Expected torch.Tensor embeddings at {path}, got {type(embeds)}")
+    if embeds.ndim != 3:
+        raise ValueError(f"Expected embeddings with shape (N, L, D), got {tuple(embeds.shape)} at {path}")
+    return embeds.to(torch.float32)
+
+
+def _should_load_verbalts_context(args, config):
+    handler = str(getattr(args, "handler", ""))
+    explicit = bool(getattr(args, "load_long_clip_context", False))
+    return config.get("data") == "verbal_ts" and (
+        explicit
+        or "ImagenFewCrossAttention" in handler
+        or "ImagenTimeVectorCond" in handler
+    )
+
+
+def _attach_verbalts_context(args, config, split, dataset):
+    if not _should_load_verbalts_context(args, config):
+        return dataset
+    args.use_precomputed_context = True
+
+    dataset_dir = os.path.join(config["datasets_dir"], config["rel_path"])
+    embeds_path = os.path.join(dataset_dir, f"{split}_embeds_long_clip.pt")
+    if not os.path.exists(embeds_path):
+        raise FileNotFoundError(
+            f"Expected long-clip embeddings for split '{split}' at {embeds_path}."
+        )
+
+    embeds = _load_context_embeddings(embeds_path)
+    primary_tensor = _get_primary_tensor(dataset)
+    if len(primary_tensor) != len(embeds):
+        raise ValueError(
+            f"Split '{split}' time-series count ({len(primary_tensor)}) does not match "
+            f"embedding count ({len(embeds)}) for dataset {config['name']}."
+        )
+
+    if getattr(args, "context_dim", None) is None:
+        args.context_dim = int(embeds.shape[-1])
+
+    return TensorDataset(primary_tensor, embeds)
 
 data_dict = {
     'ETTh1': ETTh,
@@ -68,6 +129,8 @@ def data_provider(args):
         if (subset_n is not None or subset_p is not None) and (not 'subset_n' in config.keys()):
             trainset, testset = random_subset(trainset, subset_p, subset_n), trainset
         trainset, testset = dataset_to_tensor(trainset, args), dataset_to_tensor(testset, args)
+        trainset = _attach_verbalts_context(args, config, "train", trainset)
+        testset = _attach_verbalts_context(args, config, "test", testset)
 
         caption_embeddings_path = getattr(args, "caption_embeddings_path", None)
         if caption_embeddings_path and config["name"] in args.train_on_datasets:
@@ -88,23 +151,35 @@ def data_provider(args):
             trainset = TensorDataset(trainset, caption_embeddings.to(torch.float32))
 
         if args.finetune:
-            train_seq_tensor = trainset.tensors[0] if isinstance(trainset, TensorDataset) else trainset
+            train_seq_tensor = _get_primary_tensor(trainset)
             assert train_seq_tensor.size(1) == args.seq_len, f"{config['name']} Does not output proper sequence length"
         else:
-            train_seq_tensor = trainset.tensors[0] if isinstance(trainset, TensorDataset) else trainset
+            train_seq_tensor = _get_primary_tensor(trainset)
             if train_seq_tensor.size(1) != args.seq_len:
                 train_seq_tensor = torch.nn.functional.pad(train_seq_tensor, (0, 0, 0, args.seq_len - train_seq_tensor.size(1)))
-                if isinstance(trainset, TensorDataset):
-                    trainset = TensorDataset(train_seq_tensor, trainset.tensors[1])
-                else:
-                    trainset = train_seq_tensor
+                trainset = _replace_primary_tensor(trainset, train_seq_tensor)
         print(f"{config['name']} Contains: {len(trainset)} train datapoints; {len(testset)} test datapoints;")
 
         metadata['name'] = config['name']
-        metadata['channels'] = (trainset.tensors[0] if isinstance(trainset, TensorDataset) else trainset).size(-1)
+        metadata['channels'] = _get_primary_tensor(trainset).size(-1)
+        if isinstance(trainset, TensorDataset) and len(trainset.tensors) > 1:
+            metadata['context_dim'] = int(trainset.tensors[1].shape[-1])
 
         if args.input_channels is not None:
-            trainset = torch.nn.functional.pad(trainset, (0, args.input_channels - trainset.size(2), 0, 0))
+            train_primary = _get_primary_tensor(trainset)
+            if train_primary.size(2) < args.input_channels:
+                train_primary = torch.nn.functional.pad(
+                    train_primary,
+                    (0, args.input_channels - train_primary.size(2), 0, 0),
+                )
+                trainset = _replace_primary_tensor(trainset, train_primary)
+            test_primary = _get_primary_tensor(testset)
+            if test_primary.size(2) < args.input_channels:
+                test_primary = torch.nn.functional.pad(
+                    test_primary,
+                    (0, args.input_channels - test_primary.size(2), 0, 0),
+                )
+                testset = _replace_primary_tensor(testset, test_primary)
 
         if config['name'] in args.train_on_datasets:
             trainsets[config['name']] = trainset

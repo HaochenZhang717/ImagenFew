@@ -17,6 +17,14 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 from data_provider.combined_datasets import dataset_list
 from importlib import import_module
 
+
+def _extract_real_tensor(dataset):
+    if hasattr(dataset, "tensors"):
+        return dataset.tensors[0]
+    if isinstance(dataset, (tuple, list)):
+        return dataset[0]
+    return dataset
+
 def main(args):
     # Set up basic attributes
     args.finetune = not args.pretrain
@@ -87,7 +95,7 @@ def main(args):
 
                         with torch.no_grad():
                             generated_sets = handler.sample_variants(len(testset), class_label, metadatas[dataset], testset)
-                        real_set = testset.cpu().detach().numpy()
+                        real_set = _extract_real_tensor(testset).cpu().detach().numpy()
                         for variant_name, generated_set in generated_sets.items():
                             if variant_name not in scores_mean:
                                 scores_mean[variant_name] = {
