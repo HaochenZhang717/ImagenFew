@@ -54,12 +54,14 @@ export HF_HOME="${HF_HOME:-/playpen-shared/haochenz/hf_cache}"
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
 export SCHEDULER="${SCHEDULER:-MULTISTEP}"
+export WANDB_NAME="${WANDB_NAME:-istanbul_traffic_text2ts_msmdiffmv}"
 
 echo "Running VerbalTS istanbul_traffic training on host $(hostname)"
 echo "SLURM_JOB_ID=${SLURM_JOB_ID:-}"
 echo "WORK_DIR=$WORK_DIR"
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<managed by slurm>}"
 echo "CONDA_ENV=${CONDA_ENV:-<none>}"
+echo "WANDB_NAME=$WANDB_NAME"
 
 CMD=(
   python run.py
@@ -76,7 +78,7 @@ CMD=(
   --L_patch_len 3
   --base_patch 4
   --epochs 700
-  --batch_size 512
+  --batch_size 128
   --clip_cache_path ""
 )
 
