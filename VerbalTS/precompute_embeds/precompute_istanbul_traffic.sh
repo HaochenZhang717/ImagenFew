@@ -16,37 +16,48 @@ mkdir -p $SAVE_ROOT
 
 echo "Start precomputing LongClip embeddings..."
 
-# =========================
-# TRAIN
-# =========================
+## =========================
+## TRAIN
+## =========================
+#python $SCRIPT_PATH \
+#    --caps_path $CAPS_PATH \
+#    --save_path $SAVE_ROOT/train_embeds_long_clip.pt \
+#    --npy_name ${NPY_NAME} \
+#    --split train \
+#    --batch_size $BATCH_SIZE \
+#    --device $DEVICE
+#
+## =========================
+## VAL
+## =========================
+#python $SCRIPT_PATH \
+#    --caps_path $CAPS_PATH \
+#    --save_path $SAVE_ROOT/valid_embeds_long_clip.pt \
+#    --npy_name ${NPY_NAME} \
+#    --split valid \
+#    --batch_size $BATCH_SIZE \
+#    --device $DEVICE
+#
+## =========================
+## TEST
+## =========================
+#python $SCRIPT_PATH \
+#    --caps_path $CAPS_PATH \
+#    --save_path $SAVE_ROOT/test_embeds_long_clip.pt \
+#    --npy_name ${NPY_NAME} \
+#    --split test \
+#    --batch_size $BATCH_SIZE \
+#    --device $DEVICE
+
+
 python $SCRIPT_PATH \
     --caps_path $CAPS_PATH \
-    --save_path $SAVE_ROOT/train_embeds_long_clip.pt \
+    --save_path $SAVE_ROOT/generated_embeds_long_clip.pt \
     --npy_name ${NPY_NAME} \
-    --split train \
+    --split generated \
     --batch_size $BATCH_SIZE \
     --device $DEVICE
 
-# =========================
-# VAL
-# =========================
-python $SCRIPT_PATH \
-    --caps_path $CAPS_PATH \
-    --save_path $SAVE_ROOT/valid_embeds_long_clip.pt \
-    --npy_name ${NPY_NAME} \
-    --split valid \
-    --batch_size $BATCH_SIZE \
-    --device $DEVICE
 
-# =========================
-# TEST
-# =========================
-python $SCRIPT_PATH \
-    --caps_path $CAPS_PATH \
-    --save_path $SAVE_ROOT/test_embeds_long_clip.pt \
-    --npy_name ${NPY_NAME} \
-    --split test \
-    --batch_size $BATCH_SIZE \
-    --device $DEVICE
 
 echo "Done!"

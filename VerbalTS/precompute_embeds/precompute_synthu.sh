@@ -49,4 +49,12 @@ python $SCRIPT_PATH \
     --batch_size $BATCH_SIZE \
     --device $DEVICE
 
+python $SCRIPT_PATH \
+    --caps_path $CAPS_PATH \
+    --save_path $SAVE_ROOT/generated_embeds_long_clip.pt \
+    --npy_name ${NPY_NAME} \
+    --split generated \
+    --batch_size $BATCH_SIZE \
+    --device $DEVICE
+
 echo "Done!"
