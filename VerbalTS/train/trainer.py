@@ -143,7 +143,7 @@ class Trainer:
     def evaluate(self, epoch_no):
         self.ema_model.eval()
         self.evaluator.model = self.ema_model
-        self.evaluator.n_samples = 10
+        self.evaluator.n_samples = 1
         _, samples = self.evaluator.evaluate(mode="cond_gen", sampler="ddim", save_pred=False)
 
         real_set = samples["real_ts"].detach().cpu().numpy()
