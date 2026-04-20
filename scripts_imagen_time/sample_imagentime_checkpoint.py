@@ -12,7 +12,7 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from data_provider.combined_datasets import dataset_list
-from data_provider.data_provider import dataset_to_tensor, get_test, get_train
+from data_provider.data_provider import data_provider, dataset_to_tensor, get_test, get_train
 from utils.utils_args import parse_args_uncond
 
 
@@ -87,17 +87,24 @@ def main():
 
     dataset_name = resolve_dataset_name(args, cli_args.dataset)
     args.model_ckpt = cli_args.model_ckpt
+    args.dataset = dataset_name
     if cli_args.batch_size is not None:
         args.batch_size = cli_args.batch_size
 
     torch.manual_seed(cli_args.seed)
     np.random.seed(cli_args.seed)
 
+    # Align sampling-time argument initialization with the training entrypoint.
+    # In particular, this populates args.input_channels from the dataset metadata.
+    _, _, _, metadatas = data_provider(args)
+    if dataset_name not in metadatas:
+        raise ValueError(f"Dataset {dataset_name} was not prepared by data_provider.")
+
     ref_tensor = build_split_tensor(args, dataset_name, cli_args.split)
     ref_tensor = ref_tensor.detach().cpu()
     sample_count = cli_args.num_samples if cli_args.num_samples is not None else len(ref_tensor)
     class_label = dataset_list.index(dataset_name)
-    class_metadata = {"name": dataset_name, "channels": int(ref_tensor.shape[-1])}
+    class_metadata = dict(metadatas[dataset_name])
 
     handler = import_module(args.handler).Handler(args=args, rank=args.device)
     handler.model.eval()
