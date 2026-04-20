@@ -104,11 +104,11 @@ class Trainer:
         # if isinstance(self.dataset.dataset, data.data.V7Dataset):
         folder = self.dataset.configs['folder']
         self.long_clip_embeds_train = torch.load(
-            os.path.join(folder, f"train_long_clip_embeds.pt"),
+            os.path.join(folder, f"train_embeds_long_clip.pt"),
             map_location="cuda"
         )
         self.long_clip_embeds_valid = torch.load(
-            os.path.join(folder, f"valid_long_clip_embeds.pt"),
+            os.path.join(folder, f"valid_embeds_long_clip.pt"),
             map_location="cuda"
         )
 
