@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=5
 bash precompute_ettm1.sh
 bash precompute_istanbul_traffic.sh
 bash precompute_synthu.sh
