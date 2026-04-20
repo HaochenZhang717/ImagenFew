@@ -19,7 +19,16 @@ else
   WORK_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 fi
 
-cd "$WORK_DIR/VerbalTS"
+if [[ -d "$WORK_DIR/VerbalTS" ]]; then
+  PROJECT_DIR="$WORK_DIR/VerbalTS"
+elif [[ "$(basename "$WORK_DIR")" == "VerbalTS" ]]; then
+  PROJECT_DIR="$WORK_DIR"
+else
+  echo "Could not infer VerbalTS project directory from WORK_DIR=$WORK_DIR" >&2
+  exit 1
+fi
+
+cd "$PROJECT_DIR"
 mkdir -p /playpen-shared/haochenz/logs/slurm
 
 source ~/.zshrc >/dev/null 2>&1 || true
