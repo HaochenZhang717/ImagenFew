@@ -109,6 +109,12 @@ def main():
     handler = import_module(args.handler).Handler(args=args, rank=args.device)
     handler.model.eval()
 
+    # Delay embedding caches the pre-padding image shape during ts_to_img().
+    # Training naturally initializes this cache, but checkpoint-only sampling does not.
+    # Run one forward transform on reference data so img_to_ts() can unpad correctly.
+    with torch.no_grad():
+        _ = handler._model.ts_to_img(ref_tensor[:1].to(args.device))
+
     generated_variants = []
     with torch.no_grad():
         for variant_idx in range(cli_args.num_variants):
