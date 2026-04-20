@@ -71,7 +71,7 @@ def evaluate(training_stage, eval_configs, model_diff_configs, model_cond_config
 
 def _evaluate_cond_gen(evaluator, sampler="ddim", n_sample=10):
     evaluator.n_samples = n_sample
-    res_dict = evaluator.evaluate(mode="cond_gen", sampler=sampler, save_pred=False)
+    res_dict, _ = evaluator.evaluate(mode="cond_gen", sampler=sampler, save_pred=False)
 
     info = {
         "mode": "cond_gen", 
