@@ -6,7 +6,7 @@ python run.py \
     --model_cond_config_path configs/synth-m/cond/text_msmdiffmv.yaml \
     --train_config_path configs/synth-m/train.yaml \
     --evaluate_config_path configs/synth-m/evaluate.yaml \
-    --data_folder ../../data/VerbalTSDatasets/synthetic_m \
+    --data_folder ../data/VerbalTSDatasets/synthetic_m \
     --clip_folder "" \
     --multipatch_num 3 \
     --L_patch_len 3 \
