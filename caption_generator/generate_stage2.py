@@ -76,7 +76,7 @@ def parse_args():
         default="Qwen/Qwen3-Embedding-4B",
         help="Embedding model used for train-caption retrieval.",
     )
-    parser.add_argument("--embedding-batch-size", type=int, default=16)
+    parser.add_argument("--embedding-batch-size", type=int, default=4)
     parser.add_argument("--embedding-max-length", type=int, default=8192)
     parser.add_argument(
         "--train-embedding-cache",
