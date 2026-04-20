@@ -47,7 +47,7 @@ class TextEncoder(nn.Module):
         self.emb_dim = configs["text_emb"]
         self.vocab_emb = nn.Embedding(num_embeddings=configs["word_size"], embedding_dim=self.emb_dim)
         self.trans_layer = get_torch_trans(heads=8, layers=2, channels=64)
-        self.tokenizer = AutoTokenizer.from_pretrained(configs["tokenizer_path"])
+        # self.tokenizer = AutoTokenizer.from_pretrained(configs["tokenizer_path"])
         if configs["pos_emb"] != "none":
             self.init_pe(self.emb_dim)
     

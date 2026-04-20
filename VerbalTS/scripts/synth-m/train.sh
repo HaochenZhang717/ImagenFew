@@ -1,5 +1,5 @@
 python run.py \
-    --cond_modal simple_text \
+    --cond_modal text \
     --training_stage finetune \
     --save_folder ./logs/synth-m/text2ts_msmdiffmv \
     --model_diff_config_path configs/synth-m/diff/model_text2ts_dep.yaml \
