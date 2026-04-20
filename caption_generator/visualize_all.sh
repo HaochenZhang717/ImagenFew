@@ -23,3 +23,11 @@ python scripts/visualize_caption_embedding_distribution.py \
   --device cuda \
   --batch-size 8
 
+
+#python scripts/visualize_caption_embedding_distribution.py \
+#  --generated-path /playpen-shared/haochenz/ImagenFew/data/VerbalTSDatasets/synthetic_u/generated_text_caps.npy \
+#  --real-path /playpen-shared/haochenz/ImagenFew/data/VerbalTSDatasets/synthetic_u/test_text_caps.npy \
+#  --output-dir ./visuals/synthetic_u \
+#  --device cuda \
+#  --batch-size 8
+
