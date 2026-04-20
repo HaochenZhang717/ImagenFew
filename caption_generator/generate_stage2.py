@@ -52,6 +52,12 @@ def parse_args():
     )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--use-ema", action="store_true", help="Use EMA weights from stage2 checkpoint")
+    parser.add_argument(
+        "--decode-batch-size",
+        type=int,
+        default=None,
+        help="Batch size used when decoding sampled latents into captions.",
+    )
     parser.add_argument("--output", type=str, default=None, help="Optional JSON output path")
     parser.add_argument(
         "--output-npy",
@@ -76,7 +82,7 @@ def parse_args():
         default="Qwen/Qwen3-Embedding-4B",
         help="Embedding model used for train-caption retrieval.",
     )
-    parser.add_argument("--embedding-batch-size", type=int, default=4)
+    parser.add_argument("--embedding-batch-size", type=int, default=8)
     parser.add_argument("--embedding-max-length", type=int, default=8192)
     parser.add_argument(
         "--train-embedding-cache",
@@ -123,6 +129,9 @@ def resolve_config(args, checkpoint: Dict) -> Dict:
 
     if args.num_samples is not None:
         cfg["sampling"]["num_decode_samples"] = args.num_samples
+
+    if args.decode_batch_size is not None:
+        cfg["sampling"]["decode_batch_size"] = args.decode_batch_size
 
     return cfg
 

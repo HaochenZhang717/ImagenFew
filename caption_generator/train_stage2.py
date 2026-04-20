@@ -433,41 +433,50 @@ def decode_sampled_latents(
     generation_cfg: Dict,
     device: torch.device,
 ):
-    prompts = [prompt_text] * sampled_latents.size(0)
-    tokenized = tokenizer(
-        prompts,
-        return_tensors="pt",
-        padding=True,
-        add_special_tokens=True,
-    )
-    tokenized = {k: v.to(device) for k, v in tokenized.items()}
+    decode_batch_size = int(generation_cfg.get("decode_batch_size", sampled_latents.size(0)))
+    decode_batch_size = max(1, decode_batch_size)
+    decoded_batches = []
+
     llm_embed_module = decoder.llm.get_input_embeddings()
     llm_embed_dtype = llm_embed_module.weight.dtype
-    caption_latent = sampled_latents.to(device=device, dtype=decoder.soft_prompt.positional.dtype)
-    soft_prompt_embeds = decoder.soft_prompt(caption_latent)
-    token_embeds = llm_embed_module(tokenized["input_ids"])
-    soft_prompt_embeds = soft_prompt_embeds.to(dtype=llm_embed_dtype)
-    token_embeds = token_embeds.to(dtype=llm_embed_dtype)
-    inputs_embeds = torch.cat([soft_prompt_embeds, token_embeds], dim=1).to(dtype=llm_embed_dtype)
-    prefix_mask = torch.ones(
-        tokenized["attention_mask"].size(0),
-        decoder.soft_prompt_tokens,
-        device=device,
-        dtype=tokenized["attention_mask"].dtype,
-    )
-    full_attention_mask = torch.cat([prefix_mask, tokenized["attention_mask"]], dim=1)
 
-    outputs = decoder.llm.generate(
-        inputs_embeds=inputs_embeds,
-        attention_mask=full_attention_mask,
-        max_new_tokens=generation_cfg.get("max_new_tokens", 192),
-        do_sample=generation_cfg.get("temperature", 0.0) > 0,
-        temperature=generation_cfg.get("temperature", 0.8),
-        top_p=generation_cfg.get("top_p", 0.95),
-        pad_token_id=tokenizer.pad_token_id,
-        eos_token_id=tokenizer.eos_token_id,
-    )
-    return tokenizer.batch_decode(outputs, skip_special_tokens=True)
+    for start in range(0, sampled_latents.size(0), decode_batch_size):
+        batch_latents = sampled_latents[start : start + decode_batch_size]
+        prompts = [prompt_text] * batch_latents.size(0)
+        tokenized = tokenizer(
+            prompts,
+            return_tensors="pt",
+            padding=True,
+            add_special_tokens=True,
+        )
+        tokenized = {k: v.to(device) for k, v in tokenized.items()}
+        caption_latent = batch_latents.to(device=device, dtype=decoder.soft_prompt.positional.dtype)
+        soft_prompt_embeds = decoder.soft_prompt(caption_latent)
+        token_embeds = llm_embed_module(tokenized["input_ids"])
+        soft_prompt_embeds = soft_prompt_embeds.to(dtype=llm_embed_dtype)
+        token_embeds = token_embeds.to(dtype=llm_embed_dtype)
+        inputs_embeds = torch.cat([soft_prompt_embeds, token_embeds], dim=1).to(dtype=llm_embed_dtype)
+        prefix_mask = torch.ones(
+            tokenized["attention_mask"].size(0),
+            decoder.soft_prompt_tokens,
+            device=device,
+            dtype=tokenized["attention_mask"].dtype,
+        )
+        full_attention_mask = torch.cat([prefix_mask, tokenized["attention_mask"]], dim=1)
+
+        outputs = decoder.llm.generate(
+            inputs_embeds=inputs_embeds,
+            attention_mask=full_attention_mask,
+            max_new_tokens=generation_cfg.get("max_new_tokens", 192),
+            do_sample=generation_cfg.get("temperature", 0.0) > 0,
+            temperature=generation_cfg.get("temperature", 0.8),
+            top_p=generation_cfg.get("top_p", 0.95),
+            pad_token_id=tokenizer.pad_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+        )
+        decoded_batches.extend(tokenizer.batch_decode(outputs, skip_special_tokens=True))
+
+    return decoded_batches
 
 
 @torch.no_grad()
