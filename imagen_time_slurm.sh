@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=imagen_time
-#SBATCH --partition=a6000
+#SBATCH --partition=all
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -42,6 +42,7 @@ export TOKENIZERS_PARALLELISM=false
 WANDB_PROJECT="${WANDB_PROJECT:-ImagenTime-VerbalTS}"
 SUBSET_P="${SUBSET_P:-1.0}"
 USE_WANDB="${USE_WANDB:-1}"
+IMAGENTIME_LAUNCH_MODE="${IMAGENTIME_LAUNCH_MODE:-submit}"
 
 DEFAULT_CONFIGS=(
 #  "./configs/ImagenTime/VerbalTS_synthetic_u.yaml"
@@ -67,6 +68,28 @@ echo "SUBSET_P=$SUBSET_P"
 echo "USE_WANDB=$USE_WANDB"
 echo "Configs:"
 printf '  %s\n' "${CONFIGS[@]}"
+
+if [[ "$IMAGENTIME_LAUNCH_MODE" != "run" ]]; then
+  echo "Submitting one Slurm job per config."
+  for config in "${CONFIGS[@]}"; do
+    job_id="$(
+      CONDA_ENV="${CONDA_ENV:-}" \
+      WANDB_PROJECT="$WANDB_PROJECT" \
+      SUBSET_P="$SUBSET_P" \
+      USE_WANDB="$USE_WANDB" \
+      CONFIG="$config" \
+      IMAGENTIME_LAUNCH_MODE="run" \
+      sbatch --parsable "$ROOT_DIR/imagen_time_slurm.sh" "$@"
+    )"
+    echo "Submitted $config as job $job_id"
+  done
+  exit 0
+fi
+
+if [[ "${#CONFIGS[@]}" -ne 1 ]]; then
+  echo "Run mode expects exactly one config, got ${#CONFIGS[@]}." >&2
+  exit 1
+fi
 
 for config in "${CONFIGS[@]}"; do
   CMD=(
