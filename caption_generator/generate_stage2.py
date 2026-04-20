@@ -54,6 +54,12 @@ def parse_args():
     parser.add_argument("--use-ema", action="store_true", help="Use EMA weights from stage2 checkpoint")
     parser.add_argument("--output", type=str, default=None, help="Optional JSON output path")
     parser.add_argument(
+        "--output-npy",
+        type=str,
+        default=None,
+        help="Optional path to save generated captions in VerbalTSDatasets .npy format.",
+    )
+    parser.add_argument(
         "--retrieve-train",
         action="store_true",
         help="Enable retrieval of nearest training captions for each generated caption.",
@@ -79,6 +85,15 @@ def parse_args():
         help="Optional path to cache training caption embeddings.",
     )
     return parser.parse_args()
+
+
+def to_verbalts_caption_array(captions) -> np.ndarray:
+    return np.asarray(captions, dtype=str).reshape(-1, 1)
+
+
+def resolve_default_npy_output_path(json_output_path: str) -> str:
+    root, _ = os.path.splitext(os.path.abspath(json_output_path))
+    return f"{root}_text_caps.npy"
 
 
 def set_seed(seed: int) -> None:
@@ -328,11 +343,21 @@ def main():
             device=device,
         )
 
+    verbalts_caption_array = to_verbalts_caption_array(decoded)
+
     if args.output:
         output_path = os.path.abspath(args.output)
         os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as fp:
             json.dump(result, fp, ensure_ascii=False, indent=2)
+
+        if args.output_npy is None:
+            np.save(resolve_default_npy_output_path(output_path), verbalts_caption_array)
+
+    if args.output_npy:
+        output_npy_path = os.path.abspath(args.output_npy)
+        os.makedirs(os.path.dirname(output_npy_path) or ".", exist_ok=True)
+        np.save(output_npy_path, verbalts_caption_array)
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

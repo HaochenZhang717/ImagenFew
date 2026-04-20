@@ -161,6 +161,7 @@ class Trainer:
 
         metric_names = os.getenv("VERBALTS_EVAL_METRICS", "disc contextFID pred").split()
         metric_iteration = int(os.getenv("VERBALTS_METRIC_ITERATION", "10"))
+        metric_cache_dir = self.eval_configs["eval"].get("cache_folder", None)
         scores = evaluate_model_uncond(
             real_set,
             generated_set,
@@ -168,7 +169,7 @@ class Trainer:
             str(eval_device),
             eval_metrics=metric_names,
             metric_iteration=metric_iteration,
-            base_path=None,
+            base_path=metric_cache_dir,
         )
 
         wandb.log({f"eval/{key}": value for key, value in scores.items()}, step=epoch_no)

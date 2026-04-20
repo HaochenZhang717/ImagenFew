@@ -26,8 +26,8 @@ def Context_FID(ori_data, generated_data, dataset, device, base_path=None):
     model = TS2Vec(input_dims=ori_data.shape[-1], device=device, batch_size=8, lr=0.001, output_dims=320,
                    max_train_length=3000)
 
-
     if base_path:
+        os.makedirs(base_path, exist_ok=True)
         model_path = os.path.join(base_path, f"{dataset}_{'_'.join(str(dim) for dim in ori_data.shape)}.ckpt")
         rep_path = os.path.join(base_path, f"{dataset}_{'_'.join(str(dim) for dim in ori_data.shape)}_rep.ckpt")
         if os.path.exists(model_path) and os.path.exists(rep_path):
@@ -40,12 +40,7 @@ def Context_FID(ori_data, generated_data, dataset, device, base_path=None):
             torch.save(ori_represenation, rep_path)
     else:
         model.fit(ori_data, verbose=False)
-        model.save(model_path)
         ori_represenation = model.encode(ori_data, encoding_window='full_series')
-
-    # model.fit(ori_data, verbose=False)
-    # model.save(model_path)
-    # ori_represenation = model.encode(ori_data, encoding_window='full_series')
 
     gen_represenation = model.encode(generated_data, encoding_window='full_series')
     idx = np.random.permutation(ori_data.shape[0])
