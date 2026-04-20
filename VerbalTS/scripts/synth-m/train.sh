@@ -1,3 +1,4 @@
+export SCHEDULER=MULTISTEP
 python run.py \
     --cond_modal text \
     --training_stage finetune \
