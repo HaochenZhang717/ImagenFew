@@ -192,7 +192,7 @@ def main(args):
     fid_list = []
     kid_list = []
     cmmd_list = []
-    for i in range(10):
+    for i in range(1):
         fake_dataset = load_dataset(args.fake_path, "sampled_ts",idx=i)
         # fake_dataset = load_dataset(args.fake_path, "sampled_ts",idx=i)
         fake_dataloader = DataLoader(fake_dataset, batch_size=args.batch_size, shuffle=False)
