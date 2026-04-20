@@ -17,7 +17,7 @@ cd "$ROOT_DIR"
 mkdir -p "$ROOT_DIR/logs/slurm"
 
 source ~/.zshrc >/dev/null 2>&1 || true
-if [[ -n "${CONDA_ENV:-vlm}" ]]; then
+if [[ -n "${CONDA_ENV:-}" ]]; then
   CONDA_BIN=""
   if [[ -x "/playpen/haochenz/miniconda3/bin/conda" ]]; then
     CONDA_BIN="/playpen/haochenz/miniconda3/bin/conda"
