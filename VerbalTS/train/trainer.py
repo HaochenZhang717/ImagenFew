@@ -88,7 +88,7 @@ class Trainer:
             self.lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
                 self.opt,
                 T_max=self.n_epochs,
-                eta_min=0.5 * self.lr
+                eta_min=0.1 * self.lr
             )
         elif os.getenv("SCHEDULER") == "MULTISTEP":
             p1 = int(0.75 * self.n_epochs)
