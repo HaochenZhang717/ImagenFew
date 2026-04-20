@@ -1,13 +1,19 @@
 import os
+import sys
 import time
 import numpy as np
 import torch
 from torch.optim import Adam
 
+VERBALTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if VERBALTS_DIR not in sys.path:
+    sys.path.insert(0, VERBALTS_DIR)
+
 import data.data
 # from torch.utils.tensorboard import SummaryWriter
 from data import GenerationDataset
 from evaluation.base_evaluator import BaseEvaluator
+from metrics import evaluate_model_uncond
 import matplotlib.pyplot as plt
 import wandb
 import copy
@@ -24,7 +30,7 @@ class Trainer:
         self._init_model(model)
         self._init_data(dataset)
         self._init_opt()
-        # self._init_eval(eval_configs)
+        self._init_eval(eval_configs)
         self._best_valid_loss = 1e10
         wandb.init(
             project="verbalts",  # 你可以改名字
@@ -139,6 +145,35 @@ class Trainer:
         self.evaluator.model = self.ema_model
         self.evaluator.n_samples = 10
         _, samples = self.evaluator.evaluate(mode="cond_gen", sampler="ddim", save_pred=False)
+
+        real_set = samples["real_ts"].detach().cpu().numpy()
+        generated_set = samples["sampled_ts"].median(dim=0).values.permute(0, 2, 1).detach().cpu().numpy()
+
+        # Keep evaluation in the normalized space by default to match ImagenTime/DiffusionTS.
+        if os.getenv("VERBALTS_EVAL_INVERSE", "0") == "1":
+            real_set = self.dataset.dataset.inverse_transform(real_set)
+            generated_set = self.dataset.dataset.inverse_transform(generated_set)
+
+        dataset_name = os.path.basename(self.dataset.configs["folder"].rstrip("/"))
+        eval_device = getattr(self.ema_model, "device", None)
+        if eval_device is None:
+            eval_device = next(self.ema_model.parameters()).device
+
+        metric_names = os.getenv("VERBALTS_EVAL_METRICS", "disc contextFID pred").split()
+        metric_iteration = int(os.getenv("VERBALTS_METRIC_ITERATION", "10"))
+        scores = evaluate_model_uncond(
+            real_set,
+            generated_set,
+            dataset_name,
+            str(eval_device),
+            eval_metrics=metric_names,
+            metric_iteration=metric_iteration,
+            base_path=None,
+        )
+
+        wandb.log({f"eval/{key}": value for key, value in scores.items()}, step=epoch_no)
+        print(f"Epoch {epoch_no} evaluation metrics: {scores}")
+
         path = os.path.join(fr"{self.output_folder}", f"samples_during_training_Epoch{epoch_no}.pt")
         torch.save(samples, path)
 
@@ -225,4 +260,3 @@ class Trainer:
             "ema_model": self.ema_model.state_dict(),
             "comment": comment,
         }, path)
-
