@@ -137,7 +137,7 @@ class Trainer:
             if self.valid_loader is not None and (epoch_no + 1) % self.valid_epoch_interval == 0:
                 self.valid(epoch_no)
 
-            if (epoch_no + 1) % 100 == 0:
+            if (epoch_no + 1) % 1 == 0:
                 self.evaluate(epoch_no)
 
     def evaluate(self, epoch_no):
