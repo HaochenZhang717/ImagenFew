@@ -101,7 +101,7 @@ def get_args():
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--num_heads", type=int, default=8)
     parser.add_argument("--latent_dim", type=int, default=64)
-    parser.add_argument("--num_samples", type=int, default=64)
+    # parser.add_argument("--num_samples", type=int, default=64)
 
     # embedding 类型
     # parser.add_argument(
@@ -123,7 +123,7 @@ def get_args():
 def load_dataset(dict_path, dict_key, idx=-1):
     data = torch.load(dict_path, weights_only=False)
     data = data[dict_key]
-    data = data[:args.num_samples]
+    # data = data[:args.num_samples]
     if dict_key == "sampled_ts":
         if idx > -1:
             data = data[idx]
