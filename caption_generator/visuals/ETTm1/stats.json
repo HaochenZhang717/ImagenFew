@@ -1,0 +1,20 @@
+{
+  "model_name": "Qwen/Qwen3-Embedding-4B",
+  "generated_path": "/playpen-shared/haochenz/ImagenFew/data/VerbalTSDatasets/ETTm1/generated_text_caps.npy",
+  "real_path": "/playpen-shared/haochenz/ImagenFew/data/VerbalTSDatasets/ETTm1/test_text_caps.npy",
+  "num_generated": 1631,
+  "num_real": 1631,
+  "embedding_dim": 2560,
+  "pca_explained_variance_ratio": [
+    0.1790330708026886,
+    0.15081307291984558
+  ],
+  "tsne_perplexity": 30.0,
+  "generated_to_real_mean": 0.8744027018547058,
+  "generated_to_real_std": 0.04162967950105667,
+  "generated_self_mean": 0.880499005317688,
+  "generated_self_std": 0.03973516821861267,
+  "real_self_mean": 0.8714096546173096,
+  "real_self_std": 0.04382955655455589,
+  "generated_to_real_top1_mean": 0.9826393723487854
+}

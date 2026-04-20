@@ -1,0 +1,20 @@
+{
+  "model_name": "Qwen/Qwen3-Embedding-4B",
+  "generated_path": "/playpen-shared/haochenz/ImagenFew/data/VerbalTSDatasets/istanbul_traffic/generated_text_caps.npy",
+  "real_path": "/playpen-shared/haochenz/ImagenFew/data/VerbalTSDatasets/istanbul_traffic/test_text_caps.npy",
+  "num_generated": 1023,
+  "num_real": 1023,
+  "embedding_dim": 2560,
+  "pca_explained_variance_ratio": [
+    0.18853381276130676,
+    0.1308971345424652
+  ],
+  "tsne_perplexity": 30.0,
+  "generated_to_real_mean": 0.9368518590927124,
+  "generated_to_real_std": 0.02326740324497223,
+  "generated_self_mean": 0.9404960870742798,
+  "generated_self_std": 0.02292872779071331,
+  "real_self_mean": 0.9381772875785828,
+  "real_self_std": 0.0231541208922863,
+  "generated_to_real_top1_mean": 0.9883201122283936
+}
