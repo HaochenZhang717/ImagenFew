@@ -118,31 +118,17 @@ def precompute_from_npy(
     )
 
     all_embeds = []
-    all_masks = []
     for i in tqdm(range(0, len(caps), batch_size)):
         batch_text = caps[i : i + batch_size]
-        embeds, attn_masks = encoder(batch_text)
+        embeds, _ = encoder(batch_text)
         all_embeds.append(embeds.cpu())
-        all_masks.append(attn_masks.cpu())
 
     all_embeds = torch.cat(all_embeds, dim=0)
-    all_masks = torch.cat(all_masks, dim=0)
 
     os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
-    torch.save(
-        {
-            "embeddings": all_embeds,
-            "all_masks": all_masks,
-            "model_name": model_name,
-            "normalized": True,
-            "use_instruct": use_instruct,
-            "max_length": max_length,
-        },
-        save_path,
-    )
+    torch.save(all_embeds, save_path)
     print(f"Saved to {save_path}")
     print("Embedding shape:", all_embeds.shape)
-    print("Mask shape:", all_masks.shape)
 
 
 if __name__ == "__main__":
