@@ -216,7 +216,7 @@ class Trainer:
                 "train/epoch_loss": avg_loss,
                 "train/learning_rate": self.opt.param_groups[0]['lr'],
                 "epoch": epoch_no
-            })
+            }, step=epoch_no)
 
     """
     Valid.
@@ -240,7 +240,8 @@ class Trainer:
         wandb.log({
             "valid/loss": avg_loss_valid,
             "epoch": epoch_no
-        })
+        }, step=epoch_no)
+
         if self._best_valid_loss > avg_loss_valid:
             self._best_valid_loss = avg_loss_valid
             print(f"\n*** Best loss is updated to {avg_loss_valid} at {epoch_no}.\n")
