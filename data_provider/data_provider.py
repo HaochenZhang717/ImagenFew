@@ -26,8 +26,8 @@ def _load_context_embeddings(path):
             raise ValueError(f"Expected embedding dict at {path} to contain 'embeddings'.")
     if not torch.is_tensor(embeds):
         raise TypeError(f"Expected torch.Tensor embeddings at {path}, got {type(embeds)}")
-    if embeds.ndim != 3:
-        raise ValueError(f"Expected embeddings with shape (N, L, D), got {tuple(embeds.shape)} at {path}")
+    if embeds.ndim not in (2, 3):
+        raise ValueError(f"Expected embeddings with shape (N, D) or (N, L, D), got {tuple(embeds.shape)} at {path}")
     return embeds.to(torch.float32)
 
 
@@ -47,10 +47,19 @@ def _attach_verbalts_context(args, config, split, dataset):
     args.use_precomputed_context = True
 
     dataset_dir = os.path.join(config["datasets_dir"], config["rel_path"])
-    embeds_path = os.path.join(dataset_dir, f"{split}_embeds_long_clip.pt")
-    if not os.path.exists(embeds_path):
+    suffix = getattr(args, "verbalts_context_suffix", None) or config.get("context_suffix")
+    candidate_paths = []
+    if suffix:
+        candidate_paths.append(os.path.join(dataset_dir, f"{split}_embeds_{suffix}.pt"))
+    candidate_paths.extend([
+        os.path.join(dataset_dir, f"{split}_embeds_long_clip.pt"),
+        os.path.join(dataset_dir, f"{split}_embeds_qwen3_4b.pt"),
+    ])
+    embeds_path = next((path for path in candidate_paths if os.path.exists(path)), None)
+    if embeds_path is None:
         raise FileNotFoundError(
-            f"Expected long-clip embeddings for split '{split}' at {embeds_path}."
+            f"Expected context embeddings for split '{split}' in {dataset_dir}. "
+            f"Tried: {candidate_paths}"
         )
 
     embeds = _load_context_embeddings(embeds_path)

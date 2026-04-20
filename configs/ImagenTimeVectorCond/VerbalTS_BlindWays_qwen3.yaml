@@ -1,0 +1,40 @@
+# training:
+epochs: 1001
+batch_size: 128
+learning_rate: 0.0001
+weight_decay: 0.00001
+
+# transform:
+use_stft: false
+delay: 24
+embedding: 24
+
+# model:
+handler: models.ImagenTimeVectorCond.handler
+img_resolution: 32
+unet_channels: 32
+ch_mult: [1,2,2,4]
+attn_resolution: [16,8,4]
+diffusion_steps: 36
+ema: true
+ema_warmup: 100
+ft_method: all
+
+# conditioning:
+verbalts_context_suffix: qwen3_4b
+
+# logging:
+logging_iter: 100
+tags: [vector-cond, qwen3]
+run_dir: ImagenTimeVectorCond/VerbalTS_BlindWays_qwen3/
+
+# Data
+datasets_dir: ./data/
+seq_len: 600
+pretrain: false
+datasets:
+  - name: BlindWays
+    data: verbal_ts
+    rel_path: VerbalTSDatasets/BlindWays
+train_on_datasets:
+  - BlindWays
