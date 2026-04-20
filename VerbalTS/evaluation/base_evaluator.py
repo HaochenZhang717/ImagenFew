@@ -125,6 +125,7 @@ class BaseEvaluator:
             map_location="cuda"
         )
 
+
         self.test_loader = dataset.get_loader(
             split="test",
             batch_size=self.batch_size,
