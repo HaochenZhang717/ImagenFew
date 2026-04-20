@@ -1,7 +1,7 @@
 ### Dataset ###
 data:
   name: custom
-  folder: ./datasets/synth-m
+  folder: ../data/VerbalTSDatasets/synthetic_m
 
 ### Evaluate ###
 eval:
