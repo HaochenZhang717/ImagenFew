@@ -51,7 +51,9 @@ class CustomSplit(Dataset):
                 "ts_len": tmp_ts.shape[0],
                 "attrs": self.attrs[idx],
                 "cap": self.caps[idx][cap_id],
-                "tp": self.time_point}
+                "tp": self.time_point,
+                "indices": idx
+                }
 
     def __len__(self):
         return self.n_samples

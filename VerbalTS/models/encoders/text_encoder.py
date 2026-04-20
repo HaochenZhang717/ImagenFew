@@ -16,18 +16,18 @@ class CLIPTextEncoder(nn.Module):
         self.configs = configs
         self.device = configs["device"]
         self.emb_dim = configs["text_emb"]
-        if "Longclip" in configs["pretrain_model_path"]:
-            clip_config = CLIPTextConfig.from_pretrained(configs["pretrain_model_path"])
-            clip_config.max_position_embeddings = 248
-            self.model = CLIPTextModelWithProjection.from_pretrained(configs["pretrain_model_path"], config=clip_config)
-            self.tokenizer = AutoTokenizer.from_pretrained(configs["pretrain_model_path"])
-        else:
-            self.model = CLIPTextModelWithProjection.from_pretrained(configs["pretrain_model_path"])
-            self.tokenizer = AutoTokenizer.from_pretrained(configs["pretrain_model_path"])
-        self.max_length = self.model.config.max_position_embeddings
-
-        for i, (name, param) in enumerate(self.model.named_parameters()):
-            param.requires_grad = False
+        # if "Longclip" in configs["pretrain_model_path"]:
+        #     clip_config = CLIPTextConfig.from_pretrained(configs["pretrain_model_path"])
+        #     clip_config.max_position_embeddings = 248
+        #     self.model = CLIPTextModelWithProjection.from_pretrained(configs["pretrain_model_path"], config=clip_config)
+        #     self.tokenizer = AutoTokenizer.from_pretrained(configs["pretrain_model_path"])
+        # else:
+        #     self.model = CLIPTextModelWithProjection.from_pretrained(configs["pretrain_model_path"])
+        #     self.tokenizer = AutoTokenizer.from_pretrained(configs["pretrain_model_path"])
+        # self.max_length = self.model.config.max_position_embeddings
+        #
+        # for i, (name, param) in enumerate(self.model.named_parameters()):
+        #     param.requires_grad = False
 
         self.text_enc = nn.Sequential(
             nn.Linear(configs["pretrain_model_dim"], configs["textemb_hidden_dim"]),
@@ -35,19 +35,8 @@ class CLIPTextEncoder(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(configs["textemb_hidden_dim"], configs["text_emb"])
         )
-    def forward(self, text):
-        inputs = self.tokenizer(text, padding=True, return_tensors="pt")["input_ids"]
-        inputs = inputs.to(self.device)
-        if "output_type" not in self.configs.keys():
-            self.configs["output_type"] = "cls"
-        if self.configs["output_type"] == "cls":
-            text_emb = self.model(input_ids=inputs).text_embeds
-            text_co_emb = self.text_enc(text_emb)
-            text_co_emb = text_co_emb[:, None, :]
-        if self.configs["output_type"] == "all":
-            text_emb = self.model(input_ids=inputs).last_hidden_state
-            text_co_emb = self.text_enc(text_emb)
-            
+    def forward(self, text_emb):
+        text_co_emb = self.text_enc(text_emb)
         return text_co_emb
 
 class TextEncoder(nn.Module):

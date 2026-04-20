@@ -151,7 +151,6 @@ class Trainer:
             self._global_batch_no += 1
             self.opt.zero_grad()
             if hasattr(self, "long_clip_embeds_train"):
-                # train_batch["my_cap_embed"] = self.long_clip_embeds_train["embeddings"][train_batch["indices"]]
                 train_batch["cap_embed"] = self.long_clip_embeds_train["embeddings"][train_batch["indices"]]
                 train_batch["cap_embed_mask"] = self.long_clip_embeds_train["all_masks"][train_batch["indices"]]
             loss_dict = self.model(train_batch, is_train=True)
@@ -194,8 +193,8 @@ class Trainer:
             for batch_no, valid_batch in enumerate(self.valid_loader):
                 if hasattr(self, "long_clip_embeds_valid"):
                     # valid_batch["my_cap_embed"] = self.long_clip_embeds_train["embeddings"][valid_batch["indices"]]
-                    valid_batch["my_cap_embed"] = self.long_clip_embeds_valid["embeddings"][valid_batch["indices"]]
-                    valid_batch["my_cap_embed_mask"] = self.long_clip_embeds_valid["all_masks"][valid_batch["indices"]]
+                    valid_batch["cap_embed"] = self.long_clip_embeds_valid["embeddings"][valid_batch["indices"]]
+                    valid_batch["cap_embed_mask"] = self.long_clip_embeds_valid["all_masks"][valid_batch["indices"]]
 
                 loss_dict = self.ema_model(valid_batch, is_train=False)
                 avg_loss_valid += loss_dict["all"].item()
