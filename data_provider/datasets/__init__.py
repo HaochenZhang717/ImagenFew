@@ -1,8 +1,14 @@
 from .custom import Custom
 from .ETTh import ETTh
 from .ETTm import ETTm
-from .glounts import GLUONTS
-from .UEA import UEA
+try:
+    from .UEA import UEA
+except ModuleNotFoundError:
+    UEA = None
+try:
+    from .glounts import GLUONTS
+except ModuleNotFoundError:
+    GLUONTS = None
 
 from .sine import Sine
 from .stock import Stock
@@ -10,6 +16,7 @@ from .energy import Energy
 from .mujoco import Mujoco
 from .air_quality import AirQuality
 from .aireadi import AIREADI, AIREADICalorie, AIREADIGlucose
+from .verbal_ts import VerbalTS
 
 from .MSL import MSL
 from .PSM import PSM

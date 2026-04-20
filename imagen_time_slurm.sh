@@ -37,58 +37,57 @@ fi
 
 export TORCH_DISTRIBUTED_DEBUG=DETAIL
 export NCCL_DEBUG=INFO
+export TOKENIZERS_PARALLELISM=false
 
+WANDB_PROJECT="${WANDB_PROJECT:-ImagenTime-VerbalTS}"
+SUBSET_P="${SUBSET_P:-1.0}"
+USE_WANDB="${USE_WANDB:-1}"
 
-#python run.py \
-#--subset_p 1.0 \
-#--wandb \
-#--wandb_project ImagenTime \
-#--config ./configs/ImagenTime/ETTm1.yaml
+DEFAULT_CONFIGS=(
+#  "./configs/ImagenTime/VerbalTS_synthetic_u.yaml"
+  "./configs/ImagenTime/VerbalTS_synthetic_m.yaml"
+  "./configs/ImagenTime/VerbalTS_istanbul_traffic.yaml"
+  "./configs/ImagenTime/VerbalTS_ETTm1.yaml"
+  "./configs/ImagenTime/VerbalTS_Weather.yaml"
+#  "./configs/ImagenTime/VerbalTS_BlindWays.yaml"
+)
 
-python run.py \
---subset_p 1.0 \
---wandb \
---wandb_project ImagenTime \
---config ./configs/ImagenTime/ETTm2.yaml
+if [[ -n "${CONFIG:-}" ]]; then
+  CONFIGS=("$CONFIG")
+elif [[ -n "${CONFIGS:-}" ]]; then
+  read -r -a CONFIGS <<<"$CONFIGS"
+else
+  CONFIGS=("${DEFAULT_CONFIGS[@]}")
+fi
 
-python run.py \
---subset_p 1.0 \
---wandb \
---wandb_project ImagenTime \
---config ./configs/ImagenTime/ILI.yaml
+echo "Running ImagenTime VerbalTS jobs on host $(hostname)"
+echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}"
+echo "WANDB_PROJECT=$WANDB_PROJECT"
+echo "SUBSET_P=$SUBSET_P"
+echo "USE_WANDB=$USE_WANDB"
+echo "Configs:"
+printf '  %s\n' "${CONFIGS[@]}"
 
-python run.py \
---subset_p 1.0 \
---wandb \
---wandb_project ImagenTime \
---config ./configs/ImagenTime/Mujoco.yaml
+for config in "${CONFIGS[@]}"; do
+  CMD=(
+    python run_diffts_imagentime.py
+    --subset_p "$SUBSET_P"
+    --config "$config"
+  )
 
-python run.py \
---subset_p 1.0 \
---wandb \
---wandb_project ImagenTime \
---config ./configs/ImagenTime/SaugeenRiverFlow.yaml
+  if [[ "$USE_WANDB" == "1" ]]; then
+    CMD+=(--wandb --wandb_project "$WANDB_PROJECT")
+  fi
 
-python run.py \
---subset_p 1.0 \
---wandb \
---wandb_project ImagenTime \
---config ./configs/ImagenTime/SelfRegulationSCP1.yaml
+  if [[ $# -gt 0 ]]; then
+    CMD+=("$@")
+  fi
 
-python run.py \
---subset_p 1.0 \
---wandb \
---wandb_project ImagenTime \
---config ./configs/ImagenTime/Sine.yaml
+  printf 'Running command:\n  %q' "${CMD[0]}"
+  for arg in "${CMD[@]:1}"; do
+    printf ' %q' "$arg"
+  done
+  printf '\n'
 
-python run.py \
---subset_p 1.0 \
---wandb \
---wandb_project ImagenTime \
---config ./configs/ImagenTime/StarLightCurves.yaml
-
-python run.py \
---subset_p 1.0 \
---wandb \
---wandb_project ImagenTime \
---config ./configs/ImagenTime/Weather.yaml
+  "${CMD[@]}"
+done

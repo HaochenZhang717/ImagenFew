@@ -1,4 +1,4 @@
-from data_provider.datasets import ETTh, ETTm, Custom, UEA, GLUONTS, Sine, Stock, Energy, Mujoco, PSM, MSL, SMAP, SMD, SWAT, AirQuality, AIREADI, AIREADICalorie, AIREADIGlucose
+from data_provider.datasets import ETTh, ETTm, Custom, UEA, GLUONTS, Sine, Stock, Energy, Mujoco, PSM, MSL, SMAP, SMD, SWAT, AirQuality, AIREADI, AIREADICalorie, AIREADIGlucose, VerbalTS
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader, Subset, TensorDataset
 from .multi_dataloader_iter import MultiDataloaderIter
@@ -26,6 +26,7 @@ data_dict = {
     'AIREADI': AIREADI,
     'AIREADICalorie': AIREADICalorie,
     'AIREADIGlucose': AIREADIGlucose,
+    'verbal_ts': VerbalTS,
 }
 
 def random_permute(trainset, testset):
@@ -58,7 +59,7 @@ def data_provider(args):
         metadata = {}
         config['seq_len'] = args.seq_len
         config['datasets_dir'] = args.datasets_dir
-        trainset, testset = get_train(config), get_train(config)
+        trainset, testset = get_train(config), get_test(config)
         subset_p = getattr(args,'subset_p', None)
         subset_n = getattr(args,'subset_n', None)
 
@@ -122,6 +123,8 @@ def data_provider(args):
 
 def get_train(config):
     Data = data_dict[config['data']]
+    if Data is None:
+        raise ImportError(f"Dataset backend '{config['data']}' is unavailable because its optional dependency is not installed.")
     config['flag'] = 'train'
     if 'subset_n' in config.keys():
         return Subset(Data(**config), torch.arange(config['subset_n']))
@@ -129,6 +132,8 @@ def get_train(config):
 
 def get_test(config):
     Data = data_dict[config['data']]
+    if Data is None:
+        raise ImportError(f"Dataset backend '{config['data']}' is unavailable because its optional dependency is not installed.")
     config['flag'] = 'test'
     return Data(**config)
 

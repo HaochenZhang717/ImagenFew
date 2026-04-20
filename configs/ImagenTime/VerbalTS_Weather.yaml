@@ -1,0 +1,32 @@
+# training:
+epochs: 1001
+batch_size: 1024
+learning_rate: 0.0001
+weight_decay: 0.00001
+# transform:
+use_stft: false
+delay: 8
+embedding: 8
+# model:
+handler: models.ImagenTime.handler
+img_resolution: 8
+unet_channels: 32
+ch_mult: [1,2,2,4]
+attn_resolution: [8,4,2]
+diffusion_steps: 36
+ema: true
+ema_warmup: 100
+# logging:
+logging_iter: 100
+tags: []
+run_dir: ImagenTime/VerbalTS_Weather/
+# Data
+datasets_dir: ./data/
+seq_len: 36
+pretrain: false
+datasets:
+  - name: Weather
+    data: verbal_ts
+    rel_path: VerbalTSDatasets/Weather
+train_on_datasets:
+  - Weather

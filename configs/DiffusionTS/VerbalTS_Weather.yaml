@@ -1,0 +1,54 @@
+model:
+  target: models.interpretable_diffusion.gaussian_diffusion.Diffusion_TS
+  params:
+    seq_length: 36
+    feature_size: 21
+    n_layer_enc: 4
+    n_layer_dec: 3
+    d_model: 96
+    timesteps: 1000
+    sampling_timesteps: 1000
+    loss_type: 'l1'
+    beta_schedule: 'cosine'
+    n_heads: 4
+    mlp_hidden_times: 4
+    attn_pd: 0.0
+    resid_pd: 0.0
+    kernel_size: 1
+    padding_size: 0
+
+solver:
+  base_lr: 1.0e-5
+  max_epochs: 1000
+  results_folder: ./Checkpoints_verbalts_Weather
+  gradient_accumulate_every: 2
+  save_cycle: 2500
+  ema:
+    decay: 0.995
+    update_interval: 10
+  scheduler:
+    target: models.interpretable_diffusion.engine.lr_sch.ReduceLROnPlateauWithWarmup
+    params:
+      factor: 0.5
+      patience: 5000
+      min_lr: 1.0e-5
+      threshold: 1.0e-1
+      threshold_mode: rel
+      warmup_lr: 8.0e-4
+      warmup: 500
+      verbose: False
+
+batch_size: 256
+ema_warmup: 100
+handler: models.interpretable_diffusion.handler
+datasets_dir: ./data/
+epochs: 1000
+seq_len: 36
+logging_iter: 100
+run_dir: DiffusionTS/VerbalTS_Weather/
+datasets:
+  - name: Weather
+    data: verbal_ts
+    rel_path: VerbalTSDatasets/Weather
+train_on_datasets:
+  - Weather

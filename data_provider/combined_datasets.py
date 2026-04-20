@@ -41,6 +41,10 @@ dataset_list = [
             "Electricity",
             "AIREADIGlucose",
             "AIREADICalorie",
+            "synthetic_u",
+            "synthetic_m",
+            "istanbul_traffic",
+            "BlindWays",
         ]
 
 def get_pretrained_datasets_names():
