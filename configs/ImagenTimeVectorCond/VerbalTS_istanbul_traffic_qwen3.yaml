@@ -6,8 +6,8 @@ weight_decay: 0.00001
 
 # transform:
 use_stft: false
-delay: 12
-embedding: 12
+delay: 10
+embedding: 16
 
 # model:
 handler: models.ImagenTimeVectorCond.handler

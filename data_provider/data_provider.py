@@ -5,6 +5,7 @@ from .multi_dataloader_iter import MultiDataloaderIter
 import functools
 import torch
 import os
+import numpy as np
 
 
 def _get_primary_tensor(dataset):
@@ -63,6 +64,9 @@ def _attach_verbalts_context(args, config, split, dataset):
         )
 
     embeds = _load_context_embeddings(embeds_path)
+    index_order = getattr(args, "_verbalts_index_order", {}).get((config["name"], split))
+    if index_order is not None:
+        embeds = embeds[torch.as_tensor(index_order, dtype=torch.long)]
     primary_tensor = _get_primary_tensor(dataset)
     if len(primary_tensor) != len(embeds):
         raise ValueError(
@@ -122,6 +126,16 @@ def _has_effective_subset(subset_p=None, subset_n=None, dataset_len=None):
         return float(subset_p) < 1.0
     return False
 
+
+def _resolve_subset_indices(dataset):
+    if isinstance(dataset, Subset):
+        indices = np.asarray(dataset.indices)
+        parent_indices = _resolve_subset_indices(dataset.dataset)
+        if parent_indices is None:
+            return indices
+        return np.asarray(parent_indices)[indices]
+    return None
+
 def data_provider(args):
 
     trainsets = {}
@@ -130,6 +144,7 @@ def data_provider(args):
     testloaders  = {}
     samplers = {}
     metadatas  = {}
+    args._verbalts_index_order = {}
 
     datasets = [dataset for dataset in args.datasets if dataset['name'] in args.train_on_datasets]
 
@@ -145,6 +160,8 @@ def data_provider(args):
         trainset, testset = random_permute(trainset, testset)
         if _has_effective_subset(subset_p, subset_n, len(trainset)) and (not 'subset_n' in config.keys()):
             trainset, testset = random_subset(trainset, subset_p, subset_n), trainset
+        args._verbalts_index_order[(config["name"], "train")] = _resolve_subset_indices(trainset)
+        args._verbalts_index_order[(config["name"], "test")] = _resolve_subset_indices(testset)
         trainset, testset = dataset_to_tensor(trainset, args), dataset_to_tensor(testset, args)
         trainset = _attach_verbalts_context(args, config, "train", trainset)
         testset = _attach_verbalts_context(args, config, "test", testset)
