@@ -79,9 +79,9 @@ for dataset in "${DATASETS[@]}"; do
     echo "Directory: $dataset_dir"
     echo "=============================="
 
-    run_split "$dataset_dir" "train"
-    run_split "$dataset_dir" "valid"
-    run_split "$dataset_dir" "test"
+#    run_split "$dataset_dir" "train"
+#    run_split "$dataset_dir" "valid"
+#    run_split "$dataset_dir" "test"
     run_split "$dataset_dir" "generated"
 done
 
