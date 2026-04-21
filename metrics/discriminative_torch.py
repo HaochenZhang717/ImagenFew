@@ -67,6 +67,9 @@ def discriminative_score_metrics(ori_data, generated_data, device):
             h = h.squeeze(-1)  # (B, H)
 
             logit = self.fc(h)  # (B, 1)
+            # Match the legacy RNN discriminator output shape: (1, B, 1).
+            # The downstream metric code expects `shape[1]` to be the batch size.
+            logit = logit.unsqueeze(0)
             return logit, nn.functional.sigmoid(logit)
 
 
