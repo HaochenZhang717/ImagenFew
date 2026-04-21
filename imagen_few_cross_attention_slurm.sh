@@ -47,12 +47,12 @@ NO_TEST_MODEL="${NO_TEST_MODEL:-0}"
 IFXCA_LAUNCH_MODE="${IFXCA_LAUNCH_MODE:-submit}"
 
 DEFAULT_CONFIGS=(
-  "./configs/conditional_imagen_few/VerbalTS_synthetic_u_longclip_scratch.yaml"
-  "./configs/conditional_imagen_few/VerbalTS_synthetic_m_longclip_scratch.yaml"
+#  "./configs/conditional_imagen_few/VerbalTS_synthetic_u_longclip_scratch.yaml"
+#  "./configs/conditional_imagen_few/VerbalTS_synthetic_m_longclip_scratch.yaml"
   "./configs/conditional_imagen_few/VerbalTS_istanbul_traffic_longclip_scratch.yaml"
-  "./configs/conditional_imagen_few/VerbalTS_ETTm1_longclip_scratch.yaml"
-  "./configs/conditional_imagen_few/VerbalTS_Weather_longclip_scratch.yaml"
-  "./configs/conditional_imagen_few/VerbalTS_BlindWays_longclip_scratch.yaml"
+#  "./configs/conditional_imagen_few/VerbalTS_ETTm1_longclip_scratch.yaml"
+#  "./configs/conditional_imagen_few/VerbalTS_Weather_longclip_scratch.yaml"
+#  "./configs/conditional_imagen_few/VerbalTS_BlindWays_longclip_scratch.yaml"
 )
 
 if [[ -n "${CONFIG:-}" ]]; then
