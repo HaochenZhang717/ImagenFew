@@ -311,7 +311,7 @@ def main():
     if args.num_samples is not None:
         cfg["sampling"]["num_decode_samples"] = args.num_samples
     else:
-        test_ts, _, _ = load_split_arrays(dataset_root, "test")
+        test_ts, _, _ = load_split_arrays(dataset_root, "train")
         cfg["sampling"]["num_decode_samples"] = int(len(test_ts))
 
     model = build_backbone(cfg).to(device)
