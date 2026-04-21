@@ -50,6 +50,7 @@ def parse_args_uncond():
     parser.add_argument('--subset_n', type=float, help='number of samples from dataset to include')
     parser.add_argument('--seq_len', type=int, help='input sequence length,')
     parser.add_argument('--train_on_datasets', help='datasets to train on',)
+    parser.add_argument('--eval_split', type=str, choices=['train', 'test'], help='which split to use during evaluation')
 
         # --- KoVAE ---
     parser.add_argument('--missing_value', type=float, default=0.)

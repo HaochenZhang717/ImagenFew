@@ -26,6 +26,12 @@ def _extract_real_tensor(dataset):
     return dataset
 
 
+def _slice_eval_dataset(dataset, eval_n):
+    if hasattr(dataset, "tensors"):
+        return type(dataset)(*(tensor[:eval_n] for tensor in dataset.tensors))
+    return dataset[:eval_n]
+
+
 def main(args):
     # Set up basic attributes
     args.finetune = not args.pretrain
@@ -69,6 +75,8 @@ def main(args):
 
         # --- train model ---
         best_score = float('inf')  # marginal score for long-range metrics, dice score for short-range metrics
+        # eval_split = getattr(args, "eval_split", "train")
+        eval_split = "train"
         for epoch in range(1, args.epochs):
             handler.model.train()
             handler.epoch = epoch
@@ -89,13 +97,14 @@ def main(args):
                     scores_mean = {'disc_mean': [], 'disc_std': [], 'pred_mean': [], 'pred_std': [], 'context_fid': []}
                     for dataset in args.train_on_datasets:
                         args.dataset = dataset
-                        testset, class_label = dataset_loader.gen_dataloader(dataset)
+                        if eval_split == "train":
+                            testset = trainsets[dataset]
+                            class_label = dataset_list.index(dataset)
+                        else:
+                            testset, class_label = dataset_loader.gen_dataloader(dataset)
                         if args.subset_n is not None:
                             eval_n = min(int(args.subset_n), len(testset))
-                            if hasattr(testset, "tensors"):
-                                testset = type(testset)(*(tensor[:eval_n] for tensor in testset.tensors))
-                            else:
-                                testset = testset[:eval_n]
+                            testset = _slice_eval_dataset(testset, eval_n)
                         handler.model.eval()
                         with torch.no_grad():
                             generated_set = handler.sample(len(testset), class_label, metadatas[dataset], testset)
@@ -109,13 +118,13 @@ def main(args):
                         scores_mean['pred_std'].append(scores[f'pred_std'])
                         scores_mean['context_fid'].append(scores[f'context_fid'])
                         for key, value in scores.items():
-                            logger.log(f'test/{dataset}_{key}', value, epoch)
+                            logger.log(f'{eval_split}/{dataset}_{key}', value, epoch)
                     if is_main_process():
-                        logger.log(f'test/disc_mean', np.mean(scores_mean['disc_mean']), epoch)
-                        logger.log(f'test/disc_std', np.mean(scores_mean['disc_std']), epoch)
-                        logger.log(f'test/pred_mean', np.mean(scores_mean['pred_mean']), epoch)
-                        logger.log(f'test/pred_std', np.mean(scores_mean['pred_std']), epoch)
-                        logger.log(f'test/context_fid', np.mean(scores_mean['context_fid']), epoch)
+                        logger.log(f'{eval_split}/disc_mean', np.mean(scores_mean['disc_mean']), epoch)
+                        logger.log(f'{eval_split}/disc_std', np.mean(scores_mean['disc_std']), epoch)
+                        logger.log(f'{eval_split}/pred_mean', np.mean(scores_mean['pred_mean']), epoch)
+                        logger.log(f'{eval_split}/pred_std', np.mean(scores_mean['pred_std']), epoch)
+                        logger.log(f'{eval_split}/context_fid', np.mean(scores_mean['context_fid']), epoch)
 
                         # --- save checkpoint ---
                         disc_mean = np.mean(scores_mean['disc_mean'])

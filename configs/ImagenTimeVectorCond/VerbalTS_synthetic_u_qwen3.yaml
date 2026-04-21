@@ -32,6 +32,7 @@ run_dir: ImagenTimeVectorCond/VerbalTS_synthetic_u_qwen3/
 datasets_dir: ./data/
 seq_len: 128
 pretrain: false
+eval_split: train
 datasets:
   - name: synthetic_u
     data: verbal_ts

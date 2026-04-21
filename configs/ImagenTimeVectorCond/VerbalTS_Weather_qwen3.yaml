@@ -32,6 +32,7 @@ run_dir: ImagenTimeVectorCond/VerbalTS_Weather_qwen3/
 datasets_dir: ./data/
 seq_len: 36
 pretrain: false
+eval_split: train
 datasets:
   - name: Weather
     data: verbal_ts
