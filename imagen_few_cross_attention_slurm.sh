@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=imtvcond
+#SBATCH --job-name=ifxca
 #SBATCH --partition=all
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -40,16 +40,19 @@ export NCCL_DEBUG=INFO
 export TOKENIZERS_PARALLELISM=false
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
-WANDB_PROJECT="${WANDB_PROJECT:-ImagenTimeVectorCond-VerbalTS}"
+WANDB_PROJECT="${WANDB_PROJECT:-ImagenFewCrossAttention-VerbalTS}"
 SUBSET_P="${SUBSET_P:-1.0}"
 USE_WANDB="${USE_WANDB:-1}"
-IMTVCOND_LAUNCH_MODE="${IMTVCOND_LAUNCH_MODE:-submit}"
+NO_TEST_MODEL="${NO_TEST_MODEL:-0}"
+IFXCA_LAUNCH_MODE="${IFXCA_LAUNCH_MODE:-submit}"
 
 DEFAULT_CONFIGS=(
-#  "./configs/ImagenTimeVectorCond/VerbalTS_ETTm1_qwen3.yaml"
-#  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_u_qwen3.yaml"
-#  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_m_qwen3.yaml"
-  "./configs/ImagenTimeVectorCond/VerbalTS_istanbul_traffic_qwen3.yaml"
+  "./configs/conditional_imagen_few/VerbalTS_synthetic_u_longclip_scratch.yaml"
+  "./configs/conditional_imagen_few/VerbalTS_synthetic_m_longclip_scratch.yaml"
+  "./configs/conditional_imagen_few/VerbalTS_istanbul_traffic_longclip_scratch.yaml"
+  "./configs/conditional_imagen_few/VerbalTS_ETTm1_longclip_scratch.yaml"
+  "./configs/conditional_imagen_few/VerbalTS_Weather_longclip_scratch.yaml"
+  "./configs/conditional_imagen_few/VerbalTS_BlindWays_longclip_scratch.yaml"
 )
 
 if [[ -n "${CONFIG:-}" ]]; then
@@ -60,27 +63,31 @@ else
   CONFIGS=("${DEFAULT_CONFIGS[@]}")
 fi
 
-echo "Running ImagenTimeVectorCond jobs on host $(hostname)"
+echo "Running ImagenFewCrossAttention scratch jobs on host $(hostname)"
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}"
 echo "WANDB_PROJECT=$WANDB_PROJECT"
 echo "SUBSET_P=$SUBSET_P"
 echo "USE_WANDB=$USE_WANDB"
+echo "NO_TEST_MODEL=$NO_TEST_MODEL"
 echo "Configs:"
 printf '  %s\n' "${CONFIGS[@]}"
 
-if [[ "$IMTVCOND_LAUNCH_MODE" != "run" ]]; then
+if [[ "$IFXCA_LAUNCH_MODE" != "run" ]]; then
   echo "Submitting one Slurm job per config."
   for config in "${CONFIGS[@]}"; do
     config_base="$(basename "$config" .yaml)"
-    job_name="imtvc_${config_base#VerbalTS_}"
+    dataset_name="${config_base#VerbalTS_}"
+    dataset_name="${dataset_name%_longclip_scratch}"
+    job_name="ifxca_${dataset_name}"
     job_id="$(
       CONDA_ENV="${CONDA_ENV:-}" \
       WANDB_PROJECT="$WANDB_PROJECT" \
       SUBSET_P="$SUBSET_P" \
       USE_WANDB="$USE_WANDB" \
+      NO_TEST_MODEL="$NO_TEST_MODEL" \
       CONFIG="$config" \
-      IMTVCOND_LAUNCH_MODE="run" \
-      sbatch --parsable --job-name="$job_name" "$ROOT_DIR/imagen_time_vectorcond_slurm.sh" "$@"
+      IFXCA_LAUNCH_MODE="run" \
+      sbatch --parsable --job-name="$job_name" "$ROOT_DIR/imagen_few_cross_attention_slurm.sh" "$@"
     )"
     echo "Submitted $config as job $job_id ($job_name)"
   done
@@ -94,13 +101,17 @@ fi
 
 for config in "${CONFIGS[@]}"; do
   CMD=(
-    python run_diffts_imagentime.py
+    python run.py
     --subset_p "$SUBSET_P"
     --config "$config"
   )
 
   if [[ "$USE_WANDB" == "1" ]]; then
     CMD+=(--wandb --wandb_project "$WANDB_PROJECT")
+  fi
+
+  if [[ "$NO_TEST_MODEL" == "1" ]]; then
+    CMD+=(--no_test_model)
   fi
 
   if [[ $# -gt 0 ]]; then

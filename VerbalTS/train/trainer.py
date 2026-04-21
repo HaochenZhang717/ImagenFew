@@ -170,6 +170,7 @@ class Trainer:
             eval_metrics=metric_names,
             metric_iteration=metric_iteration,
             base_path=metric_cache_dir,
+            vae_ckpt_root=os.getenv("FID_VAE_CKPT_ROOT"),
         )
 
         wandb.log({f"eval/{key}": value for key, value in scores.items()}, step=epoch_no)

@@ -90,7 +90,8 @@ def parse_args_uncond():
 
     # --- logging ---
     parser.add_argument('--logging_iter', type=int, help='number of iterations between logging')
-    parser.add_argument('--eval_metrics', type=str, default=["disc", "contextFID", "pred"], choices=["disc", "contextFID", "pred"], help='Evaluate metrics to compute', nargs='+')
+    parser.add_argument('--eval_metrics', type=str, default=["disc", "contextFID", "pred"], choices=["disc", "contextFID", "pred", "vaeFID"], help='Evaluate metrics to compute', nargs='+')
+    parser.add_argument('--fid_vae_ckpt_root', type=str, help='root directory that stores fid_vae checkpoints')
 
         # -- KoVAE ---
     parser.add_argument('--num_steps', type=int, default=1)

@@ -1,10 +1,11 @@
 from .discriminative_torch import discriminative_score_metrics
 from .context_fid import Context_FID
+from .vae_fid import VAE_FID
 import numpy as np
 import torch
 from tqdm import tqdm
 
-def evaluate_model_uncond(real_sig, gen_sig, dataset, device, eval_metrics=['disc'], metric_iteration=10, base_path=None):
+def evaluate_model_uncond(real_sig, gen_sig, dataset, device, eval_metrics=['disc'], metric_iteration=10, base_path=None, vae_ckpt_root=None):
 
     if 'disc' in eval_metrics:
         torch.backends.cudnn.deterministic = True
@@ -22,6 +23,11 @@ def evaluate_model_uncond(real_sig, gen_sig, dataset, device, eval_metrics=['dis
     else:
         context_fid = -1
 
+    if 'vaeFID' in eval_metrics:
+        vae_fid = VAE_FID(real_sig, gen_sig, dataset, device, vae_ckpt_root=vae_ckpt_root)
+    else:
+        vae_fid = -1
+
     if 'pred' in eval_metrics:
         from .predictive_metrics_pytorch import predictive_score_metrics
         predictive_score = list()
@@ -37,4 +43,5 @@ def evaluate_model_uncond(real_sig, gen_sig, dataset, device, eval_metrics=['dis
         f'disc_std':disc_std,
         f'pred_mean':pred_mean,
         f'pred_std':pred_std,
-        f'context_fid':context_fid}
+        f'context_fid':context_fid,
+        f'vae_fid':vae_fid}

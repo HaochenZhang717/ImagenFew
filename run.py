@@ -104,7 +104,15 @@ def main(args):
                                     'context_fid': [],
                                 }
                             generated_set = generated_set.cpu().detach().numpy()
-                            scores = evaluate_model_uncond(real_set, generated_set, dataset, args.device, args.eval_metrics, base_path=args.ts2vec_dir)
+                            scores = evaluate_model_uncond(
+                                real_set,
+                                generated_set,
+                                dataset,
+                                args.device,
+                                args.eval_metrics,
+                                base_path=args.ts2vec_dir,
+                                vae_ckpt_root=getattr(args, "fid_vae_ckpt_root", None),
+                            )
                             scores_mean[variant_name]['disc_mean'].append(scores[f'disc_mean'])
                             scores_mean[variant_name]['disc_std'].append(scores[f'disc_std'])
                             scores_mean[variant_name]['pred_mean'].append(scores[f'pred_mean'])

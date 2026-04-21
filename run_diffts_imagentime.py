@@ -136,8 +136,15 @@ def main(args):
                             )
                         generated_set = generated_set.cpu().detach().numpy()
                         real_set = _extract_real_tensor(testset).cpu().detach().numpy()
-                        scores = evaluate_model_uncond(real_set, generated_set, dataset, args.device, args.eval_metrics,
-                                                       base_path=args.ts2vec_dir)
+                        scores = evaluate_model_uncond(
+                            real_set,
+                            generated_set,
+                            dataset,
+                            args.device,
+                            args.eval_metrics,
+                            base_path=args.ts2vec_dir,
+                            vae_ckpt_root=getattr(args, "fid_vae_ckpt_root", None),
+                        )
                         scores_mean['disc_mean'].append(scores[f'disc_mean'])
                         scores_mean['disc_std'].append(scores[f'disc_std'])
                         scores_mean['pred_mean'].append(scores[f'pred_mean'])
