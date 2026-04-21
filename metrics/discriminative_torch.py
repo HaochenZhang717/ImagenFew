@@ -61,7 +61,6 @@ def discriminative_score_metrics(ori_data, generated_data, device):
 
         def forward(self, x):
             # x: (B, T, C)
-            breakpoint()
             x = x.permute(0, 2, 1)  # → (B, C, T)
 
             h = self.net(x)  # (B, H, 1)
