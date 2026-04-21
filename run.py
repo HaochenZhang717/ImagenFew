@@ -25,6 +25,12 @@ def _extract_real_tensor(dataset):
         return dataset[0]
     return dataset
 
+
+def _slice_eval_dataset(dataset, eval_n):
+    if hasattr(dataset, "tensors"):
+        return type(dataset)(*(tensor[:eval_n] for tensor in dataset.tensors))
+    return dataset[:eval_n]
+
 def main(args):
     # Set up basic attributes
     args.finetune = not args.pretrain
@@ -64,6 +70,7 @@ def main(args):
         start_epoch = getattr(handler, 'resume_epoch', 0) + 1
         if start_epoch > 1:
             logging.info(f"Resuming training from epoch {start_epoch}")
+        eval_split = getattr(args, "eval_split", "test")
         for epoch in range(start_epoch, args.epochs):
             handler.model.train()
             handler.epoch = epoch
@@ -87,7 +94,14 @@ def main(args):
                     scores_mean = {}
                     for dataset in args.train_on_datasets:
                         args.dataset = dataset
-                        testset, class_label = dataset_loader.gen_dataloader(dataset)
+                        if eval_split == "train":
+                            testset = trainsets[dataset]
+                            class_label = dataset_list.index(dataset)
+                        else:
+                            testset, class_label = dataset_loader.gen_dataloader(dataset)
+                        if args.subset_n is not None:
+                            eval_n = min(int(args.subset_n), len(testset))
+                            testset = _slice_eval_dataset(testset, eval_n)
                         handler.model.eval()
 
 
@@ -118,15 +132,19 @@ def main(args):
                             scores_mean[variant_name]['pred_mean'].append(scores[f'pred_mean'])
                             scores_mean[variant_name]['pred_std'].append(scores[f'pred_std'])
                             scores_mean[variant_name]['context_fid'].append(scores[f'context_fid'])
+                            if 'vae_fid' in scores:
+                                scores_mean[variant_name].setdefault('vae_fid', []).append(scores['vae_fid'])
                             for key, value in scores.items():
-                                logger.log(f'test/{variant_name}/{dataset}_{key}', value, step=epoch)
+                                logger.log(f'{eval_split}/{variant_name}/{dataset}_{key}', value, step=epoch)
                     if is_main_process():
                         for variant_name, variant_scores in scores_mean.items():
-                            logger.log(f'test/{variant_name}/disc_mean', np.mean(variant_scores['disc_mean']), step=epoch)
-                            logger.log(f'test/{variant_name}/disc_std', np.mean(variant_scores['disc_std']), step=epoch)
-                            logger.log(f'test/{variant_name}/pred_mean', np.mean(variant_scores['pred_mean']), step=epoch)
-                            logger.log(f'test/{variant_name}/pred_std', np.mean(variant_scores['pred_std']), step=epoch)
-                            logger.log(f'test/{variant_name}/context_fid', np.mean(variant_scores['context_fid']), step=epoch)
+                            logger.log(f'{eval_split}/{variant_name}/disc_mean', np.mean(variant_scores['disc_mean']), step=epoch)
+                            logger.log(f'{eval_split}/{variant_name}/disc_std', np.mean(variant_scores['disc_std']), step=epoch)
+                            logger.log(f'{eval_split}/{variant_name}/pred_mean', np.mean(variant_scores['pred_mean']), step=epoch)
+                            logger.log(f'{eval_split}/{variant_name}/pred_std', np.mean(variant_scores['pred_std']), step=epoch)
+                            logger.log(f'{eval_split}/{variant_name}/context_fid', np.mean(variant_scores['context_fid']), step=epoch)
+                            if 'vae_fid' in variant_scores:
+                                logger.log(f'{eval_split}/{variant_name}/vae_fid', np.mean(variant_scores['vae_fid']), step=epoch)
 
                         # --- save checkpoint ---
                         save_variant = "prior" if "prior" in scores_mean else next(iter(scores_mean))

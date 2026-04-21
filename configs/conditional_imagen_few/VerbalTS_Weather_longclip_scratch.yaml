@@ -34,6 +34,7 @@ run_dir: CondImagenFewScratch/VerbalTS_Weather_longclip/
 datasets_dir: ./data/
 seq_len: 36
 pretrain: true
+eval_split: train
 datasets:
   - name: Weather
     data: verbal_ts

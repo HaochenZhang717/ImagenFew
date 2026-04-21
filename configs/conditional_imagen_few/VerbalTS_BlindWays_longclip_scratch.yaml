@@ -32,6 +32,7 @@ run_dir: CondImagenFewScratch/VerbalTS_BlindWays_longclip/
 datasets_dir: ./data/
 seq_len: 600
 pretrain: true
+eval_split: train
 datasets:
   - name: BlindWays
     data: verbal_ts

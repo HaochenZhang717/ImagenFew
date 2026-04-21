@@ -34,6 +34,7 @@ run_dir: CondImagenFewScratch/VerbalTS_ETTm1_longclip/
 datasets_dir: ./data/
 seq_len: 120
 pretrain: true
+eval_split: train
 datasets:
   - name: ETTm1
     data: verbal_ts

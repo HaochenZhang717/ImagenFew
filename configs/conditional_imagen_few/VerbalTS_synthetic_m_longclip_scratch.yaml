@@ -34,6 +34,7 @@ run_dir: CondImagenFewScratch/VerbalTS_synthetic_m_longclip/
 datasets_dir: ./data/
 seq_len: 128
 pretrain: true
+eval_split: train
 datasets:
   - name: synthetic_m
     data: verbal_ts
