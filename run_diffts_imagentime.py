@@ -32,6 +32,23 @@ def _slice_eval_dataset(dataset, eval_n):
     return dataset[:eval_n]
 
 
+def _save_eval_samples(args, dataset_name, epoch, eval_split, real_set, generated_set):
+    samples_dir = os.path.join(os.path.dirname(args.log_dir), "eval_samples")
+    os.makedirs(samples_dir, exist_ok=True)
+    sample_path = os.path.join(
+        samples_dir,
+        f"{dataset_name}_{eval_split}_epoch_{epoch:04d}.pt",
+    )
+    payload = {
+        "dataset": dataset_name,
+        "epoch": int(epoch),
+        "eval_split": eval_split,
+        "real_ts": real_set.detach().cpu().float(),
+        "sampled_ts": generated_set.detach().cpu().float(),
+    }
+    torch.save(payload, sample_path)
+
+
 def main(args):
     # Set up basic attributes
     args.finetune = not args.pretrain
@@ -108,6 +125,15 @@ def main(args):
                         handler.model.eval()
                         with torch.no_grad():
                             generated_set = handler.sample(len(testset), class_label, metadatas[dataset], testset)
+                        if is_main_process():
+                            _save_eval_samples(
+                                args,
+                                dataset,
+                                epoch,
+                                eval_split,
+                                _extract_real_tensor(testset),
+                                generated_set,
+                            )
                         generated_set = generated_set.cpu().detach().numpy()
                         real_set = _extract_real_tensor(testset).cpu().detach().numpy()
                         scores = evaluate_model_uncond(real_set, generated_set, dataset, args.device, args.eval_metrics,

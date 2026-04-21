@@ -46,9 +46,9 @@ IMAGENTIME_LAUNCH_MODE="${IMAGENTIME_LAUNCH_MODE:-submit}"
 
 DEFAULT_CONFIGS=(
   "./configs/ImagenTime/VerbalTS_synthetic_u.yaml"
-  "./configs/ImagenTime/VerbalTS_synthetic_m.yaml"
-  "./configs/ImagenTime/VerbalTS_istanbul_traffic.yaml"
-  "./configs/ImagenTime/VerbalTS_ETTm1.yaml"
+#  "./configs/ImagenTime/VerbalTS_synthetic_m.yaml"
+#  "./configs/ImagenTime/VerbalTS_istanbul_traffic.yaml"
+#  "./configs/ImagenTime/VerbalTS_ETTm1.yaml"
 #  "./configs/ImagenTime/VerbalTS_Weather.yaml"
 #  "./configs/ImagenTime/VerbalTS_BlindWays.yaml"
 )

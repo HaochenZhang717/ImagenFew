@@ -1,0 +1,40 @@
+# training:
+epochs: 1001
+batch_size: 2048
+learning_rate: 0.0001
+weight_decay: 0.00001
+
+# transform:
+use_stft: false
+delay: 8
+embedding: 16
+
+# model:
+handler: models.ImagenFewCrossAttention.handler
+img_resolution: 16
+unet_channels: 32
+ch_mult: [1,2,2,4]
+attn_resolution: [8,4,2]
+diffusion_steps: 36
+ema: true
+ema_warmup: 100
+ft_method: all
+
+# conditioning:
+verbalts_context_suffix: long_clip
+
+# logging:
+logging_iter: 100
+tags: [conditional-pretrain, cross-attention, verbalts, longclip]
+run_dir: CondImagenFewScratch/VerbalTS_synthetic_u_longclip/
+
+# Data
+datasets_dir: ./data/
+seq_len: 128
+pretrain: true
+datasets:
+  - name: synthetic_u
+    data: verbal_ts
+    rel_path: VerbalTSDatasets/synthetic_u
+train_on_datasets:
+  - synthetic_u
