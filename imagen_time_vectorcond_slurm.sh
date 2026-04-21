@@ -46,10 +46,10 @@ USE_WANDB="${USE_WANDB:-1}"
 IMTVCOND_LAUNCH_MODE="${IMTVCOND_LAUNCH_MODE:-submit}"
 
 DEFAULT_CONFIGS=(
-#  "./configs/ImagenTimeVectorCond/VerbalTS_ETTm1_qwen3.yaml"
-#  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_u_qwen3.yaml"
-#  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_m_qwen3.yaml"
-  "./configs/ImagenTimeVectorCond/VerbalTS_istanbul_traffic_qwen3.yaml"
+  "./configs/ImagenTimeVectorCond/VerbalTS_ETTm1_qwen3.yaml"
+  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_u_qwen3.yaml"
+  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_m_qwen3.yaml"
+#  "./configs/ImagenTimeVectorCond/VerbalTS_istanbul_traffic_qwen3.yaml"
 )
 
 if [[ -n "${CONFIG:-}" ]]; then
