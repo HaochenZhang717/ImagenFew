@@ -32,6 +32,15 @@ class DiffusionProcess():
         self.S_max = float('inf')
         self.S_noise = 1
         self.num_steps = args.diffusion_steps
+        self.guidance_scale = float(getattr(args, "guidance_scale", 1.0))
+
+    def _denoise(self, x, sigma, class_labels=None):
+        if class_labels is None or self.guidance_scale == 1.0:
+            return self.net(x, sigma, class_labels).to(torch.float64)
+
+        cond_denoised = self.net(x, sigma, class_labels).to(torch.float64)
+        uncond_denoised = self.net(x, sigma, None).to(torch.float64)
+        return uncond_denoised + self.guidance_scale * (cond_denoised - uncond_denoised)
 
     def sample(self, latents, class_labels=None):
 
@@ -56,13 +65,13 @@ class DiffusionProcess():
             x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * self.S_noise * torch.randn_like(x_cur)
 
             # Euler step.
-            denoised = self.net(x_hat, t_hat, class_labels).to(torch.float64)
+            denoised = self._denoise(x_hat, t_hat, class_labels)
             d_cur = (x_hat - denoised) / t_hat
             x_next = x_hat + (t_next - t_hat) * d_cur
 
             # Apply 2nd order correction.
             if i < self.num_steps - 1:
-                denoised = self.net(x_next, t_next, class_labels).to(torch.float64)
+                denoised = self._denoise(x_next, t_next, class_labels)
                 d_prime = (x_next - denoised) / t_next
                 x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
 
@@ -99,14 +108,14 @@ class DiffusionProcess():
             x_hat = x_cur + x_to_impute
 
             # Euler step.
-            denoised = self.net(x_hat, t_hat, class_labels).to(torch.float64)
+            denoised = self._denoise(x_hat, t_hat, class_labels)
             d_cur = (x_hat - denoised) / t_hat
             imputed_x_part = (x_hat + (t_next - t_hat) * d_cur) * (1 - mask)
             x_next = x_image_clear + imputed_x_part
 
             # Apply 2nd order correction.
             if i < self.num_steps - 1:
-                denoised = self.net(x_next, t_next, class_labels).to(torch.float64)
+                denoised = self._denoise(x_next, t_next, class_labels)
                 d_prime = (x_next - denoised) / t_next
                 x_next = (x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)) * (1 - mask) + x_image_clear
 
@@ -138,14 +147,14 @@ class DiffusionProcess():
             x_hat = pad(torch.cat([past, x_cur + t_], dim=-1))
 
             # Euler step.
-            denoised = self.net(x_hat, t_hat, class_labels).to(torch.float64)
+            denoised = self._denoise(x_hat, t_hat, class_labels)
             d_cur = (x_hat - denoised) / t_hat
             x_next = (x_hat + (t_next - t_hat) * d_cur)[..., s:(s+e)]
 
             # Apply 2nd order correction.
             if i < self.num_steps - 1:
                 x_next = pad(torch.cat([past, x_next], dim=-1))
-                denoised = self.net(x_next, t_next, class_labels).to(torch.float64)
+                denoised = self._denoise(x_next, t_next, class_labels)
                 d_prime = (x_next - denoised) / t_next
                 x_next = (x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime))[..., s:(s+e)]
 

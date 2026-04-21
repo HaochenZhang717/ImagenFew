@@ -137,7 +137,8 @@ class UNetBlock(torch.nn.Module):
         in_channels, out_channels, emb_channels, up=False, down=False, attention=False,
         num_heads=None, channels_per_head=64, dropout=0, skip_scale=1, eps=1e-5,
         resample_filter=[1,1], resample_proj=False, adaptive_scale=True,
-        init=dict(), init_zero=dict(init_weight=0), init_attn=None, r = None
+        init=dict(), init_zero=dict(init_weight=0), init_attn=None, r = None,
+        cond_channels=0,
     ):
         super().__init__()
         self.in_channels = in_channels
@@ -147,10 +148,12 @@ class UNetBlock(torch.nn.Module):
         self.dropout = dropout
         self.skip_scale = skip_scale
         self.adaptive_scale = adaptive_scale
+        self.cond_channels = cond_channels
 
         self.norm0 = GroupNorm(num_channels=in_channels, eps=eps)
         self.conv0 = Conv2d(in_channels=in_channels, out_channels=out_channels, kernel=3, up=up, down=down, resample_filter=resample_filter, **init)
         self.affine = Linear(in_features=emb_channels, out_features=out_channels*(2 if adaptive_scale else 1), **init)
+        self.cond_affine = Linear(in_features=cond_channels, out_features=out_channels * 2, **init) if cond_channels else None
         self.norm1 = GroupNorm(num_channels=out_channels, eps=eps)
         self.conv1 = Conv2d(in_channels=out_channels, out_channels=out_channels, kernel=3, **init_zero)
 
@@ -168,16 +171,26 @@ class UNetBlock(torch.nn.Module):
                 self.qkv = Conv2d(in_channels=out_channels, out_channels=out_channels*3, kernel=1, **(init_attn if init_attn is not None else init))
                 self.proj = Conv2d(in_channels=out_channels, out_channels=out_channels, kernel=1, **init_zero)
 
-    def forward(self, x, emb):
+    def forward(self, x, emb, cond_emb=None):
         orig = x
         x = self.conv0(silu(self.norm0(x)))
 
+        norm_x = self.norm1(x)
         params = self.affine(emb).unsqueeze(2).unsqueeze(3).to(x.dtype)
         if self.adaptive_scale:
             scale, shift = params.chunk(chunks=2, dim=1)
-            x = silu(torch.addcmul(shift, self.norm1(x), scale + 1))
+            norm_x = torch.addcmul(shift, norm_x, scale + 1)
         else:
-            x = silu(self.norm1(x.add_(params)))
+            norm_x = norm_x.add_(params)
+
+        # Feed condition vectors through a separate FiLM-style route so the
+        # block can modulate activations independently from the timestep path.
+        if self.cond_affine is not None and cond_emb is not None:
+            cond_params = self.cond_affine(cond_emb).unsqueeze(2).unsqueeze(3).to(x.dtype)
+            cond_scale, cond_shift = cond_params.chunk(chunks=2, dim=1)
+            norm_x = torch.addcmul(cond_shift, norm_x, cond_scale + 1)
+
+        x = silu(norm_x)
 
         x = self.conv1(torch.nn.functional.dropout(x, p=self.dropout, training=self.training))
         x = x.add_(self.skip(orig) if self.skip is not None else orig)
@@ -397,7 +410,15 @@ class DhariwalUNet(torch.nn.Module):
         emb_channels = model_channels * channel_mult_emb
         init = dict(init_mode='kaiming_uniform', init_weight=np.sqrt(1/3), init_bias=np.sqrt(1/3))
         init_zero = dict(init_mode='kaiming_uniform', init_weight=0, init_bias=0)
-        block_kwargs = dict(emb_channels=emb_channels, channels_per_head=64, dropout=dropout, init=init, init_zero=init_zero,r = lora_rank)
+        block_kwargs = dict(
+            emb_channels=emb_channels,
+            channels_per_head=64,
+            dropout=dropout,
+            init=init,
+            init_zero=init_zero,
+            r=lora_rank,
+            cond_channels=emb_channels,
+        )
 
         # Mapping.
         self.map_noise = PositionalEmbedding(num_channels=model_channels)
@@ -405,6 +426,8 @@ class DhariwalUNet(torch.nn.Module):
         self.map_layer0 = Linear(in_features=model_channels, out_features=emb_channels, **init)
         self.map_layer1 = Linear(in_features=emb_channels, out_features=emb_channels, **init)
         self.map_label = Linear(in_features=label_dim, out_features=emb_channels, bias=False, init_mode='kaiming_normal', init_weight=np.sqrt(label_dim)) if label_dim else None
+        self.map_label_layer0 = Linear(in_features=emb_channels, out_features=emb_channels, **init) if label_dim else None
+        self.map_label_layer1 = Linear(in_features=emb_channels, out_features=emb_channels, **init) if label_dim else None
 
         # Encoder.
         self.enc = torch.nn.ModuleDict()
@@ -446,24 +469,29 @@ class DhariwalUNet(torch.nn.Module):
             emb = emb + self.map_augment(augment_labels)
         emb = silu(self.map_layer0(emb))
         emb = self.map_layer1(emb)
+        cond_emb = None
         if self.map_label is not None:
             tmp = class_labels
             if self.training and self.label_dropout:
                 tmp = tmp * (torch.rand([x.shape[0], 1], device=x.device) >= self.label_dropout).to(tmp.dtype)
-            emb = emb + self.map_label(tmp)
+            cond_emb = self.map_label(tmp)
+            cond_emb = silu(self.map_label_layer0(cond_emb))
+            cond_emb = self.map_label_layer1(cond_emb)
         emb = silu(emb)
+        if cond_emb is not None:
+            cond_emb = silu(cond_emb)
 
         # Encoder.
         skips = []
         for block in self.enc.values():
-            x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
+            x = block(x, emb, cond_emb=cond_emb) if isinstance(block, UNetBlock) else block(x)
             skips.append(x)
 
         # Decoder.
         for block in self.dec.values():
             if x.shape[1] != block.in_channels:
                 x = torch.cat([x, skips.pop()], dim=1)
-            x = block(x, emb)
+            x = block(x, emb, cond_emb=cond_emb)
         x = self.out_conv(silu(self.out_norm(x)))
         return x
 

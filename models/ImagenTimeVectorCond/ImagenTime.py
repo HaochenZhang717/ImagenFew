@@ -25,11 +25,14 @@ class ImagenTime(nn.Module):
 
         self.device = device
         self.cond_dim = int(getattr(args, "condition_dim", getattr(args, "context_dim", args.n_classes)))
+        self.label_dropout = float(getattr(args, "label_dropout", 0.0))
+        self.guidance_scale = float(getattr(args, "guidance_scale", 1.0))
         if not args.ft_method == 'lora':
             args.lora_dim = None
         self.net = EDMPrecond(args.img_resolution, args.input_channels, channel_mult=args.ch_mult,
                               model_channels=args.unet_channels, attn_resolutions=args.attn_resolution,
-                              label_dim=self.cond_dim, lora_rank = args.lora_dim)
+                              label_dim=self.cond_dim, lora_rank = args.lora_dim,
+                              label_dropout=self.label_dropout)
 
 
         # delay embedding is used
@@ -254,4 +257,3 @@ class ImagenTime(nn.Module):
             case 'all':
                 pass
         self.model_ema.setup_finetune(self.net)
-

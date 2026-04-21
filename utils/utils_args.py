@@ -74,6 +74,8 @@ def parse_args_uncond():
     parser.add_argument('--diffusion_steps', type=int, help='number of diffusion steps')
     parser.add_argument('--ema', type=bool, help='use ema')
     parser.add_argument('--ema_warmup', type=int, help='ema warmup')
+    parser.add_argument('--label_dropout', type=float, help='conditional dropout probability for classifier-free guidance')
+    parser.add_argument('--guidance_scale', type=float, help='classifier-free guidance scale used at sampling time')
     parser.add_argument('--lora_dim', type=int, default=4, help='lora dim')
     parser.add_argument('--dropout', type=float, default=0.0, help='dropout')
     parser.add_argument('--ft_method', type = str, default = 'all', help='ft method', choices=['all', 'lora', 'attn', 'non_attn','decoder'])

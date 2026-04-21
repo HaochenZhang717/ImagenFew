@@ -18,6 +18,8 @@ attn_resolution: [8,4,2]
 diffusion_steps: 36
 ema: true
 ema_warmup: 100
+label_dropout: 0.1
+guidance_scale: 1.5
 ft_method: all
 
 # conditioning:
