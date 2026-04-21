@@ -311,7 +311,7 @@ def main():
     if args.num_samples is not None:
         cfg["sampling"]["num_decode_samples"] = args.num_samples
     else:
-        test_ts, _, _ = load_split_arrays(dataset_root, "test")
+        test_ts, _, _ = load_split_arrays(dataset_root, "train")
         cfg["sampling"]["num_decode_samples"] = int(len(test_ts))
 
     model = build_backbone(cfg).to(device)
@@ -338,7 +338,7 @@ def main():
         "stage1_checkpoint_path": os.path.abspath(cfg["stage1"]["checkpoint_path"]),
         "num_samples": len(decoded),
         "dataset_root": dataset_root,
-        "matched_split": "test" if args.num_samples is None else None,
+        "matched_split": "train" if args.num_samples is None else None,
         "prompt": cfg["stage1_prompt"],
         "captions": [{"sample_id": idx, "text": text} for idx, text in enumerate(decoded)],
         "latent_shape": list(sampled_latents.shape),

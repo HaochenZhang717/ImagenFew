@@ -47,12 +47,16 @@ IMTVCOND_LAUNCH_MODE="${IMTVCOND_LAUNCH_MODE:-submit}"
 GUIDANCE_SCALE="${GUIDANCE_SCALE:-1.0}"
 LABEL_DROPOUT="${LABEL_DROPOUT:-0.0}"
 RUN_SUFFIX="${RUN_SUFFIX:-}"
+LR_VALUES="${LR_VALUES:-}"
+BATCH_SIZE_VALUES="${BATCH_SIZE_VALUES:-}"
+LR_OVERRIDE="${LR_OVERRIDE:-}"
+BATCH_SIZE_OVERRIDE="${BATCH_SIZE_OVERRIDE:-}"
 
 DEFAULT_CONFIGS=(
-#  "./configs/ImagenTimeVectorCond/VerbalTS_ETTm1_qwen3.yaml"
-#  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_u_qwen3.yaml"
-#  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_m_qwen3.yaml"
-  "./configs/ImagenTimeVectorCond/VerbalTS_istanbul_traffic_qwen3.yaml"
+  "./configs/ImagenTimeVectorCond/VerbalTS_ETTm1_qwen3.yaml"
+  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_u_qwen3.yaml"
+  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_m_qwen3.yaml"
+#  "./configs/ImagenTimeVectorCond/VerbalTS_istanbul_traffic_qwen3.yaml"
 )
 
 if [[ -n "${CONFIG:-}" ]]; then
@@ -70,6 +74,8 @@ echo "SUBSET_P=$SUBSET_P"
 echo "USE_WANDB=$USE_WANDB"
 echo "GUIDANCE_SCALE=${GUIDANCE_SCALE:-config-default}"
 echo "LABEL_DROPOUT=${LABEL_DROPOUT:-config-default}"
+echo "LR_VALUES=${LR_VALUES:-<config-default>}"
+echo "BATCH_SIZE_VALUES=${BATCH_SIZE_VALUES:-<config-default>}"
 echo "Configs:"
 printf '  %s\n' "${CONFIGS[@]}"
 
@@ -89,40 +95,64 @@ slugify() {
 }
 
 if [[ "$IMTVCOND_LAUNCH_MODE" != "run" ]]; then
+  if [[ -n "$LR_VALUES" ]]; then
+    read -r -a LR_SWEEP_VALUES <<<"$LR_VALUES"
+  else
+    LR_SWEEP_VALUES=("")
+  fi
+
+  if [[ -n "$BATCH_SIZE_VALUES" ]]; then
+    read -r -a BATCH_SWEEP_VALUES <<<"$BATCH_SIZE_VALUES"
+  else
+    BATCH_SWEEP_VALUES=("")
+  fi
+
   echo "Submitting one Slurm job per config."
   for config in "${CONFIGS[@]}"; do
-    config_base="$(basename "$config" .yaml)"
-    dataset_name="${config_base#VerbalTS_}"
-    cfg_tag=""
-    if [[ -n "${GUIDANCE_SCALE}" ]]; then
-      cfg_tag="${cfg_tag}_gs$(slugify "$GUIDANCE_SCALE")"
-    fi
-    if [[ -n "${LABEL_DROPOUT}" ]]; then
-      cfg_tag="${cfg_tag}_ld$(slugify "$LABEL_DROPOUT")"
-    fi
-    if [[ -n "${SUBSET_P}" ]]; then
-      cfg_tag="${cfg_tag}_sp$(slugify "$SUBSET_P")"
-    fi
-    if [[ -n "${RUN_SUFFIX}" ]]; then
-      cfg_tag="${cfg_tag}_$(slugify "$RUN_SUFFIX")"
-    fi
-    job_name="imtvc_${dataset_name}${cfg_tag}"
-    if [[ ${#job_name} -gt 120 ]]; then
-      job_name="${job_name:0:120}"
-    fi
-    job_id="$(
-      CONDA_ENV="${CONDA_ENV:-}" \
-      WANDB_PROJECT="$WANDB_PROJECT" \
-      SUBSET_P="$SUBSET_P" \
-      USE_WANDB="$USE_WANDB" \
-      GUIDANCE_SCALE="$GUIDANCE_SCALE" \
-      LABEL_DROPOUT="$LABEL_DROPOUT" \
-      RUN_SUFFIX="$RUN_SUFFIX" \
-      CONFIG="$config" \
-      IMTVCOND_LAUNCH_MODE="run" \
-      sbatch --parsable --job-name="$job_name" "$ROOT_DIR/imagen_time_vectorcond_slurm.sh" "$@"
-    )"
-    echo "Submitted $config as job $job_id ($job_name)"
+    for lr_value in "${LR_SWEEP_VALUES[@]}"; do
+      for batch_value in "${BATCH_SWEEP_VALUES[@]}"; do
+        config_base="$(basename "$config" .yaml)"
+        dataset_name="${config_base#VerbalTS_}"
+        cfg_tag=""
+        if [[ -n "${GUIDANCE_SCALE}" ]]; then
+          cfg_tag="${cfg_tag}_gs$(slugify "$GUIDANCE_SCALE")"
+        fi
+        if [[ -n "${LABEL_DROPOUT}" ]]; then
+          cfg_tag="${cfg_tag}_ld$(slugify "$LABEL_DROPOUT")"
+        fi
+        if [[ -n "${SUBSET_P}" ]]; then
+          cfg_tag="${cfg_tag}_sp$(slugify "$SUBSET_P")"
+        fi
+        if [[ -n "$lr_value" ]]; then
+          cfg_tag="${cfg_tag}_lr$(slugify "$lr_value")"
+        fi
+        if [[ -n "$batch_value" ]]; then
+          cfg_tag="${cfg_tag}_bs$(slugify "$batch_value")"
+        fi
+        if [[ -n "${RUN_SUFFIX}" ]]; then
+          cfg_tag="${cfg_tag}_$(slugify "$RUN_SUFFIX")"
+        fi
+        job_name="imtvc_${dataset_name}${cfg_tag}"
+        if [[ ${#job_name} -gt 120 ]]; then
+          job_name="${job_name:0:120}"
+        fi
+        job_id="$(
+          CONDA_ENV="${CONDA_ENV:-}" \
+          WANDB_PROJECT="$WANDB_PROJECT" \
+          SUBSET_P="$SUBSET_P" \
+          USE_WANDB="$USE_WANDB" \
+          GUIDANCE_SCALE="$GUIDANCE_SCALE" \
+          LABEL_DROPOUT="$LABEL_DROPOUT" \
+          RUN_SUFFIX="$RUN_SUFFIX" \
+          LR_OVERRIDE="$lr_value" \
+          BATCH_SIZE_OVERRIDE="$batch_value" \
+          CONFIG="$config" \
+          IMTVCOND_LAUNCH_MODE="run" \
+          sbatch --parsable --job-name="$job_name" "$ROOT_DIR/imagen_time_vectorcond_slurm.sh" "$@"
+        )"
+        echo "Submitted $config as job $job_id ($job_name)"
+      done
+    done
   done
   exit 0
 fi
@@ -145,6 +175,12 @@ for config in "${CONFIGS[@]}"; do
   if [[ -n "${SUBSET_P}" ]]; then
     run_name="${run_name}_sp$(slugify "$SUBSET_P")"
   fi
+  if [[ -n "${LR_OVERRIDE}" ]]; then
+    run_name="${run_name}_lr$(slugify "$LR_OVERRIDE")"
+  fi
+  if [[ -n "${BATCH_SIZE_OVERRIDE}" ]]; then
+    run_name="${run_name}_bs$(slugify "$BATCH_SIZE_OVERRIDE")"
+  fi
   if [[ -n "${RUN_SUFFIX}" ]]; then
     run_name="${run_name}_$(slugify "$RUN_SUFFIX")"
   fi
@@ -163,6 +199,14 @@ for config in "${CONFIGS[@]}"; do
 
   if [[ -n "${LABEL_DROPOUT}" ]]; then
     CMD+=(--label_dropout "$LABEL_DROPOUT")
+  fi
+
+  if [[ -n "${LR_OVERRIDE}" ]]; then
+    CMD+=(--learning_rate "$LR_OVERRIDE")
+  fi
+
+  if [[ -n "${BATCH_SIZE_OVERRIDE}" ]]; then
+    CMD+=(--batch_size "$BATCH_SIZE_OVERRIDE")
   fi
 
   if [[ "$USE_WANDB" == "1" ]]; then
