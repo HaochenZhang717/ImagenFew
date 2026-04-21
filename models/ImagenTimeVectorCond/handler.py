@@ -66,7 +66,6 @@ class Handler(generativeHandler):
     def train_iter(self, train_dataloader, logger):
         epoch = getattr(self, "epoch", None)
         train_loss = 0.0
-        ema_train_loss = 0.0
         num_batches = 0
         for _, data in enumerate(train_dataloader, 1):
             self.optimizer.zero_grad()
@@ -89,17 +88,21 @@ class Handler(generativeHandler):
             self.optimizer.step()
             self.model.on_train_batch_end()
 
-            if getattr(self._model, "use_ema", False):
-                with torch.no_grad():
-                    with self._model.ema_scope():
-                        ema_output, ema_weight = self._model(x_img, labels=condition_vectors)
-                        ema_time_loss = (ema_output - x_img).square()
-                        ema_loss = (ema_weight * ema_time_loss).mean()
-                        ema_train_loss += ema_loss.item()
+            # EMA weights are still updated above via `on_train_batch_end()`.
+            # We intentionally disable the extra EMA forward pass used only for
+            # logging `train/ema_karras_loss`.
+            #
+            # if getattr(self._model, "use_ema", False):
+            #     with torch.no_grad():
+            #         with self._model.ema_scope():
+            #             ema_output, ema_weight = self._model(x_img, labels=condition_vectors)
+            #             ema_time_loss = (ema_output - x_img).square()
+            #             ema_loss = (ema_weight * ema_time_loss).mean()
+            #             ema_train_loss += ema_loss.item()
 
         logger.log(f'train/karras loss', train_loss / num_batches, step=epoch)
-        if getattr(self._model, "use_ema", False):
-            logger.log(f'train/ema_karras_loss', ema_train_loss / num_batches, step=epoch)
+        # if getattr(self._model, "use_ema", False):
+        #     logger.log(f'train/ema_karras_loss', ema_train_loss / num_batches, step=epoch)
 
     def sample(self, n_samples, class_label, class_metadata, test_data=None):
         generated_set = []
