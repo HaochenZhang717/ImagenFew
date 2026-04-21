@@ -47,7 +47,7 @@ class Handler(generativeHandler):
 
         logger.log(f'train/karras loss', train_loss / num_batches, step=epoch)
 
-    def sample(self, n_samples, class_label, class_metadata):
+    def sample(self, n_samples, class_label, class_metadata, testset):
         generated_set = []
         sample_batch_size = min(getattr(self.args, "batch_size", n_samples), n_samples)
         with self._model.ema_scope():
