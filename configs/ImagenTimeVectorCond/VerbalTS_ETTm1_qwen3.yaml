@@ -25,6 +25,8 @@ verbalts_context_suffix: qwen3_4b
 
 # logging:
 logging_iter: 100
+eval_metrics: [disc, contextFID, pred, vaeFID]
+fid_vae_ckpt_root: /playpen-shared/haochenz/ImagenFew/fid_vae_ckpts
 tags: [vector-cond, qwen3]
 run_dir: ImagenTimeVectorCond/VerbalTS_ETTm1_qwen3/
 

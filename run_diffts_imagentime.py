@@ -111,7 +111,7 @@ def main(args):
             # --- evaluation loop ---
             if epoch % args.logging_iter == 0:
                 if not args.no_test_model:
-                    scores_mean = {'disc_mean': [], 'disc_std': [], 'pred_mean': [], 'pred_std': [], 'context_fid': []}
+                    scores_mean = {}
                     for dataset in args.train_on_datasets:
                         args.dataset = dataset
                         if eval_split == "train":
@@ -145,19 +145,13 @@ def main(args):
                             base_path=args.ts2vec_dir,
                             vae_ckpt_root=getattr(args, "fid_vae_ckpt_root", None),
                         )
-                        scores_mean['disc_mean'].append(scores[f'disc_mean'])
-                        scores_mean['disc_std'].append(scores[f'disc_std'])
-                        scores_mean['pred_mean'].append(scores[f'pred_mean'])
-                        scores_mean['pred_std'].append(scores[f'pred_std'])
-                        scores_mean['context_fid'].append(scores[f'context_fid'])
+                        for key, value in scores.items():
+                            scores_mean.setdefault(key, []).append(value)
                         for key, value in scores.items():
                             logger.log(f'{eval_split}/{dataset}_{key}', value, epoch)
                     if is_main_process():
-                        logger.log(f'{eval_split}/disc_mean', np.mean(scores_mean['disc_mean']), epoch)
-                        logger.log(f'{eval_split}/disc_std', np.mean(scores_mean['disc_std']), epoch)
-                        logger.log(f'{eval_split}/pred_mean', np.mean(scores_mean['pred_mean']), epoch)
-                        logger.log(f'{eval_split}/pred_std', np.mean(scores_mean['pred_std']), epoch)
-                        logger.log(f'{eval_split}/context_fid', np.mean(scores_mean['context_fid']), epoch)
+                        for key, values in scores_mean.items():
+                            logger.log(f'{eval_split}/{key}', np.mean(values), epoch)
 
                         # --- save checkpoint ---
                         disc_mean = np.mean(scores_mean['disc_mean'])

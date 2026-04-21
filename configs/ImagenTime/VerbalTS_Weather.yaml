@@ -18,6 +18,8 @@ ema: true
 ema_warmup: 100
 # logging:
 logging_iter: 100
+eval_metrics: [disc, contextFID, pred, vaeFID]
+fid_vae_ckpt_root: /playpen-shared/haochenz/ImagenFew/fid_vae_ckpts
 tags: []
 run_dir: ImagenTime/VerbalTS_Weather/
 # Data

@@ -25,6 +25,8 @@ verbalts_context_suffix: long_clip
 
 # logging:
 logging_iter: 100
+eval_metrics: [disc, contextFID, pred, vaeFID]
+fid_vae_ckpt_root: /playpen-shared/haochenz/ImagenFew/fid_vae_ckpts
 tags: [conditional-pretrain, cross-attention, verbalts, longclip]
 run_dir: CondImagenFewScratch/VerbalTS_ETTm1_longclip/
 
