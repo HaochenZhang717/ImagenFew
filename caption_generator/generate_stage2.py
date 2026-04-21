@@ -55,7 +55,7 @@ def parse_args():
     parser.add_argument(
         "--decode-batch-size",
         type=int,
-        default=None,
+        default=32,
         help="Batch size used when decoding sampled latents into captions.",
     )
     parser.add_argument("--output", type=str, default=None, help="Optional JSON output path")
@@ -82,7 +82,7 @@ def parse_args():
         default="Qwen/Qwen3-Embedding-4B",
         help="Embedding model used for train-caption retrieval.",
     )
-    parser.add_argument("--embedding-batch-size", type=int, default=8)
+    parser.add_argument("--embedding-batch-size", type=int, default=32)
     parser.add_argument("--embedding-max-length", type=int, default=8192)
     parser.add_argument(
         "--train-embedding-cache",
@@ -311,7 +311,7 @@ def main():
     if args.num_samples is not None:
         cfg["sampling"]["num_decode_samples"] = args.num_samples
     else:
-        test_ts, _, _ = load_split_arrays(dataset_root, "train")
+        test_ts, _, _ = load_split_arrays(dataset_root, "test")
         cfg["sampling"]["num_decode_samples"] = int(len(test_ts))
 
     model = build_backbone(cfg).to(device)

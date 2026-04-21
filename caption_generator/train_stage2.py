@@ -433,7 +433,7 @@ def decode_sampled_latents(
     generation_cfg: Dict,
     device: torch.device,
 ):
-    decode_batch_size = int(generation_cfg.get("decode_batch_size", sampled_latents.size(0)))
+    decode_batch_size = int(generation_cfg.get("decode_batch_size", 8))
     decode_batch_size = max(1, decode_batch_size)
     decoded_batches = []
 
@@ -475,6 +475,19 @@ def decode_sampled_latents(
             eos_token_id=tokenizer.eos_token_id,
         )
         decoded_batches.extend(tokenizer.batch_decode(outputs, skip_special_tokens=True))
+        del (
+            batch_latents,
+            tokenized,
+            caption_latent,
+            soft_prompt_embeds,
+            token_embeds,
+            inputs_embeds,
+            prefix_mask,
+            full_attention_mask,
+            outputs,
+        )
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
 
     return decoded_batches
 
