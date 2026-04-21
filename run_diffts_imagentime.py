@@ -49,6 +49,12 @@ def _save_eval_samples(args, dataset_name, epoch, eval_split, real_set, generate
     torch.save(payload, sample_path)
 
 
+def _checkpoint_path_for_epoch(args, epoch):
+    ckpt_dir = os.path.join(os.path.dirname(args.log_dir), "checkpoints")
+    os.makedirs(ckpt_dir, exist_ok=True)
+    return os.path.join(ckpt_dir, f"epoch_{epoch:04d}.pt")
+
+
 def main(args):
     # Set up basic attributes
     args.finetune = not args.pretrain
@@ -110,6 +116,7 @@ def main(args):
 
             # --- evaluation loop ---
             if epoch % args.logging_iter == 0:
+                handler.save_model(_checkpoint_path_for_epoch(args, epoch))
                 if not args.no_test_model:
                     scores_mean = {}
                     for dataset in args.train_on_datasets:
