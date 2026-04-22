@@ -22,6 +22,12 @@ case "${DATASET}" in
     CONFIG="${CONFIG:-${SCRIPT_DIR}/configs/ettm1_stage1_qwen25_3b.yaml}"
     DEFAULT_OUTPUT_JSONL="../data/VerbalTSDatasets/ETTm1/${SPLIT}_generated_vs_gt.jsonl"
     ;;
+  ettm1_ve|ETTm1_ve|ETTm1_VE)
+    DATASET_NAME="ETTm1_VE"
+    CHECKPOINT="${CHECKPOINT:-${REPO_ROOT}/caption_generator/logs/caption_generator/ettm1_stage1_qwen25_3b_ve/joint_caption_latest.pt}"
+    CONFIG="${CONFIG:-${SCRIPT_DIR}/configs/ettm1_stage1_qwen25_3b_ve.yaml}"
+    DEFAULT_OUTPUT_JSONL="../data/VerbalTSDatasets/ETTm1/${SPLIT}_generated_vs_gt_ve.jsonl"
+    ;;
   synthetic_m)
     DATASET_NAME="synthetic_m"
     CHECKPOINT="${CHECKPOINT:-${REPO_ROOT}/caption_generator/logs/caption_generator/synthetic_m_stage1_qwen25_3b/joint_caption_latest.pt}"
@@ -88,3 +94,6 @@ printf ' %q' "${CMD[@]}"
 printf '\n'
 
 "${CMD[@]}"
+
+# Example:
+# DATASET=ettm1_ve SPLIT=train bash generate_caption_train_compare.sh

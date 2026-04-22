@@ -199,6 +199,45 @@ def set_joint_phase_trainability(model: Stage1LatentCaptionModel, cfg: Dict, pha
     )
 
 
+def _find_param_lr(optimizer: torch.optim.Optimizer, target_param: torch.nn.Parameter):
+    target_id = id(target_param)
+    for group in optimizer.param_groups:
+        for p in group["params"]:
+            if id(p) == target_id:
+                return float(group["lr"])
+    return None
+
+
+def log_ve_optimizer_diagnostics(model, optimizer, ddp_state: Dict):
+    if not ddp_state["is_main"]:
+        return
+    base_model = unwrap_model(model)
+    if not isinstance(base_model, Stage1LatentCaptionModelVE):
+        return
+
+    summary = base_model.vocab_expansion_summary
+    input_weight = base_model.llm.get_input_embeddings().weight
+    output_embed = base_model.llm.get_output_embeddings()
+    output_weight = output_embed.weight if output_embed is not None else None
+
+    optimizer_param_ids = {id(p) for g in optimizer.param_groups for p in g["params"]}
+    info = {
+        "type": "ve_optimizer_diagnostics",
+        "num_added_tokens": int(summary.get("num_added_tokens", 0)),
+        "old_vocab_size": int(summary.get("old_vocab_size", 0)),
+        "new_vocab_size": int(summary.get("new_vocab_size", input_weight.shape[0])),
+        "input_embedding_requires_grad": bool(input_weight.requires_grad),
+        "input_embedding_in_optimizer": id(input_weight) in optimizer_param_ids,
+        "input_embedding_lr": _find_param_lr(optimizer, input_weight),
+    }
+    if output_weight is not None:
+        info["output_embedding_requires_grad"] = bool(output_weight.requires_grad)
+        info["output_embedding_in_optimizer"] = id(output_weight) in optimizer_param_ids
+        info["output_embedding_lr"] = _find_param_lr(optimizer, output_weight)
+        info["output_shares_input_weight"] = output_weight.data_ptr() == input_weight.data_ptr()
+    print(json.dumps(info))
+
+
 @torch.no_grad()
 def evaluate(model, dataloader, device, use_amp: bool, amp_dtype, phase_cfg: Dict, ddp_state: Dict):
     model.eval()
@@ -434,6 +473,7 @@ def main():
             )
 
             optimizer = build_optimizer(model, train_cfg, phase_cfg)
+            log_ve_optimizer_diagnostics(model, optimizer, ddp_state)
             grad_accum_steps = get_phase_value(train_cfg, phase_cfg, "gradient_accumulation_steps", 1)
             steps_per_epoch = math.ceil(len(train_loader) / grad_accum_steps)
             total_steps = steps_per_epoch * phase_cfg["num_epochs"]
@@ -464,6 +504,7 @@ def main():
                     "kl_loss": 0.0,
                 }
                 optimizer.zero_grad(set_to_none=True)
+                ve_grad_logged = False
 
                 progress = tqdm(
                     train_loader,
@@ -496,6 +537,33 @@ def main():
                         scaler.scale(loss).backward()
                     else:
                         loss.backward()
+
+                    if (
+                        not ve_grad_logged
+                        and ddp_state["is_main"]
+                        and phase_cfg["name"] == "joint_caption"
+                        and isinstance(base_model, Stage1LatentCaptionModelVE)
+                    ):
+                        summary = base_model.vocab_expansion_summary
+                        emb = base_model.llm.get_input_embeddings().weight
+                        grad = emb.grad
+                        if grad is not None:
+                            old_vocab = int(summary.get("old_vocab_size", 0))
+                            new_vocab = int(summary.get("new_vocab_size", emb.shape[0]))
+                            old_grad_abs_sum = float(grad[:old_vocab].abs().sum().detach().cpu())
+                            new_grad_abs_sum = float(grad[old_vocab:new_vocab].abs().sum().detach().cpu())
+                            print(
+                                json.dumps(
+                                    {
+                                        "type": "ve_first_backward_grad_check",
+                                        "phase": phase_cfg["name"],
+                                        "old_grad_abs_sum": old_grad_abs_sum,
+                                        "new_grad_abs_sum": new_grad_abs_sum,
+                                        "expected": "old near 0, new > 0",
+                                    }
+                                )
+                            )
+                            ve_grad_logged = True
 
                     for key in running:
                         running[key] += float(outputs[key].detach().cpu())

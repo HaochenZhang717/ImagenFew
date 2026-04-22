@@ -18,7 +18,7 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from caption_generator.stage1_dataset import compute_train_normalization_stats, load_split_arrays
-from caption_generator.stage1_model import Stage1LatentCaptionModel
+from caption_generator.stage1_model import Stage1LatentCaptionModel, Stage1LatentCaptionModelVE
 
 
 def parse_args():
@@ -118,6 +118,26 @@ def build_generation_prompt_batch(tokenizer, prompts: List[str], max_prompt_leng
     }
 
 
+def should_use_ve_model(cfg: Dict) -> bool:
+    model_cfg = cfg.get("model", {})
+    model_variant = str(model_cfg.get("stage1_model_class", "base")).strip().lower()
+    if model_variant in {"ve", "vocab_expansion", "stage1latentcaptionmodelve"}:
+        return True
+    ve_cfg = dict(cfg.get("vocab_expansion", {}))
+    if not ve_cfg:
+        ve_cfg = dict(model_cfg.get("vocab_expansion", {}))
+    strategy = str(ve_cfg.get("dataset_strategy", "")).strip().lower()
+    return strategy == "ettm1"
+
+
+def strip_tokenizer_control_tokens(text: str, tokenizer) -> str:
+    cleaned = text
+    for token in (tokenizer.pad_token, tokenizer.eos_token, tokenizer.bos_token):
+        if token:
+            cleaned = cleaned.replace(token, " ")
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
 def main():
     args = parse_args()
     cfg = OmegaConf.to_container(OmegaConf.load(args.config), resolve=True)
@@ -125,6 +145,8 @@ def main():
     model_dtype_name = cfg.get("model", {}).get("torch_dtype")
     use_amp = device.type == "cuda" and model_dtype_name in {"float16", "bfloat16"}
     amp_dtype = getattr(torch, model_dtype_name) if use_amp else None
+
+    use_ve_model = should_use_ve_model(cfg)
 
     tokenizer = AutoTokenizer.from_pretrained(
         cfg["model"]["llm_name"],
@@ -135,7 +157,10 @@ def main():
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
 
-    model = Stage1LatentCaptionModel(cfg)
+    if use_ve_model:
+        model = Stage1LatentCaptionModelVE(cfg, tokenizer=tokenizer)
+    else:
+        model = Stage1LatentCaptionModel(cfg)
     ckpt = torch.load(args.checkpoint, map_location="cpu")
     model.load_state_dict(ckpt["model"], strict=True)
     model.to(device).eval()
@@ -195,13 +220,23 @@ def main():
                     },
                 )
 
-            decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-            cleaned_predictions: List[str] = [maybe_strip_prompt(text, prompt) for text in decoded]
+            decoded = tokenizer.batch_decode(outputs, skip_special_tokens=not use_ve_model)
+            cleaned_predictions: List[str] = []
+            for text in decoded:
+                pred = maybe_strip_prompt(text, prompt)
+                if use_ve_model:
+                    pred = strip_tokenizer_control_tokens(pred, tokenizer)
+                cleaned_predictions.append(pred)
 
             for local_idx, prediction in enumerate(cleaned_predictions):
                 sample_id = start + local_idx
-                ground_truth = captions[sample_id]
-                metrics = compute_text_metrics(prediction, ground_truth)
+                ground_truth_raw = captions[sample_id]
+                ground_truth_for_metrics = (
+                    model.encode_caption_with_special_tokens(ground_truth_raw)
+                    if use_ve_model and isinstance(model, Stage1LatentCaptionModelVE)
+                    else ground_truth_raw
+                )
+                metrics = compute_text_metrics(prediction, ground_truth_for_metrics)
                 num_exact += int(metrics["exact_match"])
                 num_case_exact += int(metrics["case_insensitive_exact_match"])
                 similarity_sum += float(metrics["char_similarity"])
@@ -211,7 +246,8 @@ def main():
                     "sample_id": sample_id,
                     "prompt": prompt,
                     "prediction": prediction,
-                    "ground_truth": ground_truth,
+                    "ground_truth": ground_truth_for_metrics,
+                    "ground_truth_raw": ground_truth_raw,
                     "metrics": metrics,
                 }
                 if attrs is not None:
@@ -231,6 +267,7 @@ def main():
             "temperature": args.temperature,
             "top_p": args.top_p,
         },
+        "compare_mode": "tokenized_caption_space" if use_ve_model else "raw_caption_space",
         "metrics": {
             "exact_match_rate": num_exact / total if total else 0.0,
             "case_insensitive_exact_match_rate": num_case_exact / total if total else 0.0,
