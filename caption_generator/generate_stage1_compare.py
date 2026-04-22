@@ -99,7 +99,7 @@ def main():
 
     model = Stage1LatentCaptionModel(cfg)
     ckpt = torch.load(args.checkpoint, map_location="cpu")
-    model.load_state_dict(ckpt["model"], strict=False)
+    model.load_state_dict(ckpt["model"], strict=True)
     model.to(device).eval()
 
     dataset_root = cfg["data"]["dataset_root"]
