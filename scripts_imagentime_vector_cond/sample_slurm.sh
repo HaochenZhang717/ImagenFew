@@ -19,9 +19,9 @@ mkdir -p /playpen-shared/haochenz/logs/slurm
 source ~/.zshrc >/dev/null 2>&1 || true
 if [[ -n "${CONDA_ENV:-}" ]]; then
   CONDA_BIN=""
-  if [[ -x "/playpen/haochenz/miniconda3/bin/conda" ]]; then
-    CONDA_BIN="/playpen/haochenz/miniconda3/bin/conda"
-  elif [[ -x "/playpen-shared/haochenz/miniconda3/bin/conda" ]]; then
+#  if [[ -x "/playpen/haochenz/miniconda3/bin/conda" ]]; then
+#    CONDA_BIN="/playpen/haochenz/miniconda3/bin/conda"
+  if [[ -x "/playpen-shared/haochenz/miniconda3/bin/conda" ]]; then
     CONDA_BIN="/playpen-shared/haochenz/miniconda3/bin/conda"
   elif [[ -x "$HOME/miniconda3/bin/conda" ]]; then
     CONDA_BIN="$HOME/miniconda3/bin/conda"
