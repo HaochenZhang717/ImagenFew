@@ -144,6 +144,8 @@ class Stage1LatentCaptionModel(nn.Module):
         soft_prompt_embeds = self.soft_prompt(caption_latent)
 
         token_embeds = self.llm.get_input_embeddings()(input_ids)
+        if soft_prompt_embeds.dtype != token_embeds.dtype:
+            soft_prompt_embeds = soft_prompt_embeds.to(dtype=token_embeds.dtype)
         inputs_embeds = torch.cat([soft_prompt_embeds, token_embeds], dim=1)
 
         prefix_mask = torch.ones(

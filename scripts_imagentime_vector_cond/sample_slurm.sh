@@ -107,9 +107,16 @@ fi
 config_path="${CONFIG_MAP[$DATASET]}"
 run_dir="${RUN_DIR_MAP[$DATASET]}"
 ckpt_dir="$run_dir/checkpoints"
-embeds_path="$DATA_ROOT/$DATASET/generated_embeds_qwen3_4b.pt"
-samples_dir="$run_dir/eval_samples_generated_qwen3"
-jsonl_path="$OUTPUT_ROOT/${DATASET}_generated_qwen3_metrics.jsonl"
+
+#embeds_path="$DATA_ROOT/$DATASET/generated_embeds_qwen3_4b.pt"
+#samples_dir="$run_dir/eval_samples_generated_qwen3"
+#jsonl_path="$OUTPUT_ROOT/${DATASET}_generated_qwen3_metrics.jsonl"
+
+embeds_path="$DATA_ROOT/$DATASET/train_embeds_qwen3_4b.pt"
+samples_dir="$run_dir/train_samples_generated_qwen3"
+jsonl_path="$OUTPUT_ROOT/${DATASET}_train_qwen3_metrics.jsonl"
+
+
 ts2vec_dir="$TS2VEC_ROOT/$DATASET"
 
 mkdir -p "$OUTPUT_ROOT" "$TS2VEC_ROOT"

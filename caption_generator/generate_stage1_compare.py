@@ -3,6 +3,7 @@ import json
 import os
 import re
 import sys
+from contextlib import nullcontext
 from difflib import SequenceMatcher
 from typing import Dict, List
 
@@ -84,6 +85,9 @@ def main():
     args = parse_args()
     cfg = OmegaConf.to_container(OmegaConf.load(args.config), resolve=True)
     device = resolve_device(cfg)
+    model_dtype_name = cfg.get("model", {}).get("torch_dtype")
+    use_amp = device.type == "cuda" and model_dtype_name in {"float16", "bfloat16"}
+    amp_dtype = getattr(torch, model_dtype_name) if use_amp else None
 
     tokenizer = AutoTokenizer.from_pretrained(
         cfg["model"]["llm_name"],
@@ -130,7 +134,10 @@ def main():
             tokenized = tokenizer(prompts, return_tensors="pt", padding=True, add_special_tokens=True)
             tokenized = {k: v.to(device) for k, v in tokenized.items()}
 
-            with torch.no_grad():
+            autocast_ctx = (
+                torch.autocast(device_type=device.type, dtype=amp_dtype) if use_amp else nullcontext()
+            )
+            with torch.no_grad(), autocast_ctx:
                 outputs = model.generate(
                     ts=batch_ts,
                     input_ids=tokenized["input_ids"],
