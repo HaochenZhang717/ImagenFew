@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="${ROOT_DIR:-/playpen-shared/haochenz/ImagenFew}"
 cd "$ROOT_DIR"
 mkdir -p /playpen-shared/haochenz/logs/slurm
 
@@ -35,7 +35,39 @@ if [[ -n "${CONDA_ENV:-}" ]]; then
   conda activate "$CONDA_ENV"
 fi
 
-PYTHON_BIN="${PYTHON_BIN:-python}"
+if [[ -z "${PYTHON_BIN:-}" ]]; then
+  if [[ -n "${CONDA_ENV:-}" ]]; then
+    if [[ -x "/playpen/haochenz/miniconda3/envs/$CONDA_ENV/bin/python" ]]; then
+      PYTHON_BIN="/playpen/haochenz/miniconda3/envs/$CONDA_ENV/bin/python"
+    elif [[ -x "/playpen-shared/haochenz/miniconda3/envs/$CONDA_ENV/bin/python" ]]; then
+      PYTHON_BIN="/playpen-shared/haochenz/miniconda3/envs/$CONDA_ENV/bin/python"
+    elif [[ -x "$HOME/miniconda3/envs/$CONDA_ENV/bin/python" ]]; then
+      PYTHON_BIN="$HOME/miniconda3/envs/$CONDA_ENV/bin/python"
+    elif [[ -x "$HOME/anaconda3/envs/$CONDA_ENV/bin/python" ]]; then
+      PYTHON_BIN="$HOME/anaconda3/envs/$CONDA_ENV/bin/python"
+    else
+      echo "Could not find python for conda env '$CONDA_ENV'." >&2
+      exit 1
+    fi
+  elif [[ -x "/playpen/haochenz/miniconda3/bin/python" ]]; then
+    PYTHON_BIN="/playpen/haochenz/miniconda3/bin/python"
+  elif [[ -x "/playpen-shared/haochenz/miniconda3/bin/python" ]]; then
+    PYTHON_BIN="/playpen-shared/haochenz/miniconda3/bin/python"
+  elif [[ -x "$HOME/miniconda3/bin/python" ]]; then
+    PYTHON_BIN="$HOME/miniconda3/bin/python"
+  elif [[ -x "$HOME/anaconda3/bin/python" ]]; then
+    PYTHON_BIN="$HOME/anaconda3/bin/python"
+  else
+    echo "Could not find a usable absolute python binary." >&2
+    exit 1
+  fi
+fi
+
+if [[ ! -x "$PYTHON_BIN" ]]; then
+  echo "PYTHON_BIN is not executable: $PYTHON_BIN" >&2
+  exit 1
+fi
+
 LOG_ROOT="${LOG_ROOT:-/playpen-shared/haochenz/ImagenFew/logs/ImagenTimeVectorCond}"
 DATA_ROOT="${DATA_ROOT:-/playpen-shared/haochenz/ImagenFew/data/VerbalTSDatasets}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-/playpen-shared/haochenz/ImagenFew/scripts_imagentime_vector_cond}"
@@ -49,7 +81,7 @@ RUN_SUFFIX="${RUN_SUFFIX:-gs1p0_ld0p0_sp1p0}"
 
 DATASET="${DATASET:-${1:-}}"
 if [[ -z "$DATASET" ]]; then
-  echo "Usage: DATASET=<dataset> sbatch scripts_imagentime_vector_cond/sample_slurm.sh" >&2
+  echo "Usage: DATASET=<dataset> sbatch /playpen-shared/haochenz/ImagenFew/scripts_imagentime_vector_cond/sample_slurm.sh" >&2
   exit 1
 fi
 
@@ -99,6 +131,7 @@ mkdir -p "$samples_dir" "$ts2vec_dir"
 : > "$jsonl_path"
 
 echo "=== Dataset: $DATASET ==="
+echo "Python: $PYTHON_BIN"
 echo "Config: $config_path"
 echo "Checkpoint dir: $ckpt_dir"
 echo "Embeddings: $embeds_path"
