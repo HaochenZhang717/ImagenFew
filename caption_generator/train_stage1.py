@@ -29,7 +29,7 @@ from stage1_dataset import (
     load_split_arrays,
     save_normalization_stats,
 )
-from stage1_model import Stage1LatentCaptionModel
+from stage1_model import Stage1LatentCaptionModel, Stage1LatentCaptionModelVE
 
 
 def parse_args():
@@ -292,10 +292,36 @@ def main():
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
 
+    model_variant = str(model_cfg.get("stage1_model_class", "base")).strip().lower()
+    ve_cfg = dict(cfg.get("vocab_expansion", {}))
+    if not ve_cfg:
+        ve_cfg = dict(model_cfg.get("vocab_expansion", {}))
+    dataset_strategy = str(ve_cfg.get("dataset_strategy", "")).strip().lower()
+    use_ve_model = (
+        model_variant in {"ve", "vocab_expansion", "stage1latentcaptionmodelve"}
+        or dataset_strategy == "ettm1"
+    )
+    if use_ve_model:
+        model = Stage1LatentCaptionModelVE(cfg, tokenizer=tokenizer)
+    else:
+        model = Stage1LatentCaptionModel(cfg)
+
+    caption_transform = None
+    if isinstance(model, Stage1LatentCaptionModelVE):
+        caption_transform = model.encode_caption_with_special_tokens
+        if ddp_state["is_main"]:
+            save_path = model.save_vocab_expansion_artifacts(cfg["output_dir"])
+            if save_path is not None:
+                print(f"Saved vocab expansion summary to: {save_path}")
+            tokenizer_dir = os.path.join(cfg["output_dir"], "tokenizer_ve")
+            tokenizer.save_pretrained(tokenizer_dir)
+            print(f"Saved VE tokenizer to: {tokenizer_dir}")
+
     collator = CaptionCollator(
         tokenizer=tokenizer,
         max_prompt_length=data_cfg.get("max_prompt_length", 128),
         max_caption_length=data_cfg.get("max_caption_length", 256),
+        caption_transform=caption_transform,
     )
 
     train_dataset = TimeSeriesCaptionDataset(
@@ -311,7 +337,6 @@ def main():
         normalization_stats=stats,
     )
 
-    model = Stage1LatentCaptionModel(cfg)
     if cfg["vae"].get("init_ckpt"):
         model.load_vae_weights(cfg["vae"]["init_ckpt"], map_location="cpu")
     model.to(device)

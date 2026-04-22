@@ -1,0 +1,44 @@
+{
+  "dataset_dir": "/Users/zhc/Documents/PhD/projects/ImagenFew/data/VerbalTSDatasets/ETTm1",
+  "splits": [
+    "train",
+    "valid",
+    "test"
+  ],
+  "split_stats": {
+    "train": {
+      "num_samples": 13013,
+      "caps_path": "/Users/zhc/Documents/PhD/projects/ImagenFew/data/VerbalTSDatasets/ETTm1/train_text_caps.npy",
+      "attrs_path": "/Users/zhc/Documents/PhD/projects/ImagenFew/data/VerbalTSDatasets/ETTm1/train_attrs_idx.npy"
+    },
+    "valid": {
+      "num_samples": 1631,
+      "caps_path": "/Users/zhc/Documents/PhD/projects/ImagenFew/data/VerbalTSDatasets/ETTm1/valid_text_caps.npy",
+      "attrs_path": "/Users/zhc/Documents/PhD/projects/ImagenFew/data/VerbalTSDatasets/ETTm1/valid_attrs_idx.npy"
+    },
+    "test": {
+      "num_samples": 1631,
+      "caps_path": "/Users/zhc/Documents/PhD/projects/ImagenFew/data/VerbalTSDatasets/ETTm1/test_text_caps.npy",
+      "attrs_path": "/Users/zhc/Documents/PhD/projects/ImagenFew/data/VerbalTSDatasets/ETTm1/test_attrs_idx.npy"
+    }
+  },
+  "num_total_samples": 16275,
+  "attr_names": [
+    "var_id",
+    "trend",
+    "season",
+    "skewness",
+    "kurtosis"
+  ],
+  "output_files": {
+    "aligned_jsonl_per_split": [
+      "aligned_train.jsonl",
+      "aligned_valid.jsonl",
+      "aligned_test.jsonl"
+    ],
+    "phrase_mapping_json": "phrase_attr_mapping.json",
+    "template_stats_json": "template_stats.json",
+    "special_tokens_json": "special_tokens.json",
+    "special_tokens_txt": "special_tokens.txt"
+  }
+}

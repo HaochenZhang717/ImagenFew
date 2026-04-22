@@ -1,0 +1,511 @@
+{
+  "var_phrase": {
+    "target_attr": "var_id",
+    "num_phrases": 7,
+    "num_ambiguous_phrases": 0,
+    "phrases": [
+      {
+        "phrase": "HUFL",
+        "total": 2325,
+        "top_value": 0,
+        "top_count": 2325,
+        "purity": 1.0,
+        "value_histogram": {
+          "0": 2325
+        }
+      },
+      {
+        "phrase": "HULL",
+        "total": 2325,
+        "top_value": 1,
+        "top_count": 2325,
+        "purity": 1.0,
+        "value_histogram": {
+          "1": 2325
+        }
+      },
+      {
+        "phrase": "LUFL",
+        "total": 2325,
+        "top_value": 4,
+        "top_count": 2325,
+        "purity": 1.0,
+        "value_histogram": {
+          "4": 2325
+        }
+      },
+      {
+        "phrase": "LULL",
+        "total": 2325,
+        "top_value": 5,
+        "top_count": 2325,
+        "purity": 1.0,
+        "value_histogram": {
+          "5": 2325
+        }
+      },
+      {
+        "phrase": "MUFL",
+        "total": 2325,
+        "top_value": 2,
+        "top_count": 2325,
+        "purity": 1.0,
+        "value_histogram": {
+          "2": 2325
+        }
+      },
+      {
+        "phrase": "MULL",
+        "total": 2325,
+        "top_value": 3,
+        "top_count": 2325,
+        "purity": 1.0,
+        "value_histogram": {
+          "3": 2325
+        }
+      },
+      {
+        "phrase": "OT",
+        "total": 2325,
+        "top_value": 6,
+        "top_count": 2325,
+        "purity": 1.0,
+        "value_histogram": {
+          "6": 2325
+        }
+      }
+    ]
+  },
+  "overall_phrase": {
+    "target_attr": "trend",
+    "num_phrases": 19,
+    "num_ambiguous_phrases": 1,
+    "phrases": [
+      {
+        "phrase": "the time series has no obvious trend direction",
+        "total": 2567,
+        "top_value": 1,
+        "top_count": 1330,
+        "purity": 0.5181145305804441,
+        "value_histogram": {
+          "1": 1330,
+          "0": 1237
+        }
+      },
+      {
+        "phrase": "the time series has a sharp upward trend",
+        "total": 1586,
+        "top_value": 0,
+        "top_count": 1586,
+        "purity": 1.0,
+        "value_histogram": {
+          "0": 1586
+        }
+      },
+      {
+        "phrase": "the time series going down rapidly",
+        "total": 1566,
+        "top_value": 1,
+        "top_count": 1566,
+        "purity": 1.0,
+        "value_histogram": {
+          "1": 1566
+        }
+      },
+      {
+        "phrase": "the time series rise obviously",
+        "total": 1561,
+        "top_value": 0,
+        "top_count": 1561,
+        "purity": 1.0,
+        "value_histogram": {
+          "0": 1561
+        }
+      },
+      {
+        "phrase": "the time series has a sharp downward trend",
+        "total": 1523,
+        "top_value": 1,
+        "top_count": 1523,
+        "purity": 1.0,
+        "value_histogram": {
+          "1": 1523
+        }
+      },
+      {
+        "phrase": "the time series drop obviously",
+        "total": 1522,
+        "top_value": 1,
+        "top_count": 1522,
+        "purity": 1.0,
+        "value_histogram": {
+          "1": 1522
+        }
+      },
+      {
+        "phrase": "the time series going up rapidly",
+        "total": 1512,
+        "top_value": 0,
+        "top_count": 1512,
+        "purity": 1.0,
+        "value_histogram": {
+          "0": 1512
+        }
+      },
+      {
+        "phrase": "the time series slowly rise",
+        "total": 420,
+        "top_value": 0,
+        "top_count": 420,
+        "purity": 1.0,
+        "value_histogram": {
+          "0": 420
+        }
+      },
+      {
+        "phrase": "the time series has a slow upward trend",
+        "total": 419,
+        "top_value": 0,
+        "top_count": 419,
+        "purity": 1.0,
+        "value_histogram": {
+          "0": 419
+        }
+      },
+      {
+        "phrase": "the values in the time series are slightly climbing",
+        "total": 410,
+        "top_value": 0,
+        "top_count": 410,
+        "purity": 1.0,
+        "value_histogram": {
+          "0": 410
+        }
+      },
+      {
+        "phrase": "the time series has a slow downward trend",
+        "total": 392,
+        "top_value": 1,
+        "top_count": 392,
+        "purity": 1.0,
+        "value_histogram": {
+          "1": 392
+        }
+      },
+      {
+        "phrase": "the time series slowly drop",
+        "total": 389,
+        "top_value": 1,
+        "top_count": 389,
+        "purity": 1.0,
+        "value_histogram": {
+          "1": 389
+        }
+      },
+      {
+        "phrase": "the trend direction is up",
+        "total": 387,
+        "top_value": 0,
+        "top_count": 387,
+        "purity": 1.0,
+        "value_histogram": {
+          "0": 387
+        }
+      },
+      {
+        "phrase": "the values in the time series are slightly decreasing",
+        "total": 372,
+        "top_value": 1,
+        "top_count": 372,
+        "purity": 1.0,
+        "value_histogram": {
+          "1": 372
+        }
+      },
+      {
+        "phrase": "the time series increases by time",
+        "total": 364,
+        "top_value": 0,
+        "top_count": 364,
+        "purity": 1.0,
+        "value_histogram": {
+          "0": 364
+        }
+      },
+      {
+        "phrase": "the time series going downward",
+        "total": 327,
+        "top_value": 1,
+        "top_count": 327,
+        "purity": 1.0,
+        "value_histogram": {
+          "1": 327
+        }
+      },
+      {
+        "phrase": "the trend direction is down",
+        "total": 324,
+        "top_value": 1,
+        "top_count": 324,
+        "purity": 1.0,
+        "value_histogram": {
+          "1": 324
+        }
+      },
+      {
+        "phrase": "the time series going upward",
+        "total": 322,
+        "top_value": 0,
+        "top_count": 322,
+        "purity": 1.0,
+        "value_histogram": {
+          "0": 322
+        }
+      },
+      {
+        "phrase": "the time series decreases by time",
+        "total": 312,
+        "top_value": 1,
+        "top_count": 312,
+        "purity": 1.0,
+        "value_histogram": {
+          "1": 312
+        }
+      }
+    ]
+  },
+  "season_phrase": {
+    "target_attr": "season",
+    "num_phrases": 10,
+    "num_ambiguous_phrases": 0,
+    "phrases": [
+      {
+        "phrase": "1 pi",
+        "total": 12960,
+        "top_value": 0,
+        "top_count": 12960,
+        "purity": 1.0,
+        "value_histogram": {
+          "0": 12960
+        }
+      },
+      {
+        "phrase": "2 pi",
+        "total": 2252,
+        "top_value": 1,
+        "top_count": 2252,
+        "purity": 1.0,
+        "value_histogram": {
+          "1": 2252
+        }
+      },
+      {
+        "phrase": "3 pi",
+        "total": 667,
+        "top_value": 2,
+        "top_count": 667,
+        "purity": 1.0,
+        "value_histogram": {
+          "2": 667
+        }
+      },
+      {
+        "phrase": "4 pi",
+        "total": 299,
+        "top_value": 3,
+        "top_count": 299,
+        "purity": 1.0,
+        "value_histogram": {
+          "3": 299
+        }
+      },
+      {
+        "phrase": "5 pi",
+        "total": 56,
+        "top_value": 4,
+        "top_count": 56,
+        "purity": 1.0,
+        "value_histogram": {
+          "4": 56
+        }
+      },
+      {
+        "phrase": "6 pi",
+        "total": 20,
+        "top_value": 5,
+        "top_count": 20,
+        "purity": 1.0,
+        "value_histogram": {
+          "5": 20
+        }
+      },
+      {
+        "phrase": "8 pi",
+        "total": 10,
+        "top_value": 7,
+        "top_count": 10,
+        "purity": 1.0,
+        "value_histogram": {
+          "7": 10
+        }
+      },
+      {
+        "phrase": "0 pi",
+        "total": 4,
+        "top_value": -1,
+        "top_count": 4,
+        "purity": 1.0,
+        "value_histogram": {
+          "-1": 4
+        }
+      },
+      {
+        "phrase": "7 pi",
+        "total": 4,
+        "top_value": 6,
+        "top_count": 4,
+        "purity": 1.0,
+        "value_histogram": {
+          "6": 4
+        }
+      },
+      {
+        "phrase": "9 pi",
+        "total": 3,
+        "top_value": 8,
+        "top_count": 3,
+        "purity": 1.0,
+        "value_histogram": {
+          "8": 3
+        }
+      }
+    ]
+  },
+  "distribution_phrase": {
+    "target_attr": [
+      "skewness",
+      "kurtosis"
+    ],
+    "num_phrases": 9,
+    "num_ambiguous_phrases": 0,
+    "phrases": [
+      {
+        "phrase": "symmetrical, and has low kurtosis",
+        "total": 6311,
+        "top_value": [
+          2,
+          0
+        ],
+        "top_count": 6311,
+        "purity": 1.0,
+        "value_histogram": {
+          "2,0": 6311
+        }
+      },
+      {
+        "phrase": "symmetrical, and has normal kurtosis",
+        "total": 2112,
+        "top_value": [
+          2,
+          1
+        ],
+        "top_count": 2112,
+        "purity": 1.0,
+        "value_histogram": {
+          "2,1": 2112
+        }
+      },
+      {
+        "phrase": "shifted to the positive, and has normal kurtosis",
+        "total": 1638,
+        "top_value": [
+          1,
+          1
+        ],
+        "top_count": 1638,
+        "purity": 1.0,
+        "value_histogram": {
+          "1,1": 1638
+        }
+      },
+      {
+        "phrase": "shifted to the negative, and has normal kurtosis",
+        "total": 1333,
+        "top_value": [
+          0,
+          1
+        ],
+        "top_count": 1333,
+        "purity": 1.0,
+        "value_histogram": {
+          "0,1": 1333
+        }
+      },
+      {
+        "phrase": "shifted to the negative, and has high kurtosis",
+        "total": 1280,
+        "top_value": [
+          0,
+          2
+        ],
+        "top_count": 1280,
+        "purity": 1.0,
+        "value_histogram": {
+          "0,2": 1280
+        }
+      },
+      {
+        "phrase": "shifted to the positive, and has low kurtosis",
+        "total": 1210,
+        "top_value": [
+          1,
+          0
+        ],
+        "top_count": 1210,
+        "purity": 1.0,
+        "value_histogram": {
+          "1,0": 1210
+        }
+      },
+      {
+        "phrase": "shifted to the positive, and has high kurtosis",
+        "total": 1206,
+        "top_value": [
+          1,
+          2
+        ],
+        "top_count": 1206,
+        "purity": 1.0,
+        "value_histogram": {
+          "1,2": 1206
+        }
+      },
+      {
+        "phrase": "shifted to the negative, and has low kurtosis",
+        "total": 934,
+        "top_value": [
+          0,
+          0
+        ],
+        "top_count": 934,
+        "purity": 1.0,
+        "value_histogram": {
+          "0,0": 934
+        }
+      },
+      {
+        "phrase": "symmetrical, and has high kurtosis",
+        "total": 251,
+        "top_value": [
+          2,
+          2
+        ],
+        "top_count": 251,
+        "purity": 1.0,
+        "value_histogram": {
+          "2,2": 251
+        }
+      }
+    ]
+  }
+}

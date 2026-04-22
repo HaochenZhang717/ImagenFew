@@ -1,7 +1,7 @@
 import json
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -82,10 +82,15 @@ class CaptionCollator:
     tokenizer: object
     max_prompt_length: int
     max_caption_length: int
+    caption_transform: Optional[Callable[[str], str]] = None
 
     def __call__(self, batch: List[Dict[str, object]]) -> Dict[str, torch.Tensor]:
         prompts = [item["prompt_text"] for item in batch]
-        captions = [item["caption_text"] for item in batch]
+        raw_captions = [item["caption_text"] for item in batch]
+        if self.caption_transform is None:
+            captions = raw_captions
+        else:
+            captions = [self.caption_transform(caption) for caption in raw_captions]
         ts = torch.stack([item["ts"] for item in batch], dim=0)
 
         prompt_tokens = self.tokenizer(
@@ -150,7 +155,8 @@ class CaptionCollator:
             "labels": torch.tensor(padded_labels, dtype=torch.long),
             "attention_mask": torch.tensor(padded_attention_mask, dtype=torch.long),
             "raw_prompts": prompts,
-            "raw_captions": captions,
+            "raw_captions": raw_captions,
+            "tokenized_captions": captions,
         }
 
         if "attrs_idx" in batch[0]:

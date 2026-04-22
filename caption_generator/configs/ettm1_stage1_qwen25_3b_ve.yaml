@@ -1,0 +1,108 @@
+seed: 42
+device: auto
+output_dir: ./logs/caption_generator/ettm1_stage1_qwen25_3b_ve
+
+wandb:
+  enabled: true
+  project: caption_generator
+  entity:
+  name: ettm1_stage1_qwen25_3b_ve
+  tags: [stage1, ettm1, qwen25-3b, ve]
+  notes:
+  mode: online
+  resume: allow
+
+data:
+  dataset_root: ../data/VerbalTSDatasets/ETTm1
+  prompt_template: Generate caption for the following time series.
+  eval_split: valid
+  max_prompt_length: 96
+  max_caption_length: 256
+  num_workers: 0
+
+model:
+  stage1_model_class: ve
+  llm_name: Qwen/Qwen2.5-3B-Instruct
+  trust_remote_code: true
+  use_fast_tokenizer: true
+  torch_dtype: bfloat16
+  gradient_checkpointing: true
+  use_lora: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  soft_prompt_tokens: 32
+  caption_use_mu: true
+
+vocab_expansion:
+  enabled: true
+  dataset_strategy: ETTm1
+  min_count: 20
+  max_tokens: 256
+  token_prefix: "<CAPTPL_"
+  token_suffix: ">"
+
+vae:
+  init_ckpt:
+  input_dim: 1
+  output_dim: 1
+  seq_len: 120
+  hidden_size: 128
+  num_layers: 2
+  num_heads: 4
+  latent_dim: 64
+  beta: 0.01
+  encoder_channels: [64, 96, 128, 128]
+  encoder_downsample_stages: 2
+  decoder_channels: [128, 128, 96, 64]
+  decoder_res_blocks: 2
+  decoder_dropout: 0.0
+  decoder_upsample_stages: 2
+
+training:
+  ddp: false
+  # batch_size and eval_batch_size are interpreted as global batch sizes.
+  batch_size: 8
+  eval_batch_size: 8
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-4
+  vae_lr: 1.0e-4
+  projector_lr: 2e-4
+  llm_lr: 5e-5
+  weight_decay: 0.0
+  warmup_ratio: 0.03
+  max_grad_norm: 1.0
+  joint_phase:
+    train_vae: true
+    train_soft_prompt: true
+    train_llm: true
+  phases:
+    - name: vae_pretrain
+      num_epochs: 0
+      batch_size: 128
+      eval_batch_size: 128
+      gradient_accumulation_steps: 1
+      vae_lr: 1.0e-4
+      weight_decay: 0.0
+      warmup_ratio: 0.03
+      max_grad_norm: 1.0
+      train_vae: true
+      train_soft_prompt: false
+      train_llm: false
+    - name: joint_caption
+      num_epochs: 100
+      batch_size: 32
+      eval_batch_size: 32
+      gradient_accumulation_steps: 1
+      vae_lr: 5.0e-5
+      projector_lr: 2.0e-4
+      llm_lr: 5.0e-5
+      weight_decay: 0.0
+      warmup_ratio: 0.03
+      max_grad_norm: 1.0
+      caption_loss_weight: 1.0
+      kl_loss_weight: 0.001
+      joint_phase:
+        train_vae: true
+        train_soft_prompt: true
+        train_llm: true

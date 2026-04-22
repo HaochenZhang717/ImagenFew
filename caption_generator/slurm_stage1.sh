@@ -51,6 +51,10 @@ case "${DATASET}" in
   ettm1)
     CONFIG="${CONFIG:-configs/ettm1_stage1_qwen25_3b.yaml}"
     ;;
+  ettm1_ve|ETTm1_ve|ETTm1_VE)
+    DATASET="ettm1_ve"
+    CONFIG="${CONFIG:-configs/ettm1_stage1_qwen25_3b_ve.yaml}"
+    ;;
   istanbul|istanbul_traffic)
     DATASET="istanbul"
     CONFIG="${CONFIG:-configs/istanbul_stage1_qwen25_3b.yaml}"

@@ -1,0 +1,835 @@
+{
+  "num_selected_templates": 118,
+  "min_template_count": 20,
+  "max_token_templates": 256,
+  "tokens": [
+    {
+      "token": "<CAPTPL_001>",
+      "template": "This sequence is <VAR_NAME>.",
+      "count": 16275,
+      "example_sentence": "This sequence is HUFL."
+    },
+    {
+      "token": "<CAPTPL_002>",
+      "template": "For the ovearll shape, <OVERALL_TREND>.",
+      "count": 16275,
+      "example_sentence": "For the ovearll shape, the time series has a slow downward trend."
+    },
+    {
+      "token": "<CAPTPL_003>",
+      "template": "The distribution of the value in time series is <SKEWNESS_KURTOSIS>.",
+      "count": 16275,
+      "example_sentence": "The distribution of the value in time series is shifted to the positive, and has high kurtosis."
+    },
+    {
+      "token": "<CAPTPL_004>",
+      "template": "The main season cycles is around <SEASON_CYCLE>.",
+      "count": 16275,
+      "example_sentence": "The main season cycles is around 1 pi."
+    },
+    {
+      "token": "<CAPTPL_005>",
+      "template": "At the end: the time series has no obvious trend direction.",
+      "count": 1114,
+      "example_sentence": "At the end: the time series has no obvious trend direction."
+    },
+    {
+      "token": "<CAPTPL_006>",
+      "template": "At the beginning: the time series has no obvious trend direction.",
+      "count": 1102,
+      "example_sentence": "At the beginning: the time series has no obvious trend direction."
+    },
+    {
+      "token": "<CAPTPL_007>",
+      "template": "At the middle: the time series has no obvious trend direction.",
+      "count": 1078,
+      "example_sentence": "At the middle: the time series has no obvious trend direction."
+    },
+    {
+      "token": "<CAPTPL_008>",
+      "template": "At the beginning: the time series rise obviously.",
+      "count": 1057,
+      "example_sentence": "At the beginning: the time series rise obviously."
+    },
+    {
+      "token": "<CAPTPL_009>",
+      "template": "At the beginning: the time series has a sharp upward trend.",
+      "count": 1054,
+      "example_sentence": "At the beginning: the time series has a sharp upward trend."
+    },
+    {
+      "token": "<CAPTPL_010>",
+      "template": "At the end: the time series going up rapidly.",
+      "count": 1042,
+      "example_sentence": "At the end: the time series going up rapidly."
+    },
+    {
+      "token": "<CAPTPL_011>",
+      "template": "At the middle: the time series going up rapidly.",
+      "count": 1038,
+      "example_sentence": "At the middle: the time series going up rapidly."
+    },
+    {
+      "token": "<CAPTPL_012>",
+      "template": "At the middle: the time series has a sharp upward trend.",
+      "count": 1038,
+      "example_sentence": "At the middle: the time series has a sharp upward trend."
+    },
+    {
+      "token": "<CAPTPL_013>",
+      "template": "At the beginning: the time series going up rapidly.",
+      "count": 1029,
+      "example_sentence": "At the beginning: the time series going up rapidly."
+    },
+    {
+      "token": "<CAPTPL_014>",
+      "template": "At the middle: the time series drop obviously.",
+      "count": 1024,
+      "example_sentence": "At the middle: the time series drop obviously."
+    },
+    {
+      "token": "<CAPTPL_015>",
+      "template": "At the beginning: the time series going down rapidly.",
+      "count": 1022,
+      "example_sentence": "At the beginning: the time series going down rapidly."
+    },
+    {
+      "token": "<CAPTPL_016>",
+      "template": "At the end: the time series has a sharp upward trend.",
+      "count": 1004,
+      "example_sentence": "At the end: the time series has a sharp upward trend."
+    },
+    {
+      "token": "<CAPTPL_017>",
+      "template": "At the beginning: there are <NUM> peaks, the time series has no obvious trend direction.",
+      "count": 988,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series has no obvious trend direction."
+    },
+    {
+      "token": "<CAPTPL_018>",
+      "template": "At the middle: the time series has a sharp downward trend.",
+      "count": 987,
+      "example_sentence": "At the middle: the time series has a sharp downward trend."
+    },
+    {
+      "token": "<CAPTPL_019>",
+      "template": "At the end: the time series has a sharp downward trend.",
+      "count": 978,
+      "example_sentence": "At the end: the time series has a sharp downward trend."
+    },
+    {
+      "token": "<CAPTPL_020>",
+      "template": "At the end: the time series rise obviously.",
+      "count": 975,
+      "example_sentence": "At the end: the time series rise obviously."
+    },
+    {
+      "token": "<CAPTPL_021>",
+      "template": "At the middle: the time series rise obviously.",
+      "count": 974,
+      "example_sentence": "At the middle: the time series rise obviously."
+    },
+    {
+      "token": "<CAPTPL_022>",
+      "template": "At the middle: the time series going down rapidly.",
+      "count": 971,
+      "example_sentence": "At the middle: the time series going down rapidly."
+    },
+    {
+      "token": "<CAPTPL_023>",
+      "template": "At the beginning: the time series drop obviously.",
+      "count": 971,
+      "example_sentence": "At the beginning: the time series drop obviously."
+    },
+    {
+      "token": "<CAPTPL_024>",
+      "template": "At the end: the time series going down rapidly.",
+      "count": 965,
+      "example_sentence": "At the end: the time series going down rapidly."
+    },
+    {
+      "token": "<CAPTPL_025>",
+      "template": "At the middle: there are <NUM> peaks, the time series has no obvious trend direction.",
+      "count": 934,
+      "example_sentence": "At the middle: there are 1 peaks, the time series has no obvious trend direction."
+    },
+    {
+      "token": "<CAPTPL_026>",
+      "template": "At the end: there are <NUM> peaks, the time series has no obvious trend direction.",
+      "count": 933,
+      "example_sentence": "At the end: there are 1 peaks, the time series has no obvious trend direction."
+    },
+    {
+      "token": "<CAPTPL_027>",
+      "template": "At the end: there are <NUM> peaks, the time series going up rapidly.",
+      "count": 931,
+      "example_sentence": "At the end: there are 1 peaks, the time series going up rapidly."
+    },
+    {
+      "token": "<CAPTPL_028>",
+      "template": "At the middle: there are <NUM> peaks, the time series drop obviously.",
+      "count": 931,
+      "example_sentence": "At the middle: there are 1 peaks, the time series drop obviously."
+    },
+    {
+      "token": "<CAPTPL_029>",
+      "template": "At the end: the time series drop obviously.",
+      "count": 927,
+      "example_sentence": "At the end: the time series drop obviously."
+    },
+    {
+      "token": "<CAPTPL_030>",
+      "template": "At the beginning: the time series has a sharp downward trend.",
+      "count": 915,
+      "example_sentence": "At the beginning: the time series has a sharp downward trend."
+    },
+    {
+      "token": "<CAPTPL_031>",
+      "template": "At the beginning: there are <NUM> peaks, the time series has a sharp downward trend.",
+      "count": 909,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series has a sharp downward trend."
+    },
+    {
+      "token": "<CAPTPL_032>",
+      "template": "At the end: there are <NUM> peaks, the time series going down rapidly.",
+      "count": 891,
+      "example_sentence": "At the end: there are 1 peaks, the time series going down rapidly."
+    },
+    {
+      "token": "<CAPTPL_033>",
+      "template": "At the end: there are <NUM> peaks, the time series drop obviously.",
+      "count": 891,
+      "example_sentence": "At the end: there are 1 peaks, the time series drop obviously."
+    },
+    {
+      "token": "<CAPTPL_034>",
+      "template": "At the middle: there are <NUM> peaks, the time series has a sharp downward trend.",
+      "count": 882,
+      "example_sentence": "At the middle: there are 1 peaks, the time series has a sharp downward trend."
+    },
+    {
+      "token": "<CAPTPL_035>",
+      "template": "At the end: there are <NUM> peaks, the time series rise obviously.",
+      "count": 877,
+      "example_sentence": "At the end: there are 1 peaks, the time series rise obviously."
+    },
+    {
+      "token": "<CAPTPL_036>",
+      "template": "At the end: there are <NUM> peaks, the time series has a sharp downward trend.",
+      "count": 871,
+      "example_sentence": "At the end: there are 1 peaks, the time series has a sharp downward trend."
+    },
+    {
+      "token": "<CAPTPL_037>",
+      "template": "At the middle: there are <NUM> peaks, the time series going down rapidly.",
+      "count": 864,
+      "example_sentence": "At the middle: there are 1 peaks, the time series going down rapidly."
+    },
+    {
+      "token": "<CAPTPL_038>",
+      "template": "At the beginning: there are <NUM> peaks, the time series drop obviously.",
+      "count": 848,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series drop obviously."
+    },
+    {
+      "token": "<CAPTPL_039>",
+      "template": "At the end: there are <NUM> peaks, the time series has a sharp upward trend.",
+      "count": 842,
+      "example_sentence": "At the end: there are 1 peaks, the time series has a sharp upward trend."
+    },
+    {
+      "token": "<CAPTPL_040>",
+      "template": "At the middle: there are <NUM> peaks, the time series has a sharp upward trend.",
+      "count": 839,
+      "example_sentence": "At the middle: there are 1 peaks, the time series has a sharp upward trend."
+    },
+    {
+      "token": "<CAPTPL_041>",
+      "template": "At the beginning: there are <NUM> peaks, the time series going down rapidly.",
+      "count": 838,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series going down rapidly."
+    },
+    {
+      "token": "<CAPTPL_042>",
+      "template": "At the beginning: there are <NUM> peaks, the time series going up rapidly.",
+      "count": 836,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series going up rapidly."
+    },
+    {
+      "token": "<CAPTPL_043>",
+      "template": "At the beginning: there are <NUM> peaks, the time series rise obviously.",
+      "count": 822,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series rise obviously."
+    },
+    {
+      "token": "<CAPTPL_044>",
+      "template": "At the middle: there are <NUM> peaks, the time series rise obviously.",
+      "count": 815,
+      "example_sentence": "At the middle: there are 1 peaks, the time series rise obviously."
+    },
+    {
+      "token": "<CAPTPL_045>",
+      "template": "At the beginning: there are <NUM> peaks, the time series has a sharp upward trend.",
+      "count": 800,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series has a sharp upward trend."
+    },
+    {
+      "token": "<CAPTPL_046>",
+      "template": "At the middle: there are <NUM> peaks, the time series going up rapidly.",
+      "count": 784,
+      "example_sentence": "At the middle: there are 1 peaks, the time series going up rapidly."
+    },
+    {
+      "token": "<CAPTPL_047>",
+      "template": "At the end: there are <NUM> peaks, the time series has a slow downward trend.",
+      "count": 167,
+      "example_sentence": "At the end: there are 1 peaks, the time series has a slow downward trend."
+    },
+    {
+      "token": "<CAPTPL_048>",
+      "template": "At the end: there are <NUM> peaks, the values in the time series are slightly decreasing.",
+      "count": 162,
+      "example_sentence": "At the end: there are 1 peaks, the values in the time series are slightly decreasing."
+    },
+    {
+      "token": "<CAPTPL_049>",
+      "template": "At the middle: there are <NUM> peaks, the values in the time series are slightly climbing.",
+      "count": 161,
+      "example_sentence": "At the middle: there are 1 peaks, the values in the time series are slightly climbing."
+    },
+    {
+      "token": "<CAPTPL_050>",
+      "template": "At the end: there are <NUM> peaks, the time series slowly drop.",
+      "count": 156,
+      "example_sentence": "At the end: there are 1 peaks, the time series slowly drop."
+    },
+    {
+      "token": "<CAPTPL_051>",
+      "template": "At the beginning: there are <NUM> peaks, the values in the time series are slightly decreasing.",
+      "count": 155,
+      "example_sentence": "At the beginning: there are 1 peaks, the values in the time series are slightly decreasing."
+    },
+    {
+      "token": "<CAPTPL_052>",
+      "template": "At the middle: there are <NUM> peaks, the values in the time series are slightly decreasing.",
+      "count": 154,
+      "example_sentence": "At the middle: there are 1 peaks, the values in the time series are slightly decreasing."
+    },
+    {
+      "token": "<CAPTPL_053>",
+      "template": "At the middle: there are <NUM> peaks, the time series slowly drop.",
+      "count": 154,
+      "example_sentence": "At the middle: there are 1 peaks, the time series slowly drop."
+    },
+    {
+      "token": "<CAPTPL_054>",
+      "template": "At the end: there are <NUM> peaks, the time series slowly rise.",
+      "count": 154,
+      "example_sentence": "At the end: there are 1 peaks, the time series slowly rise."
+    },
+    {
+      "token": "<CAPTPL_055>",
+      "template": "At the beginning: there are <NUM> peaks, the values in the time series are slightly climbing.",
+      "count": 148,
+      "example_sentence": "At the beginning: there are 1 peaks, the values in the time series are slightly climbing."
+    },
+    {
+      "token": "<CAPTPL_056>",
+      "template": "At the middle: there are <NUM> peaks, the time series slowly rise.",
+      "count": 148,
+      "example_sentence": "At the middle: there are 1 peaks, the time series slowly rise."
+    },
+    {
+      "token": "<CAPTPL_057>",
+      "template": "At the beginning: there are <NUM> peaks, the time series slowly drop.",
+      "count": 147,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series slowly drop."
+    },
+    {
+      "token": "<CAPTPL_058>",
+      "template": "At the middle: there are <NUM> peaks, the time series has a slow downward trend.",
+      "count": 147,
+      "example_sentence": "At the middle: there are 1 peaks, the time series has a slow downward trend."
+    },
+    {
+      "token": "<CAPTPL_059>",
+      "template": "At the middle: the time series slowly drop.",
+      "count": 147,
+      "example_sentence": "At the middle: the time series slowly drop."
+    },
+    {
+      "token": "<CAPTPL_060>",
+      "template": "At the end: there are <NUM> peaks, the time series decreases by time.",
+      "count": 146,
+      "example_sentence": "At the end: there are 1 peaks, the time series decreases by time."
+    },
+    {
+      "token": "<CAPTPL_061>",
+      "template": "At the beginning: there are <NUM> peaks, the time series slowly rise.",
+      "count": 144,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series slowly rise."
+    },
+    {
+      "token": "<CAPTPL_062>",
+      "template": "At the middle: there are <NUM> peaks, the time series decreases by time.",
+      "count": 142,
+      "example_sentence": "At the middle: there are 1 peaks, the time series decreases by time."
+    },
+    {
+      "token": "<CAPTPL_063>",
+      "template": "At the middle: the values in the time series are slightly decreasing.",
+      "count": 141,
+      "example_sentence": "At the middle: the values in the time series are slightly decreasing."
+    },
+    {
+      "token": "<CAPTPL_064>",
+      "template": "At the beginning: the time series has a slow downward trend.",
+      "count": 140,
+      "example_sentence": "At the beginning: the time series has a slow downward trend."
+    },
+    {
+      "token": "<CAPTPL_065>",
+      "template": "At the beginning: there are <NUM> peaks, the time series has a slow upward trend.",
+      "count": 140,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series has a slow upward trend."
+    },
+    {
+      "token": "<CAPTPL_066>",
+      "template": "At the beginning: the trend direction is down.",
+      "count": 137,
+      "example_sentence": "At the beginning: the trend direction is down."
+    },
+    {
+      "token": "<CAPTPL_067>",
+      "template": "At the end: there are <NUM> peaks, the values in the time series are slightly climbing.",
+      "count": 137,
+      "example_sentence": "At the end: there are 1 peaks, the values in the time series are slightly climbing."
+    },
+    {
+      "token": "<CAPTPL_068>",
+      "template": "At the beginning: there are <NUM> peaks, the time series going downward.",
+      "count": 136,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series going downward."
+    },
+    {
+      "token": "<CAPTPL_069>",
+      "template": "At the beginning: there are <NUM> peaks, the time series decreases by time.",
+      "count": 135,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series decreases by time."
+    },
+    {
+      "token": "<CAPTPL_070>",
+      "template": "At the end: the time series has a slow downward trend.",
+      "count": 135,
+      "example_sentence": "At the end: the time series has a slow downward trend."
+    },
+    {
+      "token": "<CAPTPL_071>",
+      "template": "At the beginning: the time series slowly drop.",
+      "count": 134,
+      "example_sentence": "At the beginning: the time series slowly drop."
+    },
+    {
+      "token": "<CAPTPL_072>",
+      "template": "At the beginning: the values in the time series are slightly decreasing.",
+      "count": 133,
+      "example_sentence": "At the beginning: the values in the time series are slightly decreasing."
+    },
+    {
+      "token": "<CAPTPL_073>",
+      "template": "At the middle: the time series has a slow upward trend.",
+      "count": 132,
+      "example_sentence": "At the middle: the time series has a slow upward trend."
+    },
+    {
+      "token": "<CAPTPL_074>",
+      "template": "At the middle: there are <NUM> peaks, the time series going downward.",
+      "count": 132,
+      "example_sentence": "At the middle: there are 1 peaks, the time series going downward."
+    },
+    {
+      "token": "<CAPTPL_075>",
+      "template": "At the middle: there are <NUM> peaks, the time series has a slow upward trend.",
+      "count": 132,
+      "example_sentence": "At the middle: there are 1 peaks, the time series has a slow upward trend."
+    },
+    {
+      "token": "<CAPTPL_076>",
+      "template": "At the middle: there are <NUM> peaks, the trend direction is down.",
+      "count": 131,
+      "example_sentence": "At the middle: there are 1 peaks, the trend direction is down."
+    },
+    {
+      "token": "<CAPTPL_077>",
+      "template": "At the end: the time series slowly drop.",
+      "count": 131,
+      "example_sentence": "At the end: the time series slowly drop."
+    },
+    {
+      "token": "<CAPTPL_078>",
+      "template": "At the end: there are <NUM> peaks, the time series has a slow upward trend.",
+      "count": 131,
+      "example_sentence": "At the end: there are 1 peaks, the time series has a slow upward trend."
+    },
+    {
+      "token": "<CAPTPL_079>",
+      "template": "At the end: there are <NUM> peaks, the trend direction is down.",
+      "count": 130,
+      "example_sentence": "At the end: there are 2 peaks, the trend direction is down."
+    },
+    {
+      "token": "<CAPTPL_080>",
+      "template": "At the middle: the time series slowly rise.",
+      "count": 129,
+      "example_sentence": "At the middle: the time series slowly rise."
+    },
+    {
+      "token": "<CAPTPL_081>",
+      "template": "At the beginning: there are <NUM> peaks, the time series going upward.",
+      "count": 127,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series going upward."
+    },
+    {
+      "token": "<CAPTPL_082>",
+      "template": "At the middle: there are <NUM> peaks, the time series increases by time.",
+      "count": 127,
+      "example_sentence": "At the middle: there are 1 peaks, the time series increases by time."
+    },
+    {
+      "token": "<CAPTPL_083>",
+      "template": "At the end: there are <NUM> peaks, the time series going upward.",
+      "count": 127,
+      "example_sentence": "At the end: there are 2 peaks, the time series going upward."
+    },
+    {
+      "token": "<CAPTPL_084>",
+      "template": "At the end: there are <NUM> peaks, the trend direction is up.",
+      "count": 127,
+      "example_sentence": "At the end: there are 1 peaks, the trend direction is up."
+    },
+    {
+      "token": "<CAPTPL_085>",
+      "template": "At the end: the time series going downward.",
+      "count": 127,
+      "example_sentence": "At the end: the time series going downward."
+    },
+    {
+      "token": "<CAPTPL_086>",
+      "template": "At the beginning: there are <NUM> peaks, the trend direction is up.",
+      "count": 127,
+      "example_sentence": "At the beginning: there are 1 peaks, the trend direction is up."
+    },
+    {
+      "token": "<CAPTPL_087>",
+      "template": "At the end: there are <NUM> peaks, the time series going downward.",
+      "count": 126,
+      "example_sentence": "At the end: there are 1 peaks, the time series going downward."
+    },
+    {
+      "token": "<CAPTPL_088>",
+      "template": "At the beginning: there are <NUM> peaks, the time series increases by time.",
+      "count": 126,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series increases by time."
+    },
+    {
+      "token": "<CAPTPL_089>",
+      "template": "At the end: the values in the time series are slightly decreasing.",
+      "count": 126,
+      "example_sentence": "At the end: the values in the time series are slightly decreasing."
+    },
+    {
+      "token": "<CAPTPL_090>",
+      "template": "At the beginning: there are <NUM> peaks, the time series has a slow downward trend.",
+      "count": 125,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series has a slow downward trend."
+    },
+    {
+      "token": "<CAPTPL_091>",
+      "template": "At the middle: the values in the time series are slightly climbing.",
+      "count": 125,
+      "example_sentence": "At the middle: the values in the time series are slightly climbing."
+    },
+    {
+      "token": "<CAPTPL_092>",
+      "template": "At the beginning: the time series decreases by time.",
+      "count": 125,
+      "example_sentence": "At the beginning: the time series decreases by time."
+    },
+    {
+      "token": "<CAPTPL_093>",
+      "template": "At the middle: the time series increases by time.",
+      "count": 125,
+      "example_sentence": "At the middle: the time series increases by time."
+    },
+    {
+      "token": "<CAPTPL_094>",
+      "template": "At the beginning: the time series has a slow upward trend.",
+      "count": 123,
+      "example_sentence": "At the beginning: the time series has a slow upward trend."
+    },
+    {
+      "token": "<CAPTPL_095>",
+      "template": "At the middle: the trend direction is down.",
+      "count": 121,
+      "example_sentence": "At the middle: the trend direction is down."
+    },
+    {
+      "token": "<CAPTPL_096>",
+      "template": "At the end: the time series has a slow upward trend.",
+      "count": 120,
+      "example_sentence": "At the end: the time series has a slow upward trend."
+    },
+    {
+      "token": "<CAPTPL_097>",
+      "template": "At the middle: the time series has a slow downward trend.",
+      "count": 120,
+      "example_sentence": "At the middle: the time series has a slow downward trend."
+    },
+    {
+      "token": "<CAPTPL_098>",
+      "template": "At the beginning: the time series going upward.",
+      "count": 119,
+      "example_sentence": "At the beginning: the time series going upward."
+    },
+    {
+      "token": "<CAPTPL_099>",
+      "template": "At the middle: there are <NUM> peaks, the time series going upward.",
+      "count": 119,
+      "example_sentence": "At the middle: there are 1 peaks, the time series going upward."
+    },
+    {
+      "token": "<CAPTPL_100>",
+      "template": "At the middle: the time series decreases by time.",
+      "count": 118,
+      "example_sentence": "At the middle: the time series decreases by time."
+    },
+    {
+      "token": "<CAPTPL_101>",
+      "template": "At the beginning: there are <NUM> peaks, the trend direction is down.",
+      "count": 117,
+      "example_sentence": "At the beginning: there are 2 peaks, the trend direction is down."
+    },
+    {
+      "token": "<CAPTPL_102>",
+      "template": "At the beginning: the time series slowly rise.",
+      "count": 115,
+      "example_sentence": "At the beginning: the time series slowly rise."
+    },
+    {
+      "token": "<CAPTPL_103>",
+      "template": "At the end: the time series decreases by time.",
+      "count": 114,
+      "example_sentence": "At the end: the time series decreases by time."
+    },
+    {
+      "token": "<CAPTPL_104>",
+      "template": "At the beginning: the time series going downward.",
+      "count": 113,
+      "example_sentence": "At the beginning: the time series going downward."
+    },
+    {
+      "token": "<CAPTPL_105>",
+      "template": "At the end: the time series going upward.",
+      "count": 113,
+      "example_sentence": "At the end: the time series going upward."
+    },
+    {
+      "token": "<CAPTPL_106>",
+      "template": "At the beginning: the values in the time series are slightly climbing.",
+      "count": 113,
+      "example_sentence": "At the beginning: the values in the time series are slightly climbing."
+    },
+    {
+      "token": "<CAPTPL_107>",
+      "template": "At the middle: the time series going downward.",
+      "count": 112,
+      "example_sentence": "At the middle: the time series going downward."
+    },
+    {
+      "token": "<CAPTPL_108>",
+      "template": "At the middle: there are <NUM> peaks, the trend direction is up.",
+      "count": 110,
+      "example_sentence": "At the middle: there are 1 peaks, the trend direction is up."
+    },
+    {
+      "token": "<CAPTPL_109>",
+      "template": "At the beginning: the trend direction is up.",
+      "count": 109,
+      "example_sentence": "At the beginning: the trend direction is up."
+    },
+    {
+      "token": "<CAPTPL_110>",
+      "template": "At the end: there are <NUM> peaks, the time series increases by time.",
+      "count": 109,
+      "example_sentence": "At the end: there are 1 peaks, the time series increases by time."
+    },
+    {
+      "token": "<CAPTPL_111>",
+      "template": "At the end: the values in the time series are slightly climbing.",
+      "count": 108,
+      "example_sentence": "At the end: the values in the time series are slightly climbing."
+    },
+    {
+      "token": "<CAPTPL_112>",
+      "template": "At the middle: the trend direction is up.",
+      "count": 105,
+      "example_sentence": "At the middle: the trend direction is up."
+    },
+    {
+      "token": "<CAPTPL_113>",
+      "template": "At the end: the trend direction is down.",
+      "count": 103,
+      "example_sentence": "At the end: the trend direction is down."
+    },
+    {
+      "token": "<CAPTPL_114>",
+      "template": "At the end: the trend direction is up.",
+      "count": 101,
+      "example_sentence": "At the end: the trend direction is up."
+    },
+    {
+      "token": "<CAPTPL_115>",
+      "template": "At the end: the time series increases by time.",
+      "count": 97,
+      "example_sentence": "At the end: the time series increases by time."
+    },
+    {
+      "token": "<CAPTPL_116>",
+      "template": "At the beginning: the time series increases by time.",
+      "count": 96,
+      "example_sentence": "At the beginning: the time series increases by time."
+    },
+    {
+      "token": "<CAPTPL_117>",
+      "template": "At the end: the time series slowly rise.",
+      "count": 87,
+      "example_sentence": "At the end: the time series slowly rise."
+    },
+    {
+      "token": "<CAPTPL_118>",
+      "template": "At the middle: the time series going upward.",
+      "count": 84,
+      "example_sentence": "At the middle: the time series going upward."
+    }
+  ],
+  "additional_special_tokens": [
+    "<CAPTPL_001>",
+    "<CAPTPL_002>",
+    "<CAPTPL_003>",
+    "<CAPTPL_004>",
+    "<CAPTPL_005>",
+    "<CAPTPL_006>",
+    "<CAPTPL_007>",
+    "<CAPTPL_008>",
+    "<CAPTPL_009>",
+    "<CAPTPL_010>",
+    "<CAPTPL_011>",
+    "<CAPTPL_012>",
+    "<CAPTPL_013>",
+    "<CAPTPL_014>",
+    "<CAPTPL_015>",
+    "<CAPTPL_016>",
+    "<CAPTPL_017>",
+    "<CAPTPL_018>",
+    "<CAPTPL_019>",
+    "<CAPTPL_020>",
+    "<CAPTPL_021>",
+    "<CAPTPL_022>",
+    "<CAPTPL_023>",
+    "<CAPTPL_024>",
+    "<CAPTPL_025>",
+    "<CAPTPL_026>",
+    "<CAPTPL_027>",
+    "<CAPTPL_028>",
+    "<CAPTPL_029>",
+    "<CAPTPL_030>",
+    "<CAPTPL_031>",
+    "<CAPTPL_032>",
+    "<CAPTPL_033>",
+    "<CAPTPL_034>",
+    "<CAPTPL_035>",
+    "<CAPTPL_036>",
+    "<CAPTPL_037>",
+    "<CAPTPL_038>",
+    "<CAPTPL_039>",
+    "<CAPTPL_040>",
+    "<CAPTPL_041>",
+    "<CAPTPL_042>",
+    "<CAPTPL_043>",
+    "<CAPTPL_044>",
+    "<CAPTPL_045>",
+    "<CAPTPL_046>",
+    "<CAPTPL_047>",
+    "<CAPTPL_048>",
+    "<CAPTPL_049>",
+    "<CAPTPL_050>",
+    "<CAPTPL_051>",
+    "<CAPTPL_052>",
+    "<CAPTPL_053>",
+    "<CAPTPL_054>",
+    "<CAPTPL_055>",
+    "<CAPTPL_056>",
+    "<CAPTPL_057>",
+    "<CAPTPL_058>",
+    "<CAPTPL_059>",
+    "<CAPTPL_060>",
+    "<CAPTPL_061>",
+    "<CAPTPL_062>",
+    "<CAPTPL_063>",
+    "<CAPTPL_064>",
+    "<CAPTPL_065>",
+    "<CAPTPL_066>",
+    "<CAPTPL_067>",
+    "<CAPTPL_068>",
+    "<CAPTPL_069>",
+    "<CAPTPL_070>",
+    "<CAPTPL_071>",
+    "<CAPTPL_072>",
+    "<CAPTPL_073>",
+    "<CAPTPL_074>",
+    "<CAPTPL_075>",
+    "<CAPTPL_076>",
+    "<CAPTPL_077>",
+    "<CAPTPL_078>",
+    "<CAPTPL_079>",
+    "<CAPTPL_080>",
+    "<CAPTPL_081>",
+    "<CAPTPL_082>",
+    "<CAPTPL_083>",
+    "<CAPTPL_084>",
+    "<CAPTPL_085>",
+    "<CAPTPL_086>",
+    "<CAPTPL_087>",
+    "<CAPTPL_088>",
+    "<CAPTPL_089>",
+    "<CAPTPL_090>",
+    "<CAPTPL_091>",
+    "<CAPTPL_092>",
+    "<CAPTPL_093>",
+    "<CAPTPL_094>",
+    "<CAPTPL_095>",
+    "<CAPTPL_096>",
+    "<CAPTPL_097>",
+    "<CAPTPL_098>",
+    "<CAPTPL_099>",
+    "<CAPTPL_100>",
+    "<CAPTPL_101>",
+    "<CAPTPL_102>",
+    "<CAPTPL_103>",
+    "<CAPTPL_104>",
+    "<CAPTPL_105>",
+    "<CAPTPL_106>",
+    "<CAPTPL_107>",
+    "<CAPTPL_108>",
+    "<CAPTPL_109>",
+    "<CAPTPL_110>",
+    "<CAPTPL_111>",
+    "<CAPTPL_112>",
+    "<CAPTPL_113>",
+    "<CAPTPL_114>",
+    "<CAPTPL_115>",
+    "<CAPTPL_116>",
+    "<CAPTPL_117>",
+    "<CAPTPL_118>"
+  ]
+}
