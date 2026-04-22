@@ -268,7 +268,7 @@ class Stage1LatentCaptionModelVE(Stage1LatentCaptionModel):
     SENTENCE_PATTERN = re.compile(r"[^.]+\.")
     NUMBER_PATTERN = re.compile(r"\b\d+(?:\.\d+)?\b")
     LOCAL_SEGMENT_PATTERN = re.compile(r"^At the (beginning|middle|end):\s*(.+)\.$", re.IGNORECASE)
-    PEAK_PREFIX_PATTERN = re.compile(r"^there are\s+\d+\s+peaks,\s*", re.IGNORECASE)
+    PEAK_PREFIX_PATTERN = re.compile(r"^there are\s+(\d+)\s+peaks,\s*(.+)$", re.IGNORECASE)
 
     def __init__(self, cfg: Dict, tokenizer=None) -> None:
         self.cfg = cfg
@@ -280,6 +280,7 @@ class Stage1LatentCaptionModelVE(Stage1LatentCaptionModel):
             "token_to_template": [],
         }
         self._dataset_template_strategy = "generic"
+        self._preserve_peak_count = True
         super().__init__(cfg)
         if tokenizer is not None:
             self.setup_vocab_expansion(tokenizer)
@@ -326,23 +327,26 @@ class Stage1LatentCaptionModelVE(Stage1LatentCaptionModel):
         return cls.NUMBER_PATTERN.sub("<NUM>", s)
 
     @classmethod
-    def _normalize_template_ettm1(cls, sentence: str) -> str:
+    def _normalize_template_ettm1(cls, sentence: str, preserve_peak_count: bool = True) -> str:
         s = " ".join(sentence.replace("\n", " ").split())
         local = cls.LOCAL_SEGMENT_PATTERN.match(s)
         if local is not None:
             segment = local.group(1).lower()
             clause = local.group(2).strip()
-            if cls.PEAK_PREFIX_PATTERN.match(clause):
-                rest = cls.PEAK_PREFIX_PATTERN.sub("", clause, count=1).strip()
+            peak = cls.PEAK_PREFIX_PATTERN.match(clause)
+            if peak is not None:
+                peak_num = peak.group(1)
+                rest = peak.group(2).strip()
                 rest = cls.NUMBER_PATTERN.sub("<NUM>", rest)
-                return f"At the {segment}: there are <NUM> peaks, {rest}."
+                peak_token = peak_num if preserve_peak_count else "<NUM>"
+                return f"At the {segment}: there are {peak_token} peaks, {rest}."
             clause = cls.NUMBER_PATTERN.sub("<NUM>", clause)
             return f"At the {segment}: {clause}."
         return cls._normalize_template_ettm1_base(s)
 
     def _normalize_template(self, sentence: str) -> str:
         if self._dataset_template_strategy == "ettm1":
-            return self._normalize_template_ettm1(sentence)
+            return self._normalize_template_ettm1(sentence, preserve_peak_count=self._preserve_peak_count)
         raise NotImplementedError(
             f"Unsupported dataset_strategy='{self._dataset_template_strategy}'. "
             "Please add a dataset-specific template normalizer in Stage1LatentCaptionModelVE."
@@ -446,6 +450,7 @@ class Stage1LatentCaptionModelVE(Stage1LatentCaptionModel):
         token_prefix = ve_cfg.get("token_prefix", "<CAPTPL_")
         token_suffix = ve_cfg.get("token_suffix", ">")
         self._dataset_template_strategy = self._resolve_template_strategy(dataset_root=dataset_root, ve_cfg=ve_cfg)
+        self._preserve_peak_count = bool(ve_cfg.get("preserve_peak_count", True))
 
         templates = self._mine_templates_from_training_set(
             dataset_root=dataset_root,
@@ -479,6 +484,7 @@ class Stage1LatentCaptionModelVE(Stage1LatentCaptionModel):
             "enabled": True,
             "dataset_root": os.path.abspath(dataset_root),
             "dataset_template_strategy": self._dataset_template_strategy,
+            "preserve_peak_count": self._preserve_peak_count,
             "min_count": min_count,
             "max_tokens": max_tokens,
             "requested_tokens": len(special_tokens),

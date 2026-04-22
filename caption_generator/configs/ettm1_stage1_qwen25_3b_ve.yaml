@@ -37,6 +37,7 @@ model:
 vocab_expansion:
   enabled: true
   dataset_strategy: ETTm1
+  preserve_peak_count: true
   min_count: 20
   max_tokens: 256
   token_prefix: "<CAPTPL_"
