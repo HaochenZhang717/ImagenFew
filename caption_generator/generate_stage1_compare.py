@@ -81,6 +81,43 @@ def compute_text_metrics(prediction: str, ground_truth: str) -> Dict[str, float 
     }
 
 
+def build_generation_prompt_batch(tokenizer, prompts: List[str], max_prompt_length: int, device: torch.device):
+    prompt_tokens = tokenizer(
+        prompts,
+        add_special_tokens=False,
+        truncation=True,
+        max_length=max_prompt_length,
+    )
+
+    bos_id = tokenizer.bos_token_id
+    pad_id = tokenizer.pad_token_id
+    if pad_id is None:
+        raise ValueError("Tokenizer must define a pad_token_id before batching.")
+
+    input_ids: List[List[int]] = []
+    attention_mask: List[List[int]] = []
+    for prompt_ids in prompt_tokens["input_ids"]:
+        seq = []
+        if bos_id is not None:
+            seq.append(bos_id)
+        seq.extend(prompt_ids)
+        input_ids.append(seq)
+        attention_mask.append([1] * len(seq))
+
+    max_len = max(len(ids) for ids in input_ids)
+    padded_input_ids = []
+    padded_attention_mask = []
+    for ids, mask in zip(input_ids, attention_mask):
+        pad_len = max_len - len(ids)
+        padded_input_ids.append(ids + [pad_id] * pad_len)
+        padded_attention_mask.append(mask + [0] * pad_len)
+
+    return {
+        "input_ids": torch.tensor(padded_input_ids, dtype=torch.long, device=device),
+        "attention_mask": torch.tensor(padded_attention_mask, dtype=torch.long, device=device),
+    }
+
+
 def main():
     args = parse_args()
     cfg = OmegaConf.to_container(OmegaConf.load(args.config), resolve=True)
@@ -96,6 +133,7 @@ def main():
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = "right"
 
     model = Stage1LatentCaptionModel(cfg)
     ckpt = torch.load(args.checkpoint, map_location="cpu")
@@ -104,6 +142,7 @@ def main():
 
     dataset_root = cfg["data"]["dataset_root"]
     prompt = cfg["data"]["prompt_template"]
+    max_prompt_length = cfg.get("data", {}).get("max_prompt_length", 128)
 
     train_ts, _, _ = load_split_arrays(dataset_root, "train")
     stats = compute_train_normalization_stats(train_ts)
@@ -131,8 +170,12 @@ def main():
             end = min(start + batch_size, total)
             batch_ts = torch.from_numpy(normalized_ts[start:end].transpose(0, 2, 1).copy()).float().to(device)
             prompts = [prompt] * (end - start)
-            tokenized = tokenizer(prompts, return_tensors="pt", padding=True, add_special_tokens=True)
-            tokenized = {k: v.to(device) for k, v in tokenized.items()}
+            tokenized = build_generation_prompt_batch(
+                tokenizer=tokenizer,
+                prompts=prompts,
+                max_prompt_length=max_prompt_length,
+                device=device,
+            )
 
             autocast_ctx = (
                 torch.autocast(device_type=device.type, dtype=amp_dtype) if use_amp else nullcontext()
