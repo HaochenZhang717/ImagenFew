@@ -49,8 +49,8 @@ if [[ -z "${PYTHON_BIN:-}" ]]; then
       echo "Could not find python for conda env '$CONDA_ENV'." >&2
       exit 1
     fi
-  elif [[ -x "/playpen/haochenz/miniconda3/bin/python" ]]; then
-    PYTHON_BIN="/playpen/haochenz/miniconda3/bin/python"
+#  elif [[ -x "/playpen/haochenz/miniconda3/bin/python" ]]; then
+#    PYTHON_BIN="/playpen/haochenz/miniconda3/bin/python"
   elif [[ -x "/playpen-shared/haochenz/miniconda3/bin/python" ]]; then
     PYTHON_BIN="/playpen-shared/haochenz/miniconda3/bin/python"
   elif [[ -x "$HOME/miniconda3/bin/python" ]]; then
