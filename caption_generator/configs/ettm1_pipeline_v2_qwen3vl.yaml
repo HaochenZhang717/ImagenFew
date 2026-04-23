@@ -16,6 +16,9 @@ data:
   dataset_root: ../data/VerbalTSDatasets/ETTm1
   prerendered_image_root: ../data/VerbalTSDatasets/ETTm1/pipeline_v2_images_100
   use_prerendered_images: true
+  prerender_num_workers: 8
+  prerender_chunksize: 16
+  prerender_parallel_backend: auto
   instruction_prompt: Generate a structured caption describing the time series.
   eval_split: valid
   normalize_before_render: false

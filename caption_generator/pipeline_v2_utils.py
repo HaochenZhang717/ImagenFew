@@ -1,15 +1,20 @@
 import json
 import os
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
 
 os.environ.setdefault("MPLBACKEND", "Agg")
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib-cache")
+os.environ.setdefault("XDG_CACHE_HOME", "/tmp")
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 
 def _flatten_caption_array(captions: np.ndarray) -> List[str]:
@@ -46,6 +51,42 @@ def save_json(data: Dict, output_path: str) -> None:
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as fp:
         json.dump(data, fp, indent=2)
+
+
+_RENDERER = None
+_NORMALIZATION_STATS = None
+_NORMALIZE_BEFORE_RENDER = False
+
+
+def _init_render_worker(
+    renderer_kwargs: Dict[str, object],
+    normalization_stats: Optional[Dict[str, float]],
+    normalize_before_render: bool,
+) -> None:
+    global _RENDERER, _NORMALIZATION_STATS, _NORMALIZE_BEFORE_RENDER
+    os.environ.setdefault("MPLBACKEND", "Agg")
+    os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib-cache")
+    os.environ.setdefault("XDG_CACHE_HOME", "/tmp")
+    os.makedirs(os.environ["MPLCONFIGDIR"], exist_ok=True)
+    _RENDERER = DeterministicTimeSeriesRenderer(**renderer_kwargs)
+    _NORMALIZATION_STATS = normalization_stats
+    _NORMALIZE_BEFORE_RENDER = normalize_before_render
+
+
+def _render_one_sample_to_path(task):
+    index, series, output_path = task
+
+    if series.ndim == 1:
+        series = series[:, None]
+    render_ts = series
+    if _NORMALIZE_BEFORE_RENDER:
+        if _NORMALIZATION_STATS is None:
+            raise ValueError("normalize_before_render=True requires normalization_stats.")
+        render_ts = (render_ts - _NORMALIZATION_STATS["mean"]) / _NORMALIZATION_STATS["std"]
+
+    image = _RENDERER.render(render_ts)
+    image.save(output_path)
+    return index
 
 
 class DeterministicTimeSeriesRenderer:
@@ -241,26 +282,80 @@ def render_and_save_split(
     renderer: DeterministicTimeSeriesRenderer,
     normalization_stats: Optional[Dict[str, float]] = None,
     normalize_before_render: bool = False,
+    num_workers: int = 1,
+    overwrite: bool = False,
+    chunksize: int = 16,
+    parallel_backend: str = "auto",
 ) -> Dict[str, object]:
     ts, captions, _ = load_split_arrays(dataset_root, split)
     split_dir = os.path.join(output_root, split)
     os.makedirs(split_dir, exist_ok=True)
+    renderer_kwargs = {
+        "image_size": renderer.image_size,
+        "background_color": renderer.background_color,
+        "line_color": renderer.line_color,
+        "line_width": renderer.line_width,
+        "padding": renderer.padding,
+        "panel_gap": renderer.panel_gap,
+        "normalization": renderer.normalization,
+        "fixed_y_min": renderer.fixed_y_min,
+        "fixed_y_max": renderer.fixed_y_max,
+    }
 
+    tasks = []
+    skipped = 0
     for index, series in enumerate(ts):
-        if series.ndim == 1:
-            series = series[:, None]
-        render_ts = series
-        if normalize_before_render:
-            if normalization_stats is None:
-                raise ValueError("normalize_before_render=True requires normalization_stats.")
-            render_ts = (render_ts - normalization_stats["mean"]) / normalization_stats["std"]
-        image = renderer.render(render_ts)
-        image.save(os.path.join(split_dir, f"{index:06d}.png"))
+        output_path = os.path.join(split_dir, f"{index:06d}.png")
+        if not overwrite and os.path.exists(output_path):
+            skipped += 1
+            continue
+        tasks.append((index, series, output_path))
+
+    backend_used = "none"
+    if tasks:
+        if num_workers <= 1:
+            _init_render_worker(renderer_kwargs, normalization_stats, normalize_before_render)
+            iterator = map(_render_one_sample_to_path, tasks)
+            for _ in tqdm(iterator, total=len(tasks), desc=f"render {split}", leave=False):
+                pass
+            backend_used = "single"
+        else:
+            selected_backend = parallel_backend
+            if selected_backend not in {"auto", "process", "thread"}:
+                raise ValueError(f"Unsupported parallel_backend: {parallel_backend}")
+
+            if selected_backend in {"auto", "process"}:
+                try:
+                    with ProcessPoolExecutor(
+                        max_workers=num_workers,
+                        initializer=_init_render_worker,
+                        initargs=(renderer_kwargs, normalization_stats, normalize_before_render),
+                    ) as executor:
+                        iterator = executor.map(_render_one_sample_to_path, tasks, chunksize=max(int(chunksize), 1))
+                        for _ in tqdm(iterator, total=len(tasks), desc=f"render {split}", leave=False):
+                            pass
+                    backend_used = "process"
+                except (PermissionError, OSError):
+                    if selected_backend == "process":
+                        raise
+                    selected_backend = "thread"
+
+            if selected_backend == "thread":
+                _init_render_worker(renderer_kwargs, normalization_stats, normalize_before_render)
+                with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                    iterator = executor.map(_render_one_sample_to_path, tasks)
+                    for _ in tqdm(iterator, total=len(tasks), desc=f"render {split}", leave=False):
+                        pass
+                backend_used = "thread"
 
     metadata = {
         "split": split,
         "num_samples": int(len(captions)),
         "image_dir": split_dir,
+        "num_rendered": int(len(tasks)),
+        "num_skipped_existing": int(skipped),
+        "parallel_backend": backend_used,
+        "num_workers": int(num_workers),
     }
     save_json(metadata, os.path.join(split_dir, "metadata.json"))
     return metadata
