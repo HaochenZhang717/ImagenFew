@@ -278,7 +278,7 @@ def main():
     parser.add_argument("--expected-width", type=int, default=400)
     parser.add_argument("--expected-height", type=int, default=100)
     parser.add_argument("--quiet", action="store_true", help="Reduce per-image stdout logging")
-    parser.add_argument("--batch-size", type=int, default=4, help="Number of images to caption per forward pass")
+    parser.add_argument("--batch-size", type=int, default=32, help="Number of images to caption per forward pass")
     parser.add_argument(
         "--max-new-tokens",
         type=int,
