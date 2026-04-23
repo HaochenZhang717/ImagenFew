@@ -3,9 +3,12 @@ import os
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
 
+os.environ.setdefault("MPLBACKEND", "Agg")
+
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from PIL import Image, ImageDraw
+from PIL import Image
 from torch.utils.data import Dataset
 
 
@@ -92,32 +95,54 @@ class DeterministicTimeSeriesRenderer:
         if length < 2:
             raise ValueError(f"Expected at least 2 time steps, got {length}")
 
-        canvas = Image.new("RGB", (self.image_size, self.image_size), (self.background_color,) * 3)
-        draw = ImageDraw.Draw(canvas)
+        dpi = 100
+        figsize = (self.image_size / dpi, self.image_size / dpi)
+        fig, axes = plt.subplots(
+            channels,
+            1,
+            figsize=figsize,
+            dpi=dpi,
+            squeeze=False,
+            gridspec_kw={"hspace": 0.0},
+        )
+        fig.patch.set_facecolor((self.background_color / 255.0,) * 3)
 
-        usable_w = self.image_size - 2 * self.padding
-        usable_h = self.image_size - 2 * self.padding
-        if usable_w <= 1 or usable_h <= 1:
-            raise ValueError("Renderer image_size/padding combination leaves no drawable area.")
+        x = np.arange(length, dtype=np.float32)
+        line_color = (self.line_color / 255.0,) * 3
+        axes_flat = axes[:, 0]
 
-        total_gap = self.panel_gap * max(channels - 1, 0)
-        panel_h = max((usable_h - total_gap) // channels, 1)
-
-        for channel_idx in range(channels):
-            top = self.padding + channel_idx * (panel_h + self.panel_gap)
-            bottom = min(top + panel_h - 1, self.image_size - self.padding - 1)
+        for channel_idx, ax in enumerate(axes_flat):
             normalized = self._normalize_series(ts[:, channel_idx])
+            ax.plot(
+                x,
+                normalized,
+                color=line_color,
+                linewidth=self.line_width,
+                solid_capstyle="round",
+                solid_joinstyle="round",
+                antialiased=True,
+            )
+            ax.set_xlim(0, length - 1)
+            ax.set_ylim(0.0, 1.0)
+            ax.set_facecolor((self.background_color / 255.0,) * 3)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+            ax.margins(x=0.0, y=0.05)
 
-            points = []
-            for step_idx, value in enumerate(normalized):
-                x = self.padding + round(step_idx * (usable_w - 1) / (length - 1))
-                y = top + round((1.0 - float(value)) * max(bottom - top, 1))
-                points.append((x, y))
+        left = self.padding / self.image_size
+        right = 1.0 - self.padding / self.image_size
+        bottom = self.padding / self.image_size
+        top = 1.0 - self.padding / self.image_size
+        hspace = self.panel_gap / max(self.image_size, 1)
+        fig.subplots_adjust(left=left, right=right, bottom=bottom, top=top, hspace=hspace)
 
-            if len(points) >= 2:
-                draw.line(points, fill=(self.line_color,) * 3, width=self.line_width)
-
-        return canvas
+        fig.canvas.draw()
+        width, height = fig.canvas.get_width_height()
+        image = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8).reshape(height, width, 4)[..., :3]
+        plt.close(fig)
+        return Image.fromarray(image)
 
 
 class TimeSeriesImageCaptionDataset(Dataset):
