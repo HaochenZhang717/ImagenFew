@@ -41,6 +41,7 @@ class FourSegmentTimeSeriesRenderer:
         background_color: int = 255,
         line_color: int = 0,
         line_width: int = 2,
+        separator_width: int = 2,
         padding: int = 8,
         panel_gap: int = 4,
         normalization: str = "per_sample_minmax",
@@ -52,6 +53,7 @@ class FourSegmentTimeSeriesRenderer:
         self.background_color = int(background_color)
         self.line_color = int(line_color)
         self.line_width = int(line_width)
+        self.separator_width = int(separator_width)
         self.padding = int(padding)
         self.panel_gap = int(panel_gap)
         self.normalization = normalization
@@ -141,6 +143,11 @@ class FourSegmentTimeSeriesRenderer:
         width, height = fig.canvas.get_width_height()
         image = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8).reshape(height, width, 4)[..., :3]
         plt.close(fig)
+        half_width = max(self.separator_width // 2, 0)
+        for boundary in range(self.segment_size, self.image_width, self.segment_size):
+            start = max(boundary - half_width, 0)
+            end = min(start + self.separator_width, self.image_width)
+            image[:, start:end, :] = np.array([255, 0, 0], dtype=np.uint8)
         return Image.fromarray(image)
 
 
@@ -196,6 +203,7 @@ def render_and_save_split(
         "background_color": renderer.background_color,
         "line_color": renderer.line_color,
         "line_width": renderer.line_width,
+        "separator_width": renderer.separator_width,
         "padding": renderer.padding,
         "panel_gap": renderer.panel_gap,
         "normalization": renderer.normalization,
@@ -260,6 +268,7 @@ def render_and_save_split(
         "image_width": int(renderer.image_width),
         "image_height": int(renderer.image_height),
         "num_segments": int(renderer.num_segments),
+        "separator_width": int(renderer.separator_width),
     }
     save_json(metadata, os.path.join(split_dir, "metadata.json"))
     return metadata

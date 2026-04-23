@@ -128,6 +128,8 @@ class PipelineV2CaptionModel(nn.Module):
             values = [value for value in image_feature_outputs.values() if value is not None]
             if image_embeds is None and values:
                 image_embeds = values[0]
+            if deepstack_image_embeds is None and isinstance(image_embeds, (tuple, list)) and len(image_embeds) == 2:
+                image_embeds, deepstack_image_embeds = image_embeds
             if deepstack_image_embeds is None:
                 if len(values) == 2:
                     deepstack_image_embeds = values[1]

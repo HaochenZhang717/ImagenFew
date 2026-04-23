@@ -254,16 +254,21 @@ def split_range(total, part_id, num_parts):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--part_id", type=int, default=0, help="which split to run (0-based)")
-    parser.add_argument("--num_parts", type=int, default=4, help="total number of splits")
-    parser.add_argument("--image_folder", type=str, required=True)
-    parser.add_argument("--split", type=str, required=True,)
-    parser.add_argument("--dataset_name", type=str, required=True,)
-    parser.add_argument("--save_dir", type=str, required=True,)
+    parser.add_argument("--num_parts", type=int, default=1, help="total number of splits")
+    parser.add_argument("--dataset-root", type=str, default="data/VerbalTSDatasets/synthetic_u")
+    parser.add_argument("--image-root", type=str, default=None)
+    parser.add_argument("--image_folder", type=str, default=None)
+    parser.add_argument("--split", type=str, default="test")
+    parser.add_argument("--dataset_name", type=str, default="synthetic_u")
+    parser.add_argument("--save_dir", type=str, default=None)
     parser.add_argument(
         "--output-npy",
         type=str,
         default=None,
-        help="Optional path to save captions in VerbalTSDatasets format, e.g. data/.../test_text_caps.npy",
+        help=(
+            "Path to save captions in VerbalTSDatasets format. "
+            "Defaults to <dataset-root>/<split>_text_caps.npy."
+        ),
     )
     parser.add_argument(
         "--allow-partial-npy",
@@ -287,6 +292,14 @@ def main():
     )
 
     args = parser.parse_args()
+    if args.image_root is None:
+        args.image_root = os.path.join(args.dataset_root, "pipeline_v2_images_400x100_segments")
+    if args.image_folder is None:
+        args.image_folder = os.path.join(args.image_root, args.split)
+    if args.save_dir is None:
+        args.save_dir = os.path.join("logs", "finetune_captions_400x100", args.dataset_name)
+    if args.output_npy is None:
+        args.output_npy = os.path.join(args.dataset_root, f"{args.split}_text_caps.npy")
 
     os.makedirs(args.save_dir, exist_ok=True)
     output_jsonl = f"{args.save_dir}/{args.split}_caps_{args.part_id}_{args.num_parts}.jsonl"
