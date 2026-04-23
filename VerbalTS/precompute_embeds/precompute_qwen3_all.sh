@@ -82,7 +82,7 @@ for dataset in "${DATASETS[@]}"; do
     run_split "$dataset_dir" "train"
     run_split "$dataset_dir" "valid"
     run_split "$dataset_dir" "test"
-    run_split "$dataset_dir" "generated"
+#    run_split "$dataset_dir" "generated"
 done
 
 echo "Done!"

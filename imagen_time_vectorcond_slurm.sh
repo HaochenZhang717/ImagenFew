@@ -53,9 +53,9 @@ LR_OVERRIDE="${LR_OVERRIDE:-}"
 BATCH_SIZE_OVERRIDE="${BATCH_SIZE_OVERRIDE:-}"
 
 DEFAULT_CONFIGS=(
-  "./configs/ImagenTimeVectorCond/VerbalTS_ETTm1_qwen3.yaml"
-  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_u_qwen3.yaml"
-  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_m_qwen3.yaml"
+#  "./configs/ImagenTimeVectorCond/VerbalTS_ETTm1_qwen3.yaml"
+#  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_u_qwen3.yaml"
+#  "./configs/ImagenTimeVectorCond/VerbalTS_synthetic_m_qwen3.yaml"
   "./configs/ImagenTimeVectorCond/VerbalTS_istanbul_traffic_qwen3.yaml"
 )
 
