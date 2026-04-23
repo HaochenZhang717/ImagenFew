@@ -33,18 +33,18 @@ Describe the time series in exactly four segments:
 3. segment 3
 4. segment 4
 
-For each segment, briefly describe the trend, level change, or stability pattern.
-If there is a clear local event such as a spike, dip, abrupt rise, abrupt drop, or sharp fluctuation, explicitly mention it.
+For each segment, Use one sentence to describe the behavior of time series.
 
 Rules:
 - Keep each line concise and factual.
 - Description of each segment should be a short sentence.
-- Local event description should also be a short sentence.
-- If clear local event does not exist, just put <not exist>
 
 Use exactly the following output format:
 Output exactly:
-Segment 1: <description>; Segment 2: <description>; Segment 3: <description>; Segment 4: <description>; Local Event: <description>
+[Segment 1]: <description> 
+[Segment 2]: <description>
+[Segment 3]: <description>
+[Segment 4]: <description>
 """.strip()
 
 
