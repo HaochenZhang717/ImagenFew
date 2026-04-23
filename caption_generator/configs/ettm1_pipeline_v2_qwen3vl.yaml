@@ -40,14 +40,14 @@ model:
   trust_remote_code: true
   torch_dtype: bfloat16
   low_cpu_mem_usage: true
-  soft_prompt_tokens: 32
+  soft_prompt_tokens: 128
   soft_prompt_init_std: 0.02
 
 training:
   num_epochs: 10
-  batch_size: 2
-  eval_batch_size: 2
-  grad_accum_steps: 8
+  batch_size: 32
+  eval_batch_size:
+  grad_accum_steps: 1
   learning_rate: 2.0e-4
   weight_decay: 0.0
   warmup_ratio: 0.03
