@@ -84,15 +84,59 @@ class PipelineV2CaptionModel(nn.Module):
                     return mapping[key]
             return None
 
+        def describe_mapping(mapping):
+            descriptions = []
+            for key, value in mapping.items():
+                if torch.is_tensor(value):
+                    value_desc = f"Tensor{tuple(value.shape)}"
+                elif isinstance(value, (tuple, list)):
+                    value_desc = f"{type(value).__name__}[{len(value)}]"
+                else:
+                    value_desc = type(value).__name__
+                descriptions.append(f"{key}={value_desc}")
+            return ", ".join(descriptions)
+
         if isinstance(image_feature_outputs, dict):
-            image_embeds = get_first(image_feature_outputs, ("image_embeds", "image_features"))
+            image_embeds = get_first(
+                image_feature_outputs,
+                (
+                    "image_embeds",
+                    "image_embed",
+                    "image_features",
+                    "image_feature",
+                    "image_hidden_states",
+                    "vision_embeds",
+                    "visual_embeds",
+                    "hidden_states",
+                    "last_hidden_state",
+                ),
+            )
             deepstack_image_embeds = get_first(
                 image_feature_outputs,
-                ("deepstack_image_embeds", "deepstack_visual_embeds", "deepstack_features"),
+                (
+                    "deepstack_image_embeds",
+                    "deepstack_image_features",
+                    "deepstack_visual_embeds",
+                    "deepstack_visual_features",
+                    "deepstack_features",
+                    "deepstack_feature_lists",
+                    "deepstack_feature_list",
+                    "deepstack_hidden_states",
+                    "deepstack",
+                ),
             )
+            values = [value for value in image_feature_outputs.values() if value is not None]
+            if image_embeds is None and values:
+                image_embeds = values[0]
+            if deepstack_image_embeds is None:
+                if len(values) == 2:
+                    deepstack_image_embeds = values[1]
+                elif len(values) > 2:
+                    deepstack_image_embeds = values[1:]
             if image_embeds is None or deepstack_image_embeds is None:
                 raise ValueError(
-                    "Unsupported get_image_features dict output. Expected image and deepstack feature entries."
+                    "Unsupported get_image_features dict output. Expected image and deepstack feature entries. "
+                    f"Got keys: {describe_mapping(image_feature_outputs)}"
                 )
             return image_embeds, deepstack_image_embeds
 
