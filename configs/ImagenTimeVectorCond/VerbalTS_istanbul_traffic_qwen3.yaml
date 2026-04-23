@@ -36,7 +36,7 @@ run_dir: ImagenTimeVectorCond/VerbalTS_istanbul_traffic_qwen3_my_caps/
 datasets_dir: ./data/
 seq_len: 144
 pretrain: false
-eval_split: train
+eval_split: test
 datasets:
   - name: istanbul_traffic
     data: verbal_ts
