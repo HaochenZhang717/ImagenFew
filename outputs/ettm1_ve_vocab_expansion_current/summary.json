@@ -1,0 +1,26 @@
+{
+  "dataset_dir": "/Users/zhc/Documents/PhD/projects/ImagenFew/data/VerbalTSDatasets/ETTm1",
+  "splits": [
+    "train"
+  ],
+  "split_stats": {
+    "train": {
+      "num_samples": 13013,
+      "caps_path": "/Users/zhc/Documents/PhD/projects/ImagenFew/data/VerbalTSDatasets/ETTm1/train_text_caps.npy",
+      "attrs_path": "/Users/zhc/Documents/PhD/projects/ImagenFew/data/VerbalTSDatasets/ETTm1/train_attrs_idx.npy"
+    }
+  },
+  "num_total_samples": 13013,
+  "attr_names": [
+    "var_id",
+    "trend",
+    "season",
+    "skewness",
+    "kurtosis"
+  ],
+  "output_files": {
+    "template_stats_json": "template_stats.json",
+    "special_tokens_json": "special_tokens.json",
+    "special_tokens_txt": "special_tokens.txt"
+  }
+}

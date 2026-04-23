@@ -1,0 +1,830 @@
+[
+  {
+    "template": "The main season cycles is around <NUM> pi.",
+    "count": 13013
+  },
+  {
+    "template": "The distribution of the value in time series is symmetrical, and has low kurtosis.",
+    "count": 5019
+  },
+  {
+    "template": "For the ovearll shape, the time series has no obvious trend direction.",
+    "count": 2053
+  },
+  {
+    "template": "This sequence is HUFL.",
+    "count": 1859
+  },
+  {
+    "template": "This sequence is HULL.",
+    "count": 1859
+  },
+  {
+    "template": "This sequence is MUFL.",
+    "count": 1859
+  },
+  {
+    "template": "This sequence is MULL.",
+    "count": 1859
+  },
+  {
+    "template": "This sequence is LUFL.",
+    "count": 1859
+  },
+  {
+    "template": "This sequence is LULL.",
+    "count": 1859
+  },
+  {
+    "template": "This sequence is OT.",
+    "count": 1859
+  },
+  {
+    "template": "The distribution of the value in time series is symmetrical, and has normal kurtosis.",
+    "count": 1792
+  },
+  {
+    "template": "The distribution of the value in time series is shifted to the positive, and has normal kurtosis.",
+    "count": 1367
+  },
+  {
+    "template": "For the ovearll shape, the time series has a sharp upward trend.",
+    "count": 1261
+  },
+  {
+    "template": "For the ovearll shape, the time series rise obviously.",
+    "count": 1243
+  },
+  {
+    "template": "For the ovearll shape, the time series going down rapidly.",
+    "count": 1224
+  },
+  {
+    "template": "For the ovearll shape, the time series has a sharp downward trend.",
+    "count": 1211
+  },
+  {
+    "template": "For the ovearll shape, the time series drop obviously.",
+    "count": 1208
+  },
+  {
+    "template": "For the ovearll shape, the time series going up rapidly.",
+    "count": 1194
+  },
+  {
+    "template": "The distribution of the value in time series is shifted to the negative, and has normal kurtosis.",
+    "count": 1048
+  },
+  {
+    "template": "The distribution of the value in time series is shifted to the negative, and has high kurtosis.",
+    "count": 1010
+  },
+  {
+    "template": "The distribution of the value in time series is shifted to the positive, and has low kurtosis.",
+    "count": 974
+  },
+  {
+    "template": "The distribution of the value in time series is shifted to the positive, and has high kurtosis.",
+    "count": 971
+  },
+  {
+    "template": "At the end: the time series has no obvious trend direction.",
+    "count": 902
+  },
+  {
+    "template": "At the beginning: the time series has no obvious trend direction.",
+    "count": 891
+  },
+  {
+    "template": "At the middle: the time series has no obvious trend direction.",
+    "count": 884
+  },
+  {
+    "template": "At the beginning: the time series rise obviously.",
+    "count": 847
+  },
+  {
+    "template": "At the beginning: the time series going down rapidly.",
+    "count": 820
+  },
+  {
+    "template": "At the middle: the time series has a sharp upward trend.",
+    "count": 819
+  },
+  {
+    "template": "At the beginning: the time series has a sharp upward trend.",
+    "count": 815
+  },
+  {
+    "template": "At the middle: the time series drop obviously.",
+    "count": 811
+  },
+  {
+    "template": "At the middle: the time series going up rapidly.",
+    "count": 810
+  },
+  {
+    "template": "At the beginning: the time series going up rapidly.",
+    "count": 803
+  },
+  {
+    "template": "At the end: the time series going up rapidly.",
+    "count": 803
+  },
+  {
+    "template": "At the end: the time series has a sharp upward trend.",
+    "count": 792
+  },
+  {
+    "template": "At the middle: the time series has a sharp downward trend.",
+    "count": 786
+  },
+  {
+    "template": "At the middle: the time series going down rapidly.",
+    "count": 781
+  },
+  {
+    "template": "At the end: the time series going down rapidly.",
+    "count": 769
+  },
+  {
+    "template": "At the beginning: the time series drop obviously.",
+    "count": 766
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series has no obvious trend direction.",
+    "count": 763
+  },
+  {
+    "template": "At the end: the time series has a sharp downward trend.",
+    "count": 756
+  },
+  {
+    "template": "At the end: the time series drop obviously.",
+    "count": 751
+  },
+  {
+    "template": "At the end: the time series rise obviously.",
+    "count": 748
+  },
+  {
+    "template": "At the beginning: the time series has a sharp downward trend.",
+    "count": 738
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series has no obvious trend direction.",
+    "count": 725
+  },
+  {
+    "template": "At the middle: the time series rise obviously.",
+    "count": 724
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series has no obvious trend direction.",
+    "count": 716
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series going up rapidly.",
+    "count": 716
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series drop obviously.",
+    "count": 711
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series rise obviously.",
+    "count": 676
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series going down rapidly.",
+    "count": 663
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series has a sharp downward trend.",
+    "count": 662
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series has a sharp downward trend.",
+    "count": 657
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series has a sharp downward trend.",
+    "count": 650
+  },
+  {
+    "template": "The distribution of the value in time series is shifted to the negative, and has low kurtosis.",
+    "count": 648
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series drop obviously.",
+    "count": 646
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series going down rapidly.",
+    "count": 644
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series has a sharp upward trend.",
+    "count": 639
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series rise obviously.",
+    "count": 638
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series has a sharp upward trend.",
+    "count": 635
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series rise obviously.",
+    "count": 632
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series going up rapidly.",
+    "count": 627
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series going down rapidly.",
+    "count": 623
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series drop obviously.",
+    "count": 611
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series has a sharp upward trend.",
+    "count": 605
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series going up rapidly.",
+    "count": 602
+  },
+  {
+    "template": "For the ovearll shape, the time series slowly rise.",
+    "count": 364
+  },
+  {
+    "template": "For the ovearll shape, the time series has a slow upward trend.",
+    "count": 337
+  },
+  {
+    "template": "For the ovearll shape, the values in the time series are slightly climbing.",
+    "count": 333
+  },
+  {
+    "template": "For the ovearll shape, the time series has a slow downward trend.",
+    "count": 327
+  },
+  {
+    "template": "For the ovearll shape, the trend direction is up.",
+    "count": 322
+  },
+  {
+    "template": "For the ovearll shape, the values in the time series are slightly decreasing.",
+    "count": 314
+  },
+  {
+    "template": "For the ovearll shape, the time series slowly drop.",
+    "count": 308
+  },
+  {
+    "template": "For the ovearll shape, the time series increases by time.",
+    "count": 290
+  },
+  {
+    "template": "For the ovearll shape, the trend direction is down.",
+    "count": 268
+  },
+  {
+    "template": "For the ovearll shape, the time series going upward.",
+    "count": 263
+  },
+  {
+    "template": "For the ovearll shape, the time series going downward.",
+    "count": 251
+  },
+  {
+    "template": "For the ovearll shape, the time series decreases by time.",
+    "count": 242
+  },
+  {
+    "template": "The distribution of the value in time series is symmetrical, and has high kurtosis.",
+    "count": 184
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series has a slow downward trend.",
+    "count": 136
+  },
+  {
+    "template": "At the end: there are 1 peaks, the values in the time series are slightly decreasing.",
+    "count": 131
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the values in the time series are slightly decreasing.",
+    "count": 126
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series slowly rise.",
+    "count": 125
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series slowly drop.",
+    "count": 124
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the values in the time series are slightly climbing.",
+    "count": 123
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the values in the time series are slightly decreasing.",
+    "count": 123
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series slowly drop.",
+    "count": 122
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series slowly drop.",
+    "count": 121
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series decreases by time.",
+    "count": 121
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series has a slow downward trend.",
+    "count": 121
+  },
+  {
+    "template": "At the middle: the time series slowly drop.",
+    "count": 120
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series slowly rise.",
+    "count": 117
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series decreases by time.",
+    "count": 117
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series decreases by time.",
+    "count": 114
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series has a slow upward trend.",
+    "count": 112
+  },
+  {
+    "template": "At the middle: the values in the time series are slightly decreasing.",
+    "count": 112
+  },
+  {
+    "template": "At the beginning: the trend direction is down.",
+    "count": 111
+  },
+  {
+    "template": "At the beginning: the time series slowly drop.",
+    "count": 111
+  },
+  {
+    "template": "At the end: the time series has a slow downward trend.",
+    "count": 111
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series slowly rise.",
+    "count": 110
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the values in the time series are slightly climbing.",
+    "count": 110
+  },
+  {
+    "template": "At the beginning: the time series has a slow downward trend.",
+    "count": 109
+  },
+  {
+    "template": "At the end: there are 1 peaks, the trend direction is up.",
+    "count": 109
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series going downward.",
+    "count": 106
+  },
+  {
+    "template": "At the beginning: the values in the time series are slightly decreasing.",
+    "count": 106
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series has a slow downward trend.",
+    "count": 105
+  },
+  {
+    "template": "At the middle: the time series has a slow upward trend.",
+    "count": 105
+  },
+  {
+    "template": "At the middle: the values in the time series are slightly climbing.",
+    "count": 105
+  },
+  {
+    "template": "At the end: there are 1 peaks, the trend direction is down.",
+    "count": 105
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series going downward.",
+    "count": 104
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series going downward.",
+    "count": 104
+  },
+  {
+    "template": "At the middle: the time series slowly rise.",
+    "count": 103
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series increases by time.",
+    "count": 103
+  },
+  {
+    "template": "At the end: the time series slowly drop.",
+    "count": 103
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the trend direction is down.",
+    "count": 102
+  },
+  {
+    "template": "At the beginning: the time series decreases by time.",
+    "count": 102
+  },
+  {
+    "template": "At the end: the time series has a slow upward trend.",
+    "count": 101
+  },
+  {
+    "template": "At the end: the time series going downward.",
+    "count": 101
+  },
+  {
+    "template": "At the middle: the trend direction is down.",
+    "count": 100
+  },
+  {
+    "template": "At the end: there are 1 peaks, the values in the time series are slightly climbing.",
+    "count": 99
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the time series going upward.",
+    "count": 98
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series increases by time.",
+    "count": 98
+  },
+  {
+    "template": "At the end: the values in the time series are slightly decreasing.",
+    "count": 98
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series has a slow upward trend.",
+    "count": 98
+  },
+  {
+    "template": "At the beginning: the time series going downward.",
+    "count": 97
+  },
+  {
+    "template": "At the middle: the time series has a slow downward trend.",
+    "count": 97
+  },
+  {
+    "template": "At the beginning: the time series slowly rise.",
+    "count": 96
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the trend direction is up.",
+    "count": 95
+  },
+  {
+    "template": "At the beginning: the time series going upward.",
+    "count": 95
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series going upward.",
+    "count": 95
+  },
+  {
+    "template": "At the middle: the time series decreases by time.",
+    "count": 95
+  },
+  {
+    "template": "At the middle: the time series increases by time.",
+    "count": 94
+  },
+  {
+    "template": "At the end: the time series decreases by time.",
+    "count": 94
+  },
+  {
+    "template": "At the middle: the trend direction is up.",
+    "count": 93
+  },
+  {
+    "template": "At the middle: the time series going downward.",
+    "count": 92
+  },
+  {
+    "template": "At the beginning: the values in the time series are slightly climbing.",
+    "count": 92
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series has a slow upward trend.",
+    "count": 91
+  },
+  {
+    "template": "At the beginning: the time series has a slow upward trend.",
+    "count": 91
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the trend direction is up.",
+    "count": 91
+  },
+  {
+    "template": "At the beginning: there are 1 peaks, the trend direction is down.",
+    "count": 89
+  },
+  {
+    "template": "At the middle: there are 1 peaks, the time series going upward.",
+    "count": 88
+  },
+  {
+    "template": "At the end: there are 1 peaks, the time series increases by time.",
+    "count": 85
+  },
+  {
+    "template": "At the beginning: the trend direction is up.",
+    "count": 84
+  },
+  {
+    "template": "At the end: the trend direction is down.",
+    "count": 83
+  },
+  {
+    "template": "At the beginning: the time series increases by time.",
+    "count": 83
+  },
+  {
+    "template": "At the end: the time series going upward.",
+    "count": 82
+  },
+  {
+    "template": "At the end: the trend direction is up.",
+    "count": 81
+  },
+  {
+    "template": "At the end: the values in the time series are slightly climbing.",
+    "count": 81
+  },
+  {
+    "template": "At the end: the time series increases by time.",
+    "count": 79
+  },
+  {
+    "template": "At the end: the time series slowly rise.",
+    "count": 70
+  },
+  {
+    "template": "At the middle: the time series going upward.",
+    "count": 66
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series has no obvious trend direction.",
+    "count": 66
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series has no obvious trend direction.",
+    "count": 47
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series has no obvious trend direction.",
+    "count": 44
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series has a sharp downward trend.",
+    "count": 42
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series going down rapidly.",
+    "count": 37
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series drop obviously.",
+    "count": 36
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series going up rapidly.",
+    "count": 35
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series has a sharp downward trend.",
+    "count": 34
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series drop obviously.",
+    "count": 33
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series going up rapidly.",
+    "count": 32
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series drop obviously.",
+    "count": 32
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series going up rapidly.",
+    "count": 31
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series has a sharp upward trend.",
+    "count": 31
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series rise obviously.",
+    "count": 30
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series rise obviously.",
+    "count": 30
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series has a sharp upward trend.",
+    "count": 30
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series has a sharp upward trend.",
+    "count": 30
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series rise obviously.",
+    "count": 27
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series going down rapidly.",
+    "count": 26
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series has a sharp downward trend.",
+    "count": 26
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series going down rapidly.",
+    "count": 22
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series slowly drop.",
+    "count": 16
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series decreases by time.",
+    "count": 13
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series has a slow downward trend.",
+    "count": 11
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the values in the time series are slightly climbing.",
+    "count": 11
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series going downward.",
+    "count": 11
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the values in the time series are slightly decreasing.",
+    "count": 11
+  },
+  {
+    "template": "At the end: there are 2 peaks, the values in the time series are slightly climbing.",
+    "count": 10
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series going downward.",
+    "count": 10
+  },
+  {
+    "template": "At the end: there are 2 peaks, the values in the time series are slightly decreasing.",
+    "count": 10
+  },
+  {
+    "template": "At the end: there are 2 peaks, the trend direction is down.",
+    "count": 9
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series going upward.",
+    "count": 9
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series slowly drop.",
+    "count": 9
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the trend direction is down.",
+    "count": 9
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series increases by time.",
+    "count": 9
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series slowly rise.",
+    "count": 9
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series increases by time.",
+    "count": 9
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the trend direction is up.",
+    "count": 9
+  },
+  {
+    "template": "At the end: there are 2 peaks, the trend direction is up.",
+    "count": 8
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series has a slow upward trend.",
+    "count": 8
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series increases by time.",
+    "count": 8
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series has a slow downward trend.",
+    "count": 7
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series slowly rise.",
+    "count": 7
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the values in the time series are slightly decreasing.",
+    "count": 7
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the trend direction is down.",
+    "count": 7
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series going upward.",
+    "count": 7
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series has a slow upward trend.",
+    "count": 7
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series slowly rise.",
+    "count": 7
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series slowly drop.",
+    "count": 7
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series has a slow upward trend.",
+    "count": 7
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series decreases by time.",
+    "count": 6
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the values in the time series are slightly climbing.",
+    "count": 6
+  },
+  {
+    "template": "At the beginning: there are 2 peaks, the time series going upward.",
+    "count": 6
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series decreases by time.",
+    "count": 6
+  },
+  {
+    "template": "At the end: there are 2 peaks, the time series going downward.",
+    "count": 5
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the trend direction is up.",
+    "count": 5
+  },
+  {
+    "template": "At the middle: there are 2 peaks, the time series has a slow downward trend.",
+    "count": 4
+  }
+]

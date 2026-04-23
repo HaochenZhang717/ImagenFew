@@ -1,4 +1,5 @@
 import argparse
+import copy
 import json
 import os
 import re
@@ -156,6 +157,49 @@ def load_saved_vocab_expansion_summary(checkpoint_path: str) -> Dict | None:
         return json.load(f)
 
 
+def infer_checkpoint_vocab_size(state_dict: Dict[str, torch.Tensor]) -> int | None:
+    candidate_suffixes = (
+        "llm.base_model.model.model.embed_tokens.weight",
+        "llm.base_model.model.lm_head.weight",
+        "llm.model.embed_tokens.weight",
+        "llm.lm_head.weight",
+    )
+    for key in candidate_suffixes:
+        if key in state_dict and state_dict[key].ndim == 2:
+            return int(state_dict[key].shape[0])
+    for key, value in state_dict.items():
+        if key.endswith("embed_tokens.weight") and value.ndim == 2:
+            return int(value.shape[0])
+    return None
+
+
+def build_tokenizer_for_checkpoint(cfg: Dict, checkpoint_path: str, use_ve_model: bool, saved_ve_summary: Dict | None):
+    model_cfg = cfg["model"]
+    tokenizer_source = model_cfg["llm_name"]
+    tokenizer_ve_dir = None
+    if use_ve_model:
+        checkpoint_dir = os.path.dirname(os.path.abspath(checkpoint_path))
+        tokenizer_ve_dir = os.path.join(checkpoint_dir, "tokenizer_ve")
+        if os.path.isdir(tokenizer_ve_dir):
+            tokenizer_source = tokenizer_ve_dir
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        tokenizer_source,
+        trust_remote_code=model_cfg.get("trust_remote_code", False),
+        use_fast=model_cfg.get("use_fast_tokenizer", True),
+    )
+    if use_ve_model and saved_ve_summary and saved_ve_summary.get("token_to_template"):
+        # If tokenizer_ve is stale/missing, rebuild token list from saved summary.
+        if tokenizer_ve_dir is None or not os.path.isdir(tokenizer_ve_dir):
+            special_tokens = [row["token"] for row in saved_ve_summary["token_to_template"]]
+            tokenizer.add_special_tokens({"additional_special_tokens": special_tokens})
+
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = "right"
+    return tokenizer
+
+
 def main():
     args = parse_args()
     cfg = OmegaConf.to_container(OmegaConf.load(args.config), resolve=True)
@@ -166,29 +210,31 @@ def main():
 
     use_ve_model = should_use_ve_model(cfg)
     saved_ve_summary = load_saved_vocab_expansion_summary(args.checkpoint) if use_ve_model else None
-
-    tokenizer_source = cfg["model"]["llm_name"]
-    if use_ve_model:
-        checkpoint_dir = os.path.dirname(os.path.abspath(args.checkpoint))
-        tokenizer_ve_dir = os.path.join(checkpoint_dir, "tokenizer_ve")
-        if os.path.isdir(tokenizer_ve_dir):
-            tokenizer_source = tokenizer_ve_dir
-
-    tokenizer = AutoTokenizer.from_pretrained(
-        tokenizer_source,
-        trust_remote_code=cfg["model"].get("trust_remote_code", False),
-        use_fast=cfg["model"].get("use_fast_tokenizer", True),
-    )
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.padding_side = "right"
+    ckpt = torch.load(args.checkpoint, map_location="cpu")
+    state_dict = ckpt["model"]
+    checkpoint_vocab_size = infer_checkpoint_vocab_size(state_dict)
+    tokenizer = build_tokenizer_for_checkpoint(cfg, args.checkpoint, use_ve_model, saved_ve_summary)
 
     if use_ve_model:
-        model = Stage1LatentCaptionModelVE(cfg, tokenizer=tokenizer)
+        # Do not re-run vocab expansion mining during inference; rely on checkpoint/tokenizer artifacts.
+        model_cfg = copy.deepcopy(cfg)
+        if "vocab_expansion" in model_cfg:
+            model_cfg["vocab_expansion"]["enabled"] = False
+        if "model" in model_cfg and "vocab_expansion" in model_cfg["model"]:
+            model_cfg["model"]["vocab_expansion"]["enabled"] = False
+        model = Stage1LatentCaptionModelVE(model_cfg, tokenizer=None)
+        if checkpoint_vocab_size is not None:
+            model.llm.resize_token_embeddings(checkpoint_vocab_size)
     else:
         model = Stage1LatentCaptionModel(cfg)
-    ckpt = torch.load(args.checkpoint, map_location="cpu")
-    model.load_state_dict(ckpt["model"], strict=True)
+
+    if checkpoint_vocab_size is not None and len(tokenizer) != checkpoint_vocab_size:
+        print(
+            f"[WARN] tokenizer size ({len(tokenizer)}) != checkpoint vocab size ({checkpoint_vocab_size}). "
+            "Proceeding with checkpoint vocab size for model weights."
+        )
+
+    model.load_state_dict(state_dict, strict=True)
     model.to(device).eval()
     token_to_template = {}
     if use_ve_model and isinstance(model, Stage1LatentCaptionModelVE):

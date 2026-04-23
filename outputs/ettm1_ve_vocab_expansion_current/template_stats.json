@@ -1,0 +1,3036 @@
+{
+  "num_unique_templates": 216,
+  "templates": [
+    {
+      "template": "The main season cycles is around 1 pi.",
+      "count": 10225,
+      "num_distinct_attrs_idx": 126,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.03843520782396088,
+      "example_sentence": "The main season cycles is around 1 pi."
+    },
+    {
+      "template": "The distribution of the value in time series is symmetrical, and has low kurtosis.",
+      "count": 5019,
+      "num_distinct_attrs_idx": 56,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07830245068738792,
+      "example_sentence": "The distribution of the value in time series is symmetrical, and has low kurtosis."
+    },
+    {
+      "template": "For the ovearll shape, the time series has no obvious trend direction.",
+      "count": 2053,
+      "num_distinct_attrs_idx": 337,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.03263516804676084,
+      "example_sentence": "For the ovearll shape, the time series has no obvious trend direction."
+    },
+    {
+      "template": "The main season cycles is around 2 pi.",
+      "count": 1903,
+      "num_distinct_attrs_idx": 115,
+      "dominant_attrs_idx": [
+        4,
+        0,
+        1,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06463478717813978,
+      "example_sentence": "The main season cycles is around 2 pi."
+    },
+    {
+      "template": "This sequence is HUFL.",
+      "count": 1859,
+      "num_distinct_attrs_idx": 64,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.1258741258741259,
+      "example_sentence": "This sequence is HUFL."
+    },
+    {
+      "template": "This sequence is HULL.",
+      "count": 1859,
+      "num_distinct_attrs_idx": 63,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.21086605701990319,
+      "example_sentence": "This sequence is HULL."
+    },
+    {
+      "template": "This sequence is MUFL.",
+      "count": 1859,
+      "num_distinct_attrs_idx": 60,
+      "dominant_attrs_idx": [
+        2,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.12856374394835934,
+      "example_sentence": "This sequence is MUFL."
+    },
+    {
+      "template": "This sequence is MULL.",
+      "count": 1859,
+      "num_distinct_attrs_idx": 70,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.21140398063474986,
+      "example_sentence": "This sequence is MULL."
+    },
+    {
+      "template": "This sequence is LUFL.",
+      "count": 1859,
+      "num_distinct_attrs_idx": 65,
+      "dominant_attrs_idx": [
+        4,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.1312533620225928,
+      "example_sentence": "This sequence is LUFL."
+    },
+    {
+      "template": "This sequence is LULL.",
+      "count": 1859,
+      "num_distinct_attrs_idx": 76,
+      "dominant_attrs_idx": [
+        5,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.1689080150618612,
+      "example_sentence": "This sequence is LULL."
+    },
+    {
+      "template": "This sequence is OT.",
+      "count": 1859,
+      "num_distinct_attrs_idx": 69,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.19311457772996235,
+      "example_sentence": "This sequence is OT."
+    },
+    {
+      "template": "The distribution of the value in time series is symmetrical, and has normal kurtosis.",
+      "count": 1792,
+      "num_distinct_attrs_idx": 69,
+      "dominant_attrs_idx": [
+        5,
+        1,
+        0,
+        2,
+        1
+      ],
+      "dominant_ratio": 0.07589285714285714,
+      "example_sentence": "The distribution of the value in time series is symmetrical, and has normal kurtosis."
+    },
+    {
+      "template": "The distribution of the value in time series is shifted to the positive, and has normal kurtosis.",
+      "count": 1367,
+      "num_distinct_attrs_idx": 60,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        1,
+        1
+      ],
+      "dominant_ratio": 0.0980248719824433,
+      "example_sentence": "The distribution of the value in time series is shifted to the positive, and has normal kurtosis."
+    },
+    {
+      "template": "For the ovearll shape, the time series has a sharp upward trend.",
+      "count": 1261,
+      "num_distinct_attrs_idx": 131,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0626486915146709,
+      "example_sentence": "For the ovearll shape, the time series has a sharp upward trend."
+    },
+    {
+      "template": "For the ovearll shape, the time series rise obviously.",
+      "count": 1243,
+      "num_distinct_attrs_idx": 136,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06436041834271923,
+      "example_sentence": "For the ovearll shape, the time series rise obviously."
+    },
+    {
+      "template": "For the ovearll shape, the time series going down rapidly.",
+      "count": 1224,
+      "num_distinct_attrs_idx": 115,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0661764705882353,
+      "example_sentence": "For the ovearll shape, the time series going down rapidly."
+    },
+    {
+      "template": "For the ovearll shape, the time series has a sharp downward trend.",
+      "count": 1211,
+      "num_distinct_attrs_idx": 117,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06440957886044592,
+      "example_sentence": "For the ovearll shape, the time series has a sharp downward trend."
+    },
+    {
+      "template": "For the ovearll shape, the time series drop obviously.",
+      "count": 1208,
+      "num_distinct_attrs_idx": 120,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07947019867549669,
+      "example_sentence": "For the ovearll shape, the time series drop obviously."
+    },
+    {
+      "template": "For the ovearll shape, the time series going up rapidly.",
+      "count": 1194,
+      "num_distinct_attrs_idx": 123,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0661641541038526,
+      "example_sentence": "For the ovearll shape, the time series going up rapidly."
+    },
+    {
+      "template": "The distribution of the value in time series is shifted to the negative, and has normal kurtosis.",
+      "count": 1048,
+      "num_distinct_attrs_idx": 43,
+      "dominant_attrs_idx": [
+        2,
+        1,
+        0,
+        0,
+        1
+      ],
+      "dominant_ratio": 0.191793893129771,
+      "example_sentence": "The distribution of the value in time series is shifted to the negative, and has normal kurtosis."
+    },
+    {
+      "template": "The distribution of the value in time series is shifted to the negative, and has high kurtosis.",
+      "count": 1010,
+      "num_distinct_attrs_idx": 59,
+      "dominant_attrs_idx": [
+        2,
+        1,
+        0,
+        0,
+        2
+      ],
+      "dominant_ratio": 0.1712871287128713,
+      "example_sentence": "The distribution of the value in time series is shifted to the negative, and has high kurtosis."
+    },
+    {
+      "template": "The distribution of the value in time series is shifted to the positive, and has low kurtosis.",
+      "count": 974,
+      "num_distinct_attrs_idx": 38,
+      "dominant_attrs_idx": [
+        4,
+        0,
+        0,
+        1,
+        0
+      ],
+      "dominant_ratio": 0.09034907597535935,
+      "example_sentence": "The distribution of the value in time series is shifted to the positive, and has low kurtosis."
+    },
+    {
+      "template": "The distribution of the value in time series is shifted to the positive, and has high kurtosis.",
+      "count": 971,
+      "num_distinct_attrs_idx": 72,
+      "dominant_attrs_idx": [
+        4,
+        1,
+        0,
+        1,
+        2
+      ],
+      "dominant_ratio": 0.07518022657054584,
+      "example_sentence": "The distribution of the value in time series is shifted to the positive, and has high kurtosis."
+    },
+    {
+      "template": "At the end: the time series has no obvious trend direction.",
+      "count": 902,
+      "num_distinct_attrs_idx": 212,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.043237250554323724,
+      "example_sentence": "At the end: the time series has no obvious trend direction."
+    },
+    {
+      "template": "At the beginning: the time series has no obvious trend direction.",
+      "count": 891,
+      "num_distinct_attrs_idx": 217,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.052749719416386086,
+      "example_sentence": "At the beginning: the time series has no obvious trend direction."
+    },
+    {
+      "template": "At the middle: the time series has no obvious trend direction.",
+      "count": 884,
+      "num_distinct_attrs_idx": 240,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.03506787330316742,
+      "example_sentence": "At the middle: the time series has no obvious trend direction."
+    },
+    {
+      "template": "At the beginning: the time series rise obviously.",
+      "count": 847,
+      "num_distinct_attrs_idx": 160,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0448642266824085,
+      "example_sentence": "At the beginning: the time series rise obviously."
+    },
+    {
+      "template": "At the beginning: the time series going down rapidly.",
+      "count": 820,
+      "num_distinct_attrs_idx": 190,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06097560975609756,
+      "example_sentence": "At the beginning: the time series going down rapidly."
+    },
+    {
+      "template": "At the middle: the time series has a sharp upward trend.",
+      "count": 819,
+      "num_distinct_attrs_idx": 154,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05372405372405373,
+      "example_sentence": "At the middle: the time series has a sharp upward trend."
+    },
+    {
+      "template": "At the beginning: the time series has a sharp upward trend.",
+      "count": 815,
+      "num_distinct_attrs_idx": 169,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05030674846625767,
+      "example_sentence": "At the beginning: the time series has a sharp upward trend."
+    },
+    {
+      "template": "At the middle: the time series drop obviously.",
+      "count": 811,
+      "num_distinct_attrs_idx": 154,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.059186189889025895,
+      "example_sentence": "At the middle: the time series drop obviously."
+    },
+    {
+      "template": "At the middle: the time series going up rapidly.",
+      "count": 810,
+      "num_distinct_attrs_idx": 171,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0654320987654321,
+      "example_sentence": "At the middle: the time series going up rapidly."
+    },
+    {
+      "template": "At the beginning: the time series going up rapidly.",
+      "count": 803,
+      "num_distinct_attrs_idx": 177,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0448318804483188,
+      "example_sentence": "At the beginning: the time series going up rapidly."
+    },
+    {
+      "template": "At the end: the time series going up rapidly.",
+      "count": 803,
+      "num_distinct_attrs_idx": 179,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05105853051058531,
+      "example_sentence": "At the end: the time series going up rapidly."
+    },
+    {
+      "template": "At the end: the time series has a sharp upward trend.",
+      "count": 792,
+      "num_distinct_attrs_idx": 183,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.04671717171717172,
+      "example_sentence": "At the end: the time series has a sharp upward trend."
+    },
+    {
+      "template": "At the middle: the time series has a sharp downward trend.",
+      "count": 786,
+      "num_distinct_attrs_idx": 162,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05725190839694656,
+      "example_sentence": "At the middle: the time series has a sharp downward trend."
+    },
+    {
+      "template": "At the middle: the time series going down rapidly.",
+      "count": 781,
+      "num_distinct_attrs_idx": 161,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06914212548015365,
+      "example_sentence": "At the middle: the time series going down rapidly."
+    },
+    {
+      "template": "At the end: the time series going down rapidly.",
+      "count": 769,
+      "num_distinct_attrs_idx": 167,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.04811443433029909,
+      "example_sentence": "At the end: the time series going down rapidly."
+    },
+    {
+      "template": "At the beginning: the time series drop obviously.",
+      "count": 766,
+      "num_distinct_attrs_idx": 173,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05221932114882506,
+      "example_sentence": "At the beginning: the time series drop obviously."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series has no obvious trend direction.",
+      "count": 763,
+      "num_distinct_attrs_idx": 198,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.053735255570117955,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series has no obvious trend direction."
+    },
+    {
+      "template": "At the end: the time series has a sharp downward trend.",
+      "count": 756,
+      "num_distinct_attrs_idx": 170,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.046296296296296294,
+      "example_sentence": "At the end: the time series has a sharp downward trend."
+    },
+    {
+      "template": "At the end: the time series drop obviously.",
+      "count": 751,
+      "num_distinct_attrs_idx": 163,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.045272969374167776,
+      "example_sentence": "At the end: the time series drop obviously."
+    },
+    {
+      "template": "At the end: the time series rise obviously.",
+      "count": 748,
+      "num_distinct_attrs_idx": 166,
+      "dominant_attrs_idx": [
+        2,
+        1,
+        0,
+        0,
+        1
+      ],
+      "dominant_ratio": 0.0481283422459893,
+      "example_sentence": "At the end: the time series rise obviously."
+    },
+    {
+      "template": "At the beginning: the time series has a sharp downward trend.",
+      "count": 738,
+      "num_distinct_attrs_idx": 165,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06504065040650407,
+      "example_sentence": "At the beginning: the time series has a sharp downward trend."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series has no obvious trend direction.",
+      "count": 725,
+      "num_distinct_attrs_idx": 183,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.09655172413793103,
+      "example_sentence": "At the end: there are 1 peaks, the time series has no obvious trend direction."
+    },
+    {
+      "template": "At the middle: the time series rise obviously.",
+      "count": 724,
+      "num_distinct_attrs_idx": 155,
+      "dominant_attrs_idx": [
+        5,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.049723756906077346,
+      "example_sentence": "At the middle: the time series rise obviously."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series has no obvious trend direction.",
+      "count": 716,
+      "num_distinct_attrs_idx": 207,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.04189944134078212,
+      "example_sentence": "At the middle: there are 1 peaks, the time series has no obvious trend direction."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series going up rapidly.",
+      "count": 716,
+      "num_distinct_attrs_idx": 163,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05446927374301676,
+      "example_sentence": "At the end: there are 1 peaks, the time series going up rapidly."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series drop obviously.",
+      "count": 711,
+      "num_distinct_attrs_idx": 148,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07735583684950774,
+      "example_sentence": "At the middle: there are 1 peaks, the time series drop obviously."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series rise obviously.",
+      "count": 676,
+      "num_distinct_attrs_idx": 155,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05917159763313609,
+      "example_sentence": "At the end: there are 1 peaks, the time series rise obviously."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series going down rapidly.",
+      "count": 663,
+      "num_distinct_attrs_idx": 166,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06184012066365008,
+      "example_sentence": "At the end: there are 1 peaks, the time series going down rapidly."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series has a sharp downward trend.",
+      "count": 662,
+      "num_distinct_attrs_idx": 149,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.08308157099697885,
+      "example_sentence": "At the middle: there are 1 peaks, the time series has a sharp downward trend."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series has a sharp downward trend.",
+      "count": 657,
+      "num_distinct_attrs_idx": 146,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0563165905631659,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series has a sharp downward trend."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series has a sharp downward trend.",
+      "count": 650,
+      "num_distinct_attrs_idx": 163,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07230769230769231,
+      "example_sentence": "At the end: there are 1 peaks, the time series has a sharp downward trend."
+    },
+    {
+      "template": "The distribution of the value in time series is shifted to the negative, and has low kurtosis.",
+      "count": 648,
+      "num_distinct_attrs_idx": 24,
+      "dominant_attrs_idx": [
+        2,
+        1,
+        0,
+        0,
+        0
+      ],
+      "dominant_ratio": 0.2006172839506173,
+      "example_sentence": "The distribution of the value in time series is shifted to the negative, and has low kurtosis."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series drop obviously.",
+      "count": 646,
+      "num_distinct_attrs_idx": 167,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05417956656346749,
+      "example_sentence": "At the end: there are 1 peaks, the time series drop obviously."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series going down rapidly.",
+      "count": 644,
+      "num_distinct_attrs_idx": 162,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05434782608695652,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series going down rapidly."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series has a sharp upward trend.",
+      "count": 639,
+      "num_distinct_attrs_idx": 155,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0594679186228482,
+      "example_sentence": "At the end: there are 1 peaks, the time series has a sharp upward trend."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series rise obviously.",
+      "count": 638,
+      "num_distinct_attrs_idx": 152,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05956112852664577,
+      "example_sentence": "At the middle: there are 1 peaks, the time series rise obviously."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series has a sharp upward trend.",
+      "count": 635,
+      "num_distinct_attrs_idx": 152,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05511811023622047,
+      "example_sentence": "At the middle: there are 1 peaks, the time series has a sharp upward trend."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series rise obviously.",
+      "count": 632,
+      "num_distinct_attrs_idx": 166,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0680379746835443,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series rise obviously."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series going up rapidly.",
+      "count": 627,
+      "num_distinct_attrs_idx": 169,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06539074960127592,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series going up rapidly."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series going down rapidly.",
+      "count": 623,
+      "num_distinct_attrs_idx": 140,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.09951845906902086,
+      "example_sentence": "At the middle: there are 1 peaks, the time series going down rapidly."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series drop obviously.",
+      "count": 611,
+      "num_distinct_attrs_idx": 157,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05564648117839607,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series drop obviously."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series has a sharp upward trend.",
+      "count": 605,
+      "num_distinct_attrs_idx": 155,
+      "dominant_attrs_idx": [
+        2,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.04462809917355372,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series has a sharp upward trend."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series going up rapidly.",
+      "count": 602,
+      "num_distinct_attrs_idx": 152,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05149501661129568,
+      "example_sentence": "At the middle: there are 1 peaks, the time series going up rapidly."
+    },
+    {
+      "template": "The main season cycles is around 3 pi.",
+      "count": 546,
+      "num_distinct_attrs_idx": 97,
+      "dominant_attrs_idx": [
+        4,
+        0,
+        2,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.08424908424908426,
+      "example_sentence": "The main season cycles is around 3 pi."
+    },
+    {
+      "template": "For the ovearll shape, the time series slowly rise.",
+      "count": 364,
+      "num_distinct_attrs_idx": 99,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07692307692307693,
+      "example_sentence": "For the ovearll shape, the time series slowly rise."
+    },
+    {
+      "template": "For the ovearll shape, the time series has a slow upward trend.",
+      "count": 337,
+      "num_distinct_attrs_idx": 101,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0830860534124629,
+      "example_sentence": "For the ovearll shape, the time series has a slow upward trend."
+    },
+    {
+      "template": "For the ovearll shape, the values in the time series are slightly climbing.",
+      "count": 333,
+      "num_distinct_attrs_idx": 110,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06906906906906907,
+      "example_sentence": "For the ovearll shape, the values in the time series are slightly climbing."
+    },
+    {
+      "template": "For the ovearll shape, the time series has a slow downward trend.",
+      "count": 327,
+      "num_distinct_attrs_idx": 103,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0672782874617737,
+      "example_sentence": "For the ovearll shape, the time series has a slow downward trend."
+    },
+    {
+      "template": "For the ovearll shape, the trend direction is up.",
+      "count": 322,
+      "num_distinct_attrs_idx": 93,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.062111801242236024,
+      "example_sentence": "For the ovearll shape, the trend direction is up."
+    },
+    {
+      "template": "For the ovearll shape, the values in the time series are slightly decreasing.",
+      "count": 314,
+      "num_distinct_attrs_idx": 97,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06687898089171974,
+      "example_sentence": "For the ovearll shape, the values in the time series are slightly decreasing."
+    },
+    {
+      "template": "For the ovearll shape, the time series slowly drop.",
+      "count": 308,
+      "num_distinct_attrs_idx": 94,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.10064935064935066,
+      "example_sentence": "For the ovearll shape, the time series slowly drop."
+    },
+    {
+      "template": "For the ovearll shape, the time series increases by time.",
+      "count": 290,
+      "num_distinct_attrs_idx": 96,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06551724137931035,
+      "example_sentence": "For the ovearll shape, the time series increases by time."
+    },
+    {
+      "template": "For the ovearll shape, the trend direction is down.",
+      "count": 268,
+      "num_distinct_attrs_idx": 87,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.055970149253731345,
+      "example_sentence": "For the ovearll shape, the trend direction is down."
+    },
+    {
+      "template": "For the ovearll shape, the time series going upward.",
+      "count": 263,
+      "num_distinct_attrs_idx": 82,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.053231939163498096,
+      "example_sentence": "For the ovearll shape, the time series going upward."
+    },
+    {
+      "template": "The main season cycles is around 4 pi.",
+      "count": 251,
+      "num_distinct_attrs_idx": 69,
+      "dominant_attrs_idx": [
+        5,
+        1,
+        3,
+        1,
+        2
+      ],
+      "dominant_ratio": 0.07171314741035857,
+      "example_sentence": "The main season cycles is around 4 pi."
+    },
+    {
+      "template": "For the ovearll shape, the time series going downward.",
+      "count": 251,
+      "num_distinct_attrs_idx": 86,
+      "dominant_attrs_idx": [
+        5,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.055776892430278883,
+      "example_sentence": "For the ovearll shape, the time series going downward."
+    },
+    {
+      "template": "For the ovearll shape, the time series decreases by time.",
+      "count": 242,
+      "num_distinct_attrs_idx": 75,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06611570247933884,
+      "example_sentence": "For the ovearll shape, the time series decreases by time."
+    },
+    {
+      "template": "The distribution of the value in time series is symmetrical, and has high kurtosis.",
+      "count": 184,
+      "num_distinct_attrs_idx": 46,
+      "dominant_attrs_idx": [
+        5,
+        0,
+        0,
+        2,
+        2
+      ],
+      "dominant_ratio": 0.10326086956521739,
+      "example_sentence": "The distribution of the value in time series is symmetrical, and has high kurtosis."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series has a slow downward trend.",
+      "count": 136,
+      "num_distinct_attrs_idx": 74,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07352941176470588,
+      "example_sentence": "At the end: there are 1 peaks, the time series has a slow downward trend."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the values in the time series are slightly decreasing.",
+      "count": 131,
+      "num_distinct_attrs_idx": 78,
+      "dominant_attrs_idx": [
+        5,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05343511450381679,
+      "example_sentence": "At the end: there are 1 peaks, the values in the time series are slightly decreasing."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the values in the time series are slightly decreasing.",
+      "count": 126,
+      "num_distinct_attrs_idx": 73,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06349206349206349,
+      "example_sentence": "At the middle: there are 1 peaks, the values in the time series are slightly decreasing."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series slowly rise.",
+      "count": 125,
+      "num_distinct_attrs_idx": 73,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.08,
+      "example_sentence": "At the middle: there are 1 peaks, the time series slowly rise."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series slowly drop.",
+      "count": 124,
+      "num_distinct_attrs_idx": 79,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.04838709677419355,
+      "example_sentence": "At the end: there are 1 peaks, the time series slowly drop."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the values in the time series are slightly climbing.",
+      "count": 123,
+      "num_distinct_attrs_idx": 76,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06504065040650407,
+      "example_sentence": "At the middle: there are 1 peaks, the values in the time series are slightly climbing."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the values in the time series are slightly decreasing.",
+      "count": 123,
+      "num_distinct_attrs_idx": 79,
+      "dominant_attrs_idx": [
+        5,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.056910569105691054,
+      "example_sentence": "At the beginning: there are 1 peaks, the values in the time series are slightly decreasing."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series slowly drop.",
+      "count": 122,
+      "num_distinct_attrs_idx": 74,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05737704918032787,
+      "example_sentence": "At the middle: there are 1 peaks, the time series slowly drop."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series slowly drop.",
+      "count": 121,
+      "num_distinct_attrs_idx": 66,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06611570247933884,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series slowly drop."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series decreases by time.",
+      "count": 121,
+      "num_distinct_attrs_idx": 73,
+      "dominant_attrs_idx": [
+        2,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05785123966942149,
+      "example_sentence": "At the middle: there are 1 peaks, the time series decreases by time."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series has a slow downward trend.",
+      "count": 121,
+      "num_distinct_attrs_idx": 75,
+      "dominant_attrs_idx": [
+        4,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05785123966942149,
+      "example_sentence": "At the middle: there are 1 peaks, the time series has a slow downward trend."
+    },
+    {
+      "template": "At the middle: the time series slowly drop.",
+      "count": 120,
+      "num_distinct_attrs_idx": 71,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.08333333333333333,
+      "example_sentence": "At the middle: the time series slowly drop."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series slowly rise.",
+      "count": 117,
+      "num_distinct_attrs_idx": 77,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05982905982905983,
+      "example_sentence": "At the end: there are 1 peaks, the time series slowly rise."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series decreases by time.",
+      "count": 117,
+      "num_distinct_attrs_idx": 77,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05128205128205128,
+      "example_sentence": "At the end: there are 1 peaks, the time series decreases by time."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series decreases by time.",
+      "count": 114,
+      "num_distinct_attrs_idx": 71,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06140350877192982,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series decreases by time."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series has a slow upward trend.",
+      "count": 112,
+      "num_distinct_attrs_idx": 69,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.044642857142857144,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series has a slow upward trend."
+    },
+    {
+      "template": "At the middle: the values in the time series are slightly decreasing.",
+      "count": 112,
+      "num_distinct_attrs_idx": 63,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0625,
+      "example_sentence": "At the middle: the values in the time series are slightly decreasing."
+    },
+    {
+      "template": "At the beginning: the trend direction is down.",
+      "count": 111,
+      "num_distinct_attrs_idx": 58,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.10810810810810811,
+      "example_sentence": "At the beginning: the trend direction is down."
+    },
+    {
+      "template": "At the beginning: the time series slowly drop.",
+      "count": 111,
+      "num_distinct_attrs_idx": 69,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        1,
+        1
+      ],
+      "dominant_ratio": 0.08108108108108109,
+      "example_sentence": "At the beginning: the time series slowly drop."
+    },
+    {
+      "template": "At the end: the time series has a slow downward trend.",
+      "count": 111,
+      "num_distinct_attrs_idx": 64,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.08108108108108109,
+      "example_sentence": "At the end: the time series has a slow downward trend."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series slowly rise.",
+      "count": 110,
+      "num_distinct_attrs_idx": 68,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05454545454545454,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series slowly rise."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the values in the time series are slightly climbing.",
+      "count": 110,
+      "num_distinct_attrs_idx": 71,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06363636363636363,
+      "example_sentence": "At the beginning: there are 1 peaks, the values in the time series are slightly climbing."
+    },
+    {
+      "template": "At the beginning: the time series has a slow downward trend.",
+      "count": 109,
+      "num_distinct_attrs_idx": 62,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.10091743119266056,
+      "example_sentence": "At the beginning: the time series has a slow downward trend."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the trend direction is up.",
+      "count": 109,
+      "num_distinct_attrs_idx": 68,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        0,
+        1,
+        0
+      ],
+      "dominant_ratio": 0.03669724770642202,
+      "example_sentence": "At the end: there are 1 peaks, the trend direction is up."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series going downward.",
+      "count": 106,
+      "num_distinct_attrs_idx": 62,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.04716981132075472,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series going downward."
+    },
+    {
+      "template": "At the beginning: the values in the time series are slightly decreasing.",
+      "count": 106,
+      "num_distinct_attrs_idx": 64,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0660377358490566,
+      "example_sentence": "At the beginning: the values in the time series are slightly decreasing."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series has a slow downward trend.",
+      "count": 105,
+      "num_distinct_attrs_idx": 67,
+      "dominant_attrs_idx": [
+        5,
+        0,
+        0,
+        2,
+        1
+      ],
+      "dominant_ratio": 0.0380952380952381,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series has a slow downward trend."
+    },
+    {
+      "template": "At the middle: the time series has a slow upward trend.",
+      "count": 105,
+      "num_distinct_attrs_idx": 67,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.09523809523809523,
+      "example_sentence": "At the middle: the time series has a slow upward trend."
+    },
+    {
+      "template": "At the middle: the values in the time series are slightly climbing.",
+      "count": 105,
+      "num_distinct_attrs_idx": 67,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.12380952380952381,
+      "example_sentence": "At the middle: the values in the time series are slightly climbing."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the trend direction is down.",
+      "count": 105,
+      "num_distinct_attrs_idx": 71,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06666666666666667,
+      "example_sentence": "At the end: there are 1 peaks, the trend direction is down."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series going downward.",
+      "count": 104,
+      "num_distinct_attrs_idx": 73,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "dominant_ratio": 0.028846153846153848,
+      "example_sentence": "At the end: there are 1 peaks, the time series going downward."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series going downward.",
+      "count": 104,
+      "num_distinct_attrs_idx": 63,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0673076923076923,
+      "example_sentence": "At the middle: there are 1 peaks, the time series going downward."
+    },
+    {
+      "template": "At the middle: the time series slowly rise.",
+      "count": 103,
+      "num_distinct_attrs_idx": 63,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.1262135922330097,
+      "example_sentence": "At the middle: the time series slowly rise."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series increases by time.",
+      "count": 103,
+      "num_distinct_attrs_idx": 65,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05825242718446602,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series increases by time."
+    },
+    {
+      "template": "At the end: the time series slowly drop.",
+      "count": 103,
+      "num_distinct_attrs_idx": 60,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06796116504854369,
+      "example_sentence": "At the end: the time series slowly drop."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the trend direction is down.",
+      "count": 102,
+      "num_distinct_attrs_idx": 55,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0784313725490196,
+      "example_sentence": "At the middle: there are 1 peaks, the trend direction is down."
+    },
+    {
+      "template": "At the beginning: the time series decreases by time.",
+      "count": 102,
+      "num_distinct_attrs_idx": 51,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.11764705882352941,
+      "example_sentence": "At the beginning: the time series decreases by time."
+    },
+    {
+      "template": "At the end: the time series has a slow upward trend.",
+      "count": 101,
+      "num_distinct_attrs_idx": 59,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07920792079207921,
+      "example_sentence": "At the end: the time series has a slow upward trend."
+    },
+    {
+      "template": "At the end: the time series going downward.",
+      "count": 101,
+      "num_distinct_attrs_idx": 53,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.10891089108910891,
+      "example_sentence": "At the end: the time series going downward."
+    },
+    {
+      "template": "At the middle: the trend direction is down.",
+      "count": 100,
+      "num_distinct_attrs_idx": 58,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.15,
+      "example_sentence": "At the middle: the trend direction is down."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the values in the time series are slightly climbing.",
+      "count": 99,
+      "num_distinct_attrs_idx": 62,
+      "dominant_attrs_idx": [
+        2,
+        0,
+        0,
+        0,
+        2
+      ],
+      "dominant_ratio": 0.050505050505050504,
+      "example_sentence": "At the end: there are 1 peaks, the values in the time series are slightly climbing."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the time series going upward.",
+      "count": 98,
+      "num_distinct_attrs_idx": 69,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        0,
+        0,
+        2
+      ],
+      "dominant_ratio": 0.061224489795918366,
+      "example_sentence": "At the beginning: there are 1 peaks, the time series going upward."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series increases by time.",
+      "count": 98,
+      "num_distinct_attrs_idx": 61,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        1,
+        1
+      ],
+      "dominant_ratio": 0.08163265306122448,
+      "example_sentence": "At the middle: there are 1 peaks, the time series increases by time."
+    },
+    {
+      "template": "At the end: the values in the time series are slightly decreasing.",
+      "count": 98,
+      "num_distinct_attrs_idx": 63,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.14285714285714285,
+      "example_sentence": "At the end: the values in the time series are slightly decreasing."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series has a slow upward trend.",
+      "count": 98,
+      "num_distinct_attrs_idx": 68,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.09183673469387756,
+      "example_sentence": "At the middle: there are 1 peaks, the time series has a slow upward trend."
+    },
+    {
+      "template": "At the beginning: the time series going downward.",
+      "count": 97,
+      "num_distinct_attrs_idx": 62,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.061855670103092786,
+      "example_sentence": "At the beginning: the time series going downward."
+    },
+    {
+      "template": "At the middle: the time series has a slow downward trend.",
+      "count": 97,
+      "num_distinct_attrs_idx": 59,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.09278350515463918,
+      "example_sentence": "At the middle: the time series has a slow downward trend."
+    },
+    {
+      "template": "At the beginning: the time series slowly rise.",
+      "count": 96,
+      "num_distinct_attrs_idx": 57,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.09375,
+      "example_sentence": "At the beginning: the time series slowly rise."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the trend direction is up.",
+      "count": 95,
+      "num_distinct_attrs_idx": 56,
+      "dominant_attrs_idx": [
+        4,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07368421052631578,
+      "example_sentence": "At the middle: there are 1 peaks, the trend direction is up."
+    },
+    {
+      "template": "At the beginning: the time series going upward.",
+      "count": 95,
+      "num_distinct_attrs_idx": 54,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.08421052631578947,
+      "example_sentence": "At the beginning: the time series going upward."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series going upward.",
+      "count": 95,
+      "num_distinct_attrs_idx": 63,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06315789473684211,
+      "example_sentence": "At the end: there are 1 peaks, the time series going upward."
+    },
+    {
+      "template": "At the middle: the time series decreases by time.",
+      "count": 95,
+      "num_distinct_attrs_idx": 59,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.11578947368421053,
+      "example_sentence": "At the middle: the time series decreases by time."
+    },
+    {
+      "template": "At the middle: the time series increases by time.",
+      "count": 94,
+      "num_distinct_attrs_idx": 59,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.1276595744680851,
+      "example_sentence": "At the middle: the time series increases by time."
+    },
+    {
+      "template": "At the end: the time series decreases by time.",
+      "count": 94,
+      "num_distinct_attrs_idx": 57,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07446808510638298,
+      "example_sentence": "At the end: the time series decreases by time."
+    },
+    {
+      "template": "At the middle: the trend direction is up.",
+      "count": 93,
+      "num_distinct_attrs_idx": 60,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0967741935483871,
+      "example_sentence": "At the middle: the trend direction is up."
+    },
+    {
+      "template": "At the middle: the time series going downward.",
+      "count": 92,
+      "num_distinct_attrs_idx": 55,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.13043478260869565,
+      "example_sentence": "At the middle: the time series going downward."
+    },
+    {
+      "template": "At the beginning: the values in the time series are slightly climbing.",
+      "count": 92,
+      "num_distinct_attrs_idx": 54,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07608695652173914,
+      "example_sentence": "At the beginning: the values in the time series are slightly climbing."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series has a slow upward trend.",
+      "count": 91,
+      "num_distinct_attrs_idx": 69,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.054945054945054944,
+      "example_sentence": "At the end: there are 1 peaks, the time series has a slow upward trend."
+    },
+    {
+      "template": "At the beginning: the time series has a slow upward trend.",
+      "count": 91,
+      "num_distinct_attrs_idx": 60,
+      "dominant_attrs_idx": [
+        4,
+        0,
+        1,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.054945054945054944,
+      "example_sentence": "At the beginning: the time series has a slow upward trend."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the trend direction is up.",
+      "count": 91,
+      "num_distinct_attrs_idx": 64,
+      "dominant_attrs_idx": [
+        2,
+        1,
+        0,
+        0,
+        1
+      ],
+      "dominant_ratio": 0.054945054945054944,
+      "example_sentence": "At the beginning: there are 1 peaks, the trend direction is up."
+    },
+    {
+      "template": "At the beginning: there are 1 peaks, the trend direction is down.",
+      "count": 89,
+      "num_distinct_attrs_idx": 64,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0449438202247191,
+      "example_sentence": "At the beginning: there are 1 peaks, the trend direction is down."
+    },
+    {
+      "template": "At the middle: there are 1 peaks, the time series going upward.",
+      "count": 88,
+      "num_distinct_attrs_idx": 52,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.125,
+      "example_sentence": "At the middle: there are 1 peaks, the time series going upward."
+    },
+    {
+      "template": "At the end: there are 1 peaks, the time series increases by time.",
+      "count": 85,
+      "num_distinct_attrs_idx": 59,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07058823529411765,
+      "example_sentence": "At the end: there are 1 peaks, the time series increases by time."
+    },
+    {
+      "template": "At the beginning: the trend direction is up.",
+      "count": 84,
+      "num_distinct_attrs_idx": 56,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07142857142857142,
+      "example_sentence": "At the beginning: the trend direction is up."
+    },
+    {
+      "template": "At the end: the trend direction is down.",
+      "count": 83,
+      "num_distinct_attrs_idx": 52,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.08433734939759036,
+      "example_sentence": "At the end: the trend direction is down."
+    },
+    {
+      "template": "At the beginning: the time series increases by time.",
+      "count": 83,
+      "num_distinct_attrs_idx": 59,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.08433734939759036,
+      "example_sentence": "At the beginning: the time series increases by time."
+    },
+    {
+      "template": "At the end: the time series going upward.",
+      "count": 82,
+      "num_distinct_attrs_idx": 56,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.12195121951219512,
+      "example_sentence": "At the end: the time series going upward."
+    },
+    {
+      "template": "At the end: the trend direction is up.",
+      "count": 81,
+      "num_distinct_attrs_idx": 60,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07407407407407407,
+      "example_sentence": "At the end: the trend direction is up."
+    },
+    {
+      "template": "At the end: the values in the time series are slightly climbing.",
+      "count": 81,
+      "num_distinct_attrs_idx": 51,
+      "dominant_attrs_idx": [
+        6,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07407407407407407,
+      "example_sentence": "At the end: the values in the time series are slightly climbing."
+    },
+    {
+      "template": "At the end: the time series increases by time.",
+      "count": 79,
+      "num_distinct_attrs_idx": 56,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.05063291139240506,
+      "example_sentence": "At the end: the time series increases by time."
+    },
+    {
+      "template": "At the end: the time series slowly rise.",
+      "count": 70,
+      "num_distinct_attrs_idx": 44,
+      "dominant_attrs_idx": [
+        5,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07142857142857142,
+      "example_sentence": "At the end: the time series slowly rise."
+    },
+    {
+      "template": "At the middle: the time series going upward.",
+      "count": 66,
+      "num_distinct_attrs_idx": 49,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06060606060606061,
+      "example_sentence": "At the middle: the time series going upward."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series has no obvious trend direction.",
+      "count": 66,
+      "num_distinct_attrs_idx": 55,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.045454545454545456,
+      "example_sentence": "At the end: there are 2 peaks, the time series has no obvious trend direction."
+    },
+    {
+      "template": "The main season cycles is around 5 pi.",
+      "count": 53,
+      "num_distinct_attrs_idx": 32,
+      "dominant_attrs_idx": [
+        4,
+        0,
+        4,
+        2,
+        1
+      ],
+      "dominant_ratio": 0.07547169811320754,
+      "example_sentence": "The main season cycles is around 5 pi."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series has no obvious trend direction.",
+      "count": 47,
+      "num_distinct_attrs_idx": 37,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06382978723404255,
+      "example_sentence": "At the middle: there are 2 peaks, the time series has no obvious trend direction."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series has no obvious trend direction.",
+      "count": 44,
+      "num_distinct_attrs_idx": 34,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06818181818181818,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series has no obvious trend direction."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series has a sharp downward trend.",
+      "count": 42,
+      "num_distinct_attrs_idx": 26,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.11904761904761904,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series has a sharp downward trend."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series going down rapidly.",
+      "count": 37,
+      "num_distinct_attrs_idx": 26,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.13513513513513514,
+      "example_sentence": "At the end: there are 2 peaks, the time series going down rapidly."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series drop obviously.",
+      "count": 36,
+      "num_distinct_attrs_idx": 23,
+      "dominant_attrs_idx": [
+        4,
+        0,
+        0,
+        1,
+        0
+      ],
+      "dominant_ratio": 0.1388888888888889,
+      "example_sentence": "At the end: there are 2 peaks, the time series drop obviously."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series going up rapidly.",
+      "count": 35,
+      "num_distinct_attrs_idx": 29,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.08571428571428572,
+      "example_sentence": "At the end: there are 2 peaks, the time series going up rapidly."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series has a sharp downward trend.",
+      "count": 34,
+      "num_distinct_attrs_idx": 28,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.14705882352941177,
+      "example_sentence": "At the end: there are 2 peaks, the time series has a sharp downward trend."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series drop obviously.",
+      "count": 33,
+      "num_distinct_attrs_idx": 27,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.06060606060606061,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series drop obviously."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series going up rapidly.",
+      "count": 32,
+      "num_distinct_attrs_idx": 22,
+      "dominant_attrs_idx": [
+        5,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.125,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series going up rapidly."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series drop obviously.",
+      "count": 32,
+      "num_distinct_attrs_idx": 23,
+      "dominant_attrs_idx": [
+        2,
+        1,
+        0,
+        0,
+        0
+      ],
+      "dominant_ratio": 0.09375,
+      "example_sentence": "At the middle: there are 2 peaks, the time series drop obviously."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series going up rapidly.",
+      "count": 31,
+      "num_distinct_attrs_idx": 22,
+      "dominant_attrs_idx": [
+        4,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.12903225806451613,
+      "example_sentence": "At the middle: there are 2 peaks, the time series going up rapidly."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series has a sharp upward trend.",
+      "count": 31,
+      "num_distinct_attrs_idx": 23,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.0967741935483871,
+      "example_sentence": "At the middle: there are 2 peaks, the time series has a sharp upward trend."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series rise obviously.",
+      "count": 30,
+      "num_distinct_attrs_idx": 22,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.1,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series rise obviously."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series rise obviously.",
+      "count": 30,
+      "num_distinct_attrs_idx": 22,
+      "dominant_attrs_idx": [
+        4,
+        0,
+        0,
+        1,
+        0
+      ],
+      "dominant_ratio": 0.13333333333333333,
+      "example_sentence": "At the middle: there are 2 peaks, the time series rise obviously."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series has a sharp upward trend.",
+      "count": 30,
+      "num_distinct_attrs_idx": 25,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        1
+      ],
+      "dominant_ratio": 0.06666666666666667,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series has a sharp upward trend."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series has a sharp upward trend.",
+      "count": 30,
+      "num_distinct_attrs_idx": 22,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.1,
+      "example_sentence": "At the end: there are 2 peaks, the time series has a sharp upward trend."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series rise obviously.",
+      "count": 27,
+      "num_distinct_attrs_idx": 21,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.1111111111111111,
+      "example_sentence": "At the end: there are 2 peaks, the time series rise obviously."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series going down rapidly.",
+      "count": 26,
+      "num_distinct_attrs_idx": 19,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.11538461538461539,
+      "example_sentence": "At the middle: there are 2 peaks, the time series going down rapidly."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series has a sharp downward trend.",
+      "count": 26,
+      "num_distinct_attrs_idx": 24,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.07692307692307693,
+      "example_sentence": "At the middle: there are 2 peaks, the time series has a sharp downward trend."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series going down rapidly.",
+      "count": 22,
+      "num_distinct_attrs_idx": 19,
+      "dominant_attrs_idx": [
+        2,
+        0,
+        0,
+        0,
+        2
+      ],
+      "dominant_ratio": 0.09090909090909091,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series going down rapidly."
+    },
+    {
+      "template": "The main season cycles is around 6 pi.",
+      "count": 17,
+      "num_distinct_attrs_idx": 16,
+      "dominant_attrs_idx": [
+        5,
+        0,
+        5,
+        0,
+        2
+      ],
+      "dominant_ratio": 0.11764705882352941,
+      "example_sentence": "The main season cycles is around 6 pi."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series slowly drop.",
+      "count": 16,
+      "num_distinct_attrs_idx": 15,
+      "dominant_attrs_idx": [
+        2,
+        0,
+        0,
+        2,
+        1
+      ],
+      "dominant_ratio": 0.125,
+      "example_sentence": "At the end: there are 2 peaks, the time series slowly drop."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series decreases by time.",
+      "count": 13,
+      "num_distinct_attrs_idx": 11,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "dominant_ratio": 0.15384615384615385,
+      "example_sentence": "At the end: there are 2 peaks, the time series decreases by time."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series has a slow downward trend.",
+      "count": 11,
+      "num_distinct_attrs_idx": 10,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.18181818181818182,
+      "example_sentence": "At the end: there are 2 peaks, the time series has a slow downward trend."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the values in the time series are slightly climbing.",
+      "count": 11,
+      "num_distinct_attrs_idx": 10,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        1,
+        0
+      ],
+      "dominant_ratio": 0.18181818181818182,
+      "example_sentence": "At the beginning: there are 2 peaks, the values in the time series are slightly climbing."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series going downward.",
+      "count": 11,
+      "num_distinct_attrs_idx": 10,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        3,
+        1,
+        2
+      ],
+      "dominant_ratio": 0.18181818181818182,
+      "example_sentence": "At the middle: there are 2 peaks, the time series going downward."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the values in the time series are slightly decreasing.",
+      "count": 11,
+      "num_distinct_attrs_idx": 10,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.18181818181818182,
+      "example_sentence": "At the beginning: there are 2 peaks, the values in the time series are slightly decreasing."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the values in the time series are slightly climbing.",
+      "count": 10,
+      "num_distinct_attrs_idx": 8,
+      "dominant_attrs_idx": [
+        4,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.2,
+      "example_sentence": "At the end: there are 2 peaks, the values in the time series are slightly climbing."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series going downward.",
+      "count": 10,
+      "num_distinct_attrs_idx": 10,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "dominant_ratio": 0.1,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series going downward."
+    },
+    {
+      "template": "The main season cycles is around 8 pi.",
+      "count": 10,
+      "num_distinct_attrs_idx": 7,
+      "dominant_attrs_idx": [
+        5,
+        0,
+        7,
+        2,
+        1
+      ],
+      "dominant_ratio": 0.2,
+      "example_sentence": "The main season cycles is around 8 pi."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the values in the time series are slightly decreasing.",
+      "count": 10,
+      "num_distinct_attrs_idx": 9,
+      "dominant_attrs_idx": [
+        2,
+        0,
+        0,
+        0,
+        1
+      ],
+      "dominant_ratio": 0.2,
+      "example_sentence": "At the end: there are 2 peaks, the values in the time series are slightly decreasing."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the trend direction is down.",
+      "count": 9,
+      "num_distinct_attrs_idx": 8,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        2,
+        1,
+        2
+      ],
+      "dominant_ratio": 0.2222222222222222,
+      "example_sentence": "At the end: there are 2 peaks, the trend direction is down."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series going upward.",
+      "count": 9,
+      "num_distinct_attrs_idx": 7,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.3333333333333333,
+      "example_sentence": "At the end: there are 2 peaks, the time series going upward."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series slowly drop.",
+      "count": 9,
+      "num_distinct_attrs_idx": 9,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "dominant_ratio": 0.1111111111111111,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series slowly drop."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the trend direction is down.",
+      "count": 9,
+      "num_distinct_attrs_idx": 9,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "dominant_ratio": 0.1111111111111111,
+      "example_sentence": "At the beginning: there are 2 peaks, the trend direction is down."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series increases by time.",
+      "count": 9,
+      "num_distinct_attrs_idx": 9,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        2,
+        1
+      ],
+      "dominant_ratio": 0.1111111111111111,
+      "example_sentence": "At the middle: there are 2 peaks, the time series increases by time."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series slowly rise.",
+      "count": 9,
+      "num_distinct_attrs_idx": 9,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        0,
+        0,
+        1
+      ],
+      "dominant_ratio": 0.1111111111111111,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series slowly rise."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series increases by time.",
+      "count": 9,
+      "num_distinct_attrs_idx": 9,
+      "dominant_attrs_idx": [
+        2,
+        0,
+        0,
+        0,
+        1
+      ],
+      "dominant_ratio": 0.1111111111111111,
+      "example_sentence": "At the end: there are 2 peaks, the time series increases by time."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the trend direction is up.",
+      "count": 9,
+      "num_distinct_attrs_idx": 8,
+      "dominant_attrs_idx": [
+        3,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.2222222222222222,
+      "example_sentence": "At the beginning: there are 2 peaks, the trend direction is up."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the trend direction is up.",
+      "count": 8,
+      "num_distinct_attrs_idx": 8,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.125,
+      "example_sentence": "At the end: there are 2 peaks, the trend direction is up."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series has a slow upward trend.",
+      "count": 8,
+      "num_distinct_attrs_idx": 8,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        0,
+        0,
+        1
+      ],
+      "dominant_ratio": 0.125,
+      "example_sentence": "At the end: there are 2 peaks, the time series has a slow upward trend."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series increases by time.",
+      "count": 8,
+      "num_distinct_attrs_idx": 8,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.125,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series increases by time."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series has a slow downward trend.",
+      "count": 7,
+      "num_distinct_attrs_idx": 7,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        1,
+        2
+      ],
+      "dominant_ratio": 0.14285714285714285,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series has a slow downward trend."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series slowly rise.",
+      "count": 7,
+      "num_distinct_attrs_idx": 7,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "dominant_ratio": 0.14285714285714285,
+      "example_sentence": "At the middle: there are 2 peaks, the time series slowly rise."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the values in the time series are slightly decreasing.",
+      "count": 7,
+      "num_distinct_attrs_idx": 7,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        1,
+        1,
+        2
+      ],
+      "dominant_ratio": 0.14285714285714285,
+      "example_sentence": "At the middle: there are 2 peaks, the values in the time series are slightly decreasing."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the trend direction is down.",
+      "count": 7,
+      "num_distinct_attrs_idx": 7,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "dominant_ratio": 0.14285714285714285,
+      "example_sentence": "At the middle: there are 2 peaks, the trend direction is down."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series going upward.",
+      "count": 7,
+      "num_distinct_attrs_idx": 7,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        1
+      ],
+      "dominant_ratio": 0.14285714285714285,
+      "example_sentence": "At the middle: there are 2 peaks, the time series going upward."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series has a slow upward trend.",
+      "count": 7,
+      "num_distinct_attrs_idx": 6,
+      "dominant_attrs_idx": [
+        6,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.2857142857142857,
+      "example_sentence": "At the middle: there are 2 peaks, the time series has a slow upward trend."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series slowly rise.",
+      "count": 7,
+      "num_distinct_attrs_idx": 7,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        0,
+        0,
+        1
+      ],
+      "dominant_ratio": 0.14285714285714285,
+      "example_sentence": "At the end: there are 2 peaks, the time series slowly rise."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series slowly drop.",
+      "count": 7,
+      "num_distinct_attrs_idx": 7,
+      "dominant_attrs_idx": [
+        1,
+        1,
+        2,
+        0,
+        1
+      ],
+      "dominant_ratio": 0.14285714285714285,
+      "example_sentence": "At the middle: there are 2 peaks, the time series slowly drop."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series has a slow upward trend.",
+      "count": 7,
+      "num_distinct_attrs_idx": 7,
+      "dominant_attrs_idx": [
+        2,
+        1,
+        1,
+        2,
+        1
+      ],
+      "dominant_ratio": 0.14285714285714285,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series has a slow upward trend."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series decreases by time.",
+      "count": 6,
+      "num_distinct_attrs_idx": 6,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "dominant_ratio": 0.16666666666666666,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series decreases by time."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the values in the time series are slightly climbing.",
+      "count": 6,
+      "num_distinct_attrs_idx": 6,
+      "dominant_attrs_idx": [
+        0,
+        0,
+        0,
+        2,
+        1
+      ],
+      "dominant_ratio": 0.16666666666666666,
+      "example_sentence": "At the middle: there are 2 peaks, the values in the time series are slightly climbing."
+    },
+    {
+      "template": "At the beginning: there are 2 peaks, the time series going upward.",
+      "count": 6,
+      "num_distinct_attrs_idx": 6,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        0,
+        0,
+        2
+      ],
+      "dominant_ratio": 0.16666666666666666,
+      "example_sentence": "At the beginning: there are 2 peaks, the time series going upward."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series decreases by time.",
+      "count": 6,
+      "num_distinct_attrs_idx": 6,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        0
+      ],
+      "dominant_ratio": 0.16666666666666666,
+      "example_sentence": "At the middle: there are 2 peaks, the time series decreases by time."
+    },
+    {
+      "template": "At the end: there are 2 peaks, the time series going downward.",
+      "count": 5,
+      "num_distinct_attrs_idx": 5,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        0,
+        1,
+        2
+      ],
+      "dominant_ratio": 0.2,
+      "example_sentence": "At the end: there are 2 peaks, the time series going downward."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the trend direction is up.",
+      "count": 5,
+      "num_distinct_attrs_idx": 5,
+      "dominant_attrs_idx": [
+        1,
+        0,
+        0,
+        2,
+        1
+      ],
+      "dominant_ratio": 0.2,
+      "example_sentence": "At the middle: there are 2 peaks, the trend direction is up."
+    },
+    {
+      "template": "At the middle: there are 2 peaks, the time series has a slow downward trend.",
+      "count": 4,
+      "num_distinct_attrs_idx": 4,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        3,
+        1,
+        2
+      ],
+      "dominant_ratio": 0.25,
+      "example_sentence": "At the middle: there are 2 peaks, the time series has a slow downward trend."
+    },
+    {
+      "template": "The main season cycles is around 0 pi.",
+      "count": 4,
+      "num_distinct_attrs_idx": 1,
+      "dominant_attrs_idx": [
+        0,
+        1,
+        -1,
+        2,
+        1
+      ],
+      "dominant_ratio": 1.0,
+      "example_sentence": "The main season cycles is around 0 pi."
+    },
+    {
+      "template": "The main season cycles is around 9 pi.",
+      "count": 3,
+      "num_distinct_attrs_idx": 3,
+      "dominant_attrs_idx": [
+        2,
+        0,
+        8,
+        0,
+        2
+      ],
+      "dominant_ratio": 0.3333333333333333,
+      "example_sentence": "The main season cycles is around 9 pi."
+    },
+    {
+      "template": "The main season cycles is around 7 pi.",
+      "count": 1,
+      "num_distinct_attrs_idx": 1,
+      "dominant_attrs_idx": [
+        3,
+        0,
+        6,
+        1,
+        2
+      ],
+      "dominant_ratio": 1.0,
+      "example_sentence": "The main season cycles is around 7 pi."
+    }
+  ],
+  "attr_names": [
+    "var_id",
+    "trend",
+    "season",
+    "skewness",
+    "kurtosis"
+  ]
+}

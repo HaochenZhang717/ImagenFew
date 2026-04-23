@@ -314,35 +314,29 @@ class Stage1LatentCaptionModelVE(Stage1LatentCaptionModel):
         )
 
     @classmethod
-    def _normalize_template_ettm1_base(cls, sentence: str) -> str:
-        s = " ".join(sentence.replace("\n", " ").split())
-        if s.startswith("This sequence is "):
-            return "This sequence is <VAR_NAME>."
-        if s.startswith("The main season cycles is around "):
-            return "The main season cycles is around <SEASON_CYCLE>."
-        if s.startswith("For the ovearll shape,"):
-            return "For the ovearll shape, <OVERALL_TREND>."
-        if s.startswith("The distribution of the value in time series is "):
-            return "The distribution of the value in time series is <SKEWNESS_KURTOSIS>."
-        return cls.NUMBER_PATTERN.sub("<NUM>", s)
-
-    @classmethod
     def _normalize_template_ettm1(cls, sentence: str, preserve_peak_count: bool = True) -> str:
         s = " ".join(sentence.replace("\n", " ").split())
-        local = cls.LOCAL_SEGMENT_PATTERN.match(s)
-        if local is not None:
-            segment = local.group(1).lower()
-            clause = local.group(2).strip()
+
+        def normalize_clause(clause: str) -> str:
+            clause = clause.strip()
             peak = cls.PEAK_PREFIX_PATTERN.match(clause)
             if peak is not None:
                 peak_num = peak.group(1)
                 rest = peak.group(2).strip()
-                rest = cls.NUMBER_PATTERN.sub("<NUM>", rest)
                 peak_token = peak_num if preserve_peak_count else "<NUM>"
-                return f"At the {segment}: there are {peak_token} peaks, {rest}."
-            clause = cls.NUMBER_PATTERN.sub("<NUM>", clause)
-            return f"At the {segment}: {clause}."
-        return cls._normalize_template_ettm1_base(s)
+                return f"there are {peak_token} peaks, {rest}"
+            return clause
+
+        local = cls.LOCAL_SEGMENT_PATTERN.match(s)
+        if local is not None:
+            segment = local.group(1).lower()
+            clause = local.group(2).strip()
+            normalized_clause = normalize_clause(clause)
+            return f"At the {segment}: {normalized_clause}."
+
+        s_no_period = s[:-1] if s.endswith(".") else s
+        normalized_clauses = [normalize_clause(c) for c in s_no_period.split(",")]
+        return ", ".join(normalized_clauses) + "."
 
     def _normalize_template(self, sentence: str) -> str:
         if self._dataset_template_strategy == "ettm1":

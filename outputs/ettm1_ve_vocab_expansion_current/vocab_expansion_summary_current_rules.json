@@ -1,0 +1,874 @@
+{
+  "source_config": "/Users/zhc/Documents/PhD/projects/ImagenFew/caption_generator/configs/ettm1_stage1_qwen25_3b_ve.yaml",
+  "dataset_root": "/Users/zhc/Documents/PhD/projects/ImagenFew/data/VerbalTSDatasets/ETTm1",
+  "rules": {
+    "normalizer": "Stage1LatentCaptionModelVE._normalize_template_ettm1",
+    "preserve_peak_count": true,
+    "min_count": 20,
+    "max_tokens": 256,
+    "token_prefix": "<CAPTPL_",
+    "token_suffix": ">"
+  },
+  "num_train_samples": 13013,
+  "num_unique_templates_all": 207,
+  "num_selected_templates": 171,
+  "old_vocab_size": null,
+  "new_vocab_size": null,
+  "token_to_template": [
+    {
+      "token": "<CAPTPL_001>",
+      "template": "The main season cycles is around <NUM> pi.",
+      "count": 13013
+    },
+    {
+      "token": "<CAPTPL_002>",
+      "template": "The distribution of the value in time series is symmetrical, and has low kurtosis.",
+      "count": 5019
+    },
+    {
+      "token": "<CAPTPL_003>",
+      "template": "For the ovearll shape, the time series has no obvious trend direction.",
+      "count": 2053
+    },
+    {
+      "token": "<CAPTPL_004>",
+      "template": "This sequence is HUFL.",
+      "count": 1859
+    },
+    {
+      "token": "<CAPTPL_005>",
+      "template": "This sequence is HULL.",
+      "count": 1859
+    },
+    {
+      "token": "<CAPTPL_006>",
+      "template": "This sequence is MUFL.",
+      "count": 1859
+    },
+    {
+      "token": "<CAPTPL_007>",
+      "template": "This sequence is MULL.",
+      "count": 1859
+    },
+    {
+      "token": "<CAPTPL_008>",
+      "template": "This sequence is LUFL.",
+      "count": 1859
+    },
+    {
+      "token": "<CAPTPL_009>",
+      "template": "This sequence is LULL.",
+      "count": 1859
+    },
+    {
+      "token": "<CAPTPL_010>",
+      "template": "This sequence is OT.",
+      "count": 1859
+    },
+    {
+      "token": "<CAPTPL_011>",
+      "template": "The distribution of the value in time series is symmetrical, and has normal kurtosis.",
+      "count": 1792
+    },
+    {
+      "token": "<CAPTPL_012>",
+      "template": "The distribution of the value in time series is shifted to the positive, and has normal kurtosis.",
+      "count": 1367
+    },
+    {
+      "token": "<CAPTPL_013>",
+      "template": "For the ovearll shape, the time series has a sharp upward trend.",
+      "count": 1261
+    },
+    {
+      "token": "<CAPTPL_014>",
+      "template": "For the ovearll shape, the time series rise obviously.",
+      "count": 1243
+    },
+    {
+      "token": "<CAPTPL_015>",
+      "template": "For the ovearll shape, the time series going down rapidly.",
+      "count": 1224
+    },
+    {
+      "token": "<CAPTPL_016>",
+      "template": "For the ovearll shape, the time series has a sharp downward trend.",
+      "count": 1211
+    },
+    {
+      "token": "<CAPTPL_017>",
+      "template": "For the ovearll shape, the time series drop obviously.",
+      "count": 1208
+    },
+    {
+      "token": "<CAPTPL_018>",
+      "template": "For the ovearll shape, the time series going up rapidly.",
+      "count": 1194
+    },
+    {
+      "token": "<CAPTPL_019>",
+      "template": "The distribution of the value in time series is shifted to the negative, and has normal kurtosis.",
+      "count": 1048
+    },
+    {
+      "token": "<CAPTPL_020>",
+      "template": "The distribution of the value in time series is shifted to the negative, and has high kurtosis.",
+      "count": 1010
+    },
+    {
+      "token": "<CAPTPL_021>",
+      "template": "The distribution of the value in time series is shifted to the positive, and has low kurtosis.",
+      "count": 974
+    },
+    {
+      "token": "<CAPTPL_022>",
+      "template": "The distribution of the value in time series is shifted to the positive, and has high kurtosis.",
+      "count": 971
+    },
+    {
+      "token": "<CAPTPL_023>",
+      "template": "At the end: the time series has no obvious trend direction.",
+      "count": 902
+    },
+    {
+      "token": "<CAPTPL_024>",
+      "template": "At the beginning: the time series has no obvious trend direction.",
+      "count": 891
+    },
+    {
+      "token": "<CAPTPL_025>",
+      "template": "At the middle: the time series has no obvious trend direction.",
+      "count": 884
+    },
+    {
+      "token": "<CAPTPL_026>",
+      "template": "At the beginning: the time series rise obviously.",
+      "count": 847
+    },
+    {
+      "token": "<CAPTPL_027>",
+      "template": "At the beginning: the time series going down rapidly.",
+      "count": 820
+    },
+    {
+      "token": "<CAPTPL_028>",
+      "template": "At the middle: the time series has a sharp upward trend.",
+      "count": 819
+    },
+    {
+      "token": "<CAPTPL_029>",
+      "template": "At the beginning: the time series has a sharp upward trend.",
+      "count": 815
+    },
+    {
+      "token": "<CAPTPL_030>",
+      "template": "At the middle: the time series drop obviously.",
+      "count": 811
+    },
+    {
+      "token": "<CAPTPL_031>",
+      "template": "At the middle: the time series going up rapidly.",
+      "count": 810
+    },
+    {
+      "token": "<CAPTPL_032>",
+      "template": "At the beginning: the time series going up rapidly.",
+      "count": 803
+    },
+    {
+      "token": "<CAPTPL_033>",
+      "template": "At the end: the time series going up rapidly.",
+      "count": 803
+    },
+    {
+      "token": "<CAPTPL_034>",
+      "template": "At the end: the time series has a sharp upward trend.",
+      "count": 792
+    },
+    {
+      "token": "<CAPTPL_035>",
+      "template": "At the middle: the time series has a sharp downward trend.",
+      "count": 786
+    },
+    {
+      "token": "<CAPTPL_036>",
+      "template": "At the middle: the time series going down rapidly.",
+      "count": 781
+    },
+    {
+      "token": "<CAPTPL_037>",
+      "template": "At the end: the time series going down rapidly.",
+      "count": 769
+    },
+    {
+      "token": "<CAPTPL_038>",
+      "template": "At the beginning: the time series drop obviously.",
+      "count": 766
+    },
+    {
+      "token": "<CAPTPL_039>",
+      "template": "At the beginning: there are 1 peaks, the time series has no obvious trend direction.",
+      "count": 763
+    },
+    {
+      "token": "<CAPTPL_040>",
+      "template": "At the end: the time series has a sharp downward trend.",
+      "count": 756
+    },
+    {
+      "token": "<CAPTPL_041>",
+      "template": "At the end: the time series drop obviously.",
+      "count": 751
+    },
+    {
+      "token": "<CAPTPL_042>",
+      "template": "At the end: the time series rise obviously.",
+      "count": 748
+    },
+    {
+      "token": "<CAPTPL_043>",
+      "template": "At the beginning: the time series has a sharp downward trend.",
+      "count": 738
+    },
+    {
+      "token": "<CAPTPL_044>",
+      "template": "At the end: there are 1 peaks, the time series has no obvious trend direction.",
+      "count": 725
+    },
+    {
+      "token": "<CAPTPL_045>",
+      "template": "At the middle: the time series rise obviously.",
+      "count": 724
+    },
+    {
+      "token": "<CAPTPL_046>",
+      "template": "At the middle: there are 1 peaks, the time series has no obvious trend direction.",
+      "count": 716
+    },
+    {
+      "token": "<CAPTPL_047>",
+      "template": "At the end: there are 1 peaks, the time series going up rapidly.",
+      "count": 716
+    },
+    {
+      "token": "<CAPTPL_048>",
+      "template": "At the middle: there are 1 peaks, the time series drop obviously.",
+      "count": 711
+    },
+    {
+      "token": "<CAPTPL_049>",
+      "template": "At the end: there are 1 peaks, the time series rise obviously.",
+      "count": 676
+    },
+    {
+      "token": "<CAPTPL_050>",
+      "template": "At the end: there are 1 peaks, the time series going down rapidly.",
+      "count": 663
+    },
+    {
+      "token": "<CAPTPL_051>",
+      "template": "At the middle: there are 1 peaks, the time series has a sharp downward trend.",
+      "count": 662
+    },
+    {
+      "token": "<CAPTPL_052>",
+      "template": "At the beginning: there are 1 peaks, the time series has a sharp downward trend.",
+      "count": 657
+    },
+    {
+      "token": "<CAPTPL_053>",
+      "template": "At the end: there are 1 peaks, the time series has a sharp downward trend.",
+      "count": 650
+    },
+    {
+      "token": "<CAPTPL_054>",
+      "template": "The distribution of the value in time series is shifted to the negative, and has low kurtosis.",
+      "count": 648
+    },
+    {
+      "token": "<CAPTPL_055>",
+      "template": "At the end: there are 1 peaks, the time series drop obviously.",
+      "count": 646
+    },
+    {
+      "token": "<CAPTPL_056>",
+      "template": "At the beginning: there are 1 peaks, the time series going down rapidly.",
+      "count": 644
+    },
+    {
+      "token": "<CAPTPL_057>",
+      "template": "At the end: there are 1 peaks, the time series has a sharp upward trend.",
+      "count": 639
+    },
+    {
+      "token": "<CAPTPL_058>",
+      "template": "At the middle: there are 1 peaks, the time series rise obviously.",
+      "count": 638
+    },
+    {
+      "token": "<CAPTPL_059>",
+      "template": "At the middle: there are 1 peaks, the time series has a sharp upward trend.",
+      "count": 635
+    },
+    {
+      "token": "<CAPTPL_060>",
+      "template": "At the beginning: there are 1 peaks, the time series rise obviously.",
+      "count": 632
+    },
+    {
+      "token": "<CAPTPL_061>",
+      "template": "At the beginning: there are 1 peaks, the time series going up rapidly.",
+      "count": 627
+    },
+    {
+      "token": "<CAPTPL_062>",
+      "template": "At the middle: there are 1 peaks, the time series going down rapidly.",
+      "count": 623
+    },
+    {
+      "token": "<CAPTPL_063>",
+      "template": "At the beginning: there are 1 peaks, the time series drop obviously.",
+      "count": 611
+    },
+    {
+      "token": "<CAPTPL_064>",
+      "template": "At the beginning: there are 1 peaks, the time series has a sharp upward trend.",
+      "count": 605
+    },
+    {
+      "token": "<CAPTPL_065>",
+      "template": "At the middle: there are 1 peaks, the time series going up rapidly.",
+      "count": 602
+    },
+    {
+      "token": "<CAPTPL_066>",
+      "template": "For the ovearll shape, the time series slowly rise.",
+      "count": 364
+    },
+    {
+      "token": "<CAPTPL_067>",
+      "template": "For the ovearll shape, the time series has a slow upward trend.",
+      "count": 337
+    },
+    {
+      "token": "<CAPTPL_068>",
+      "template": "For the ovearll shape, the values in the time series are slightly climbing.",
+      "count": 333
+    },
+    {
+      "token": "<CAPTPL_069>",
+      "template": "For the ovearll shape, the time series has a slow downward trend.",
+      "count": 327
+    },
+    {
+      "token": "<CAPTPL_070>",
+      "template": "For the ovearll shape, the trend direction is up.",
+      "count": 322
+    },
+    {
+      "token": "<CAPTPL_071>",
+      "template": "For the ovearll shape, the values in the time series are slightly decreasing.",
+      "count": 314
+    },
+    {
+      "token": "<CAPTPL_072>",
+      "template": "For the ovearll shape, the time series slowly drop.",
+      "count": 308
+    },
+    {
+      "token": "<CAPTPL_073>",
+      "template": "For the ovearll shape, the time series increases by time.",
+      "count": 290
+    },
+    {
+      "token": "<CAPTPL_074>",
+      "template": "For the ovearll shape, the trend direction is down.",
+      "count": 268
+    },
+    {
+      "token": "<CAPTPL_075>",
+      "template": "For the ovearll shape, the time series going upward.",
+      "count": 263
+    },
+    {
+      "token": "<CAPTPL_076>",
+      "template": "For the ovearll shape, the time series going downward.",
+      "count": 251
+    },
+    {
+      "token": "<CAPTPL_077>",
+      "template": "For the ovearll shape, the time series decreases by time.",
+      "count": 242
+    },
+    {
+      "token": "<CAPTPL_078>",
+      "template": "The distribution of the value in time series is symmetrical, and has high kurtosis.",
+      "count": 184
+    },
+    {
+      "token": "<CAPTPL_079>",
+      "template": "At the end: there are 1 peaks, the time series has a slow downward trend.",
+      "count": 136
+    },
+    {
+      "token": "<CAPTPL_080>",
+      "template": "At the end: there are 1 peaks, the values in the time series are slightly decreasing.",
+      "count": 131
+    },
+    {
+      "token": "<CAPTPL_081>",
+      "template": "At the middle: there are 1 peaks, the values in the time series are slightly decreasing.",
+      "count": 126
+    },
+    {
+      "token": "<CAPTPL_082>",
+      "template": "At the middle: there are 1 peaks, the time series slowly rise.",
+      "count": 125
+    },
+    {
+      "token": "<CAPTPL_083>",
+      "template": "At the end: there are 1 peaks, the time series slowly drop.",
+      "count": 124
+    },
+    {
+      "token": "<CAPTPL_084>",
+      "template": "At the middle: there are 1 peaks, the values in the time series are slightly climbing.",
+      "count": 123
+    },
+    {
+      "token": "<CAPTPL_085>",
+      "template": "At the beginning: there are 1 peaks, the values in the time series are slightly decreasing.",
+      "count": 123
+    },
+    {
+      "token": "<CAPTPL_086>",
+      "template": "At the middle: there are 1 peaks, the time series slowly drop.",
+      "count": 122
+    },
+    {
+      "token": "<CAPTPL_087>",
+      "template": "At the beginning: there are 1 peaks, the time series slowly drop.",
+      "count": 121
+    },
+    {
+      "token": "<CAPTPL_088>",
+      "template": "At the middle: there are 1 peaks, the time series decreases by time.",
+      "count": 121
+    },
+    {
+      "token": "<CAPTPL_089>",
+      "template": "At the middle: there are 1 peaks, the time series has a slow downward trend.",
+      "count": 121
+    },
+    {
+      "token": "<CAPTPL_090>",
+      "template": "At the middle: the time series slowly drop.",
+      "count": 120
+    },
+    {
+      "token": "<CAPTPL_091>",
+      "template": "At the end: there are 1 peaks, the time series slowly rise.",
+      "count": 117
+    },
+    {
+      "token": "<CAPTPL_092>",
+      "template": "At the end: there are 1 peaks, the time series decreases by time.",
+      "count": 117
+    },
+    {
+      "token": "<CAPTPL_093>",
+      "template": "At the beginning: there are 1 peaks, the time series decreases by time.",
+      "count": 114
+    },
+    {
+      "token": "<CAPTPL_094>",
+      "template": "At the beginning: there are 1 peaks, the time series has a slow upward trend.",
+      "count": 112
+    },
+    {
+      "token": "<CAPTPL_095>",
+      "template": "At the middle: the values in the time series are slightly decreasing.",
+      "count": 112
+    },
+    {
+      "token": "<CAPTPL_096>",
+      "template": "At the beginning: the trend direction is down.",
+      "count": 111
+    },
+    {
+      "token": "<CAPTPL_097>",
+      "template": "At the beginning: the time series slowly drop.",
+      "count": 111
+    },
+    {
+      "token": "<CAPTPL_098>",
+      "template": "At the end: the time series has a slow downward trend.",
+      "count": 111
+    },
+    {
+      "token": "<CAPTPL_099>",
+      "template": "At the beginning: there are 1 peaks, the time series slowly rise.",
+      "count": 110
+    },
+    {
+      "token": "<CAPTPL_100>",
+      "template": "At the beginning: there are 1 peaks, the values in the time series are slightly climbing.",
+      "count": 110
+    },
+    {
+      "token": "<CAPTPL_101>",
+      "template": "At the beginning: the time series has a slow downward trend.",
+      "count": 109
+    },
+    {
+      "token": "<CAPTPL_102>",
+      "template": "At the end: there are 1 peaks, the trend direction is up.",
+      "count": 109
+    },
+    {
+      "token": "<CAPTPL_103>",
+      "template": "At the beginning: there are 1 peaks, the time series going downward.",
+      "count": 106
+    },
+    {
+      "token": "<CAPTPL_104>",
+      "template": "At the beginning: the values in the time series are slightly decreasing.",
+      "count": 106
+    },
+    {
+      "token": "<CAPTPL_105>",
+      "template": "At the beginning: there are 1 peaks, the time series has a slow downward trend.",
+      "count": 105
+    },
+    {
+      "token": "<CAPTPL_106>",
+      "template": "At the middle: the time series has a slow upward trend.",
+      "count": 105
+    },
+    {
+      "token": "<CAPTPL_107>",
+      "template": "At the middle: the values in the time series are slightly climbing.",
+      "count": 105
+    },
+    {
+      "token": "<CAPTPL_108>",
+      "template": "At the end: there are 1 peaks, the trend direction is down.",
+      "count": 105
+    },
+    {
+      "token": "<CAPTPL_109>",
+      "template": "At the end: there are 1 peaks, the time series going downward.",
+      "count": 104
+    },
+    {
+      "token": "<CAPTPL_110>",
+      "template": "At the middle: there are 1 peaks, the time series going downward.",
+      "count": 104
+    },
+    {
+      "token": "<CAPTPL_111>",
+      "template": "At the middle: the time series slowly rise.",
+      "count": 103
+    },
+    {
+      "token": "<CAPTPL_112>",
+      "template": "At the beginning: there are 1 peaks, the time series increases by time.",
+      "count": 103
+    },
+    {
+      "token": "<CAPTPL_113>",
+      "template": "At the end: the time series slowly drop.",
+      "count": 103
+    },
+    {
+      "token": "<CAPTPL_114>",
+      "template": "At the middle: there are 1 peaks, the trend direction is down.",
+      "count": 102
+    },
+    {
+      "token": "<CAPTPL_115>",
+      "template": "At the beginning: the time series decreases by time.",
+      "count": 102
+    },
+    {
+      "token": "<CAPTPL_116>",
+      "template": "At the end: the time series has a slow upward trend.",
+      "count": 101
+    },
+    {
+      "token": "<CAPTPL_117>",
+      "template": "At the end: the time series going downward.",
+      "count": 101
+    },
+    {
+      "token": "<CAPTPL_118>",
+      "template": "At the middle: the trend direction is down.",
+      "count": 100
+    },
+    {
+      "token": "<CAPTPL_119>",
+      "template": "At the end: there are 1 peaks, the values in the time series are slightly climbing.",
+      "count": 99
+    },
+    {
+      "token": "<CAPTPL_120>",
+      "template": "At the beginning: there are 1 peaks, the time series going upward.",
+      "count": 98
+    },
+    {
+      "token": "<CAPTPL_121>",
+      "template": "At the middle: there are 1 peaks, the time series increases by time.",
+      "count": 98
+    },
+    {
+      "token": "<CAPTPL_122>",
+      "template": "At the end: the values in the time series are slightly decreasing.",
+      "count": 98
+    },
+    {
+      "token": "<CAPTPL_123>",
+      "template": "At the middle: there are 1 peaks, the time series has a slow upward trend.",
+      "count": 98
+    },
+    {
+      "token": "<CAPTPL_124>",
+      "template": "At the beginning: the time series going downward.",
+      "count": 97
+    },
+    {
+      "token": "<CAPTPL_125>",
+      "template": "At the middle: the time series has a slow downward trend.",
+      "count": 97
+    },
+    {
+      "token": "<CAPTPL_126>",
+      "template": "At the beginning: the time series slowly rise.",
+      "count": 96
+    },
+    {
+      "token": "<CAPTPL_127>",
+      "template": "At the middle: there are 1 peaks, the trend direction is up.",
+      "count": 95
+    },
+    {
+      "token": "<CAPTPL_128>",
+      "template": "At the beginning: the time series going upward.",
+      "count": 95
+    },
+    {
+      "token": "<CAPTPL_129>",
+      "template": "At the end: there are 1 peaks, the time series going upward.",
+      "count": 95
+    },
+    {
+      "token": "<CAPTPL_130>",
+      "template": "At the middle: the time series decreases by time.",
+      "count": 95
+    },
+    {
+      "token": "<CAPTPL_131>",
+      "template": "At the middle: the time series increases by time.",
+      "count": 94
+    },
+    {
+      "token": "<CAPTPL_132>",
+      "template": "At the end: the time series decreases by time.",
+      "count": 94
+    },
+    {
+      "token": "<CAPTPL_133>",
+      "template": "At the middle: the trend direction is up.",
+      "count": 93
+    },
+    {
+      "token": "<CAPTPL_134>",
+      "template": "At the middle: the time series going downward.",
+      "count": 92
+    },
+    {
+      "token": "<CAPTPL_135>",
+      "template": "At the beginning: the values in the time series are slightly climbing.",
+      "count": 92
+    },
+    {
+      "token": "<CAPTPL_136>",
+      "template": "At the end: there are 1 peaks, the time series has a slow upward trend.",
+      "count": 91
+    },
+    {
+      "token": "<CAPTPL_137>",
+      "template": "At the beginning: the time series has a slow upward trend.",
+      "count": 91
+    },
+    {
+      "token": "<CAPTPL_138>",
+      "template": "At the beginning: there are 1 peaks, the trend direction is up.",
+      "count": 91
+    },
+    {
+      "token": "<CAPTPL_139>",
+      "template": "At the beginning: there are 1 peaks, the trend direction is down.",
+      "count": 89
+    },
+    {
+      "token": "<CAPTPL_140>",
+      "template": "At the middle: there are 1 peaks, the time series going upward.",
+      "count": 88
+    },
+    {
+      "token": "<CAPTPL_141>",
+      "template": "At the end: there are 1 peaks, the time series increases by time.",
+      "count": 85
+    },
+    {
+      "token": "<CAPTPL_142>",
+      "template": "At the beginning: the trend direction is up.",
+      "count": 84
+    },
+    {
+      "token": "<CAPTPL_143>",
+      "template": "At the end: the trend direction is down.",
+      "count": 83
+    },
+    {
+      "token": "<CAPTPL_144>",
+      "template": "At the beginning: the time series increases by time.",
+      "count": 83
+    },
+    {
+      "token": "<CAPTPL_145>",
+      "template": "At the end: the time series going upward.",
+      "count": 82
+    },
+    {
+      "token": "<CAPTPL_146>",
+      "template": "At the end: the trend direction is up.",
+      "count": 81
+    },
+    {
+      "token": "<CAPTPL_147>",
+      "template": "At the end: the values in the time series are slightly climbing.",
+      "count": 81
+    },
+    {
+      "token": "<CAPTPL_148>",
+      "template": "At the end: the time series increases by time.",
+      "count": 79
+    },
+    {
+      "token": "<CAPTPL_149>",
+      "template": "At the end: the time series slowly rise.",
+      "count": 70
+    },
+    {
+      "token": "<CAPTPL_150>",
+      "template": "At the middle: the time series going upward.",
+      "count": 66
+    },
+    {
+      "token": "<CAPTPL_151>",
+      "template": "At the end: there are 2 peaks, the time series has no obvious trend direction.",
+      "count": 66
+    },
+    {
+      "token": "<CAPTPL_152>",
+      "template": "At the middle: there are 2 peaks, the time series has no obvious trend direction.",
+      "count": 47
+    },
+    {
+      "token": "<CAPTPL_153>",
+      "template": "At the beginning: there are 2 peaks, the time series has no obvious trend direction.",
+      "count": 44
+    },
+    {
+      "token": "<CAPTPL_154>",
+      "template": "At the beginning: there are 2 peaks, the time series has a sharp downward trend.",
+      "count": 42
+    },
+    {
+      "token": "<CAPTPL_155>",
+      "template": "At the end: there are 2 peaks, the time series going down rapidly.",
+      "count": 37
+    },
+    {
+      "token": "<CAPTPL_156>",
+      "template": "At the end: there are 2 peaks, the time series drop obviously.",
+      "count": 36
+    },
+    {
+      "token": "<CAPTPL_157>",
+      "template": "At the end: there are 2 peaks, the time series going up rapidly.",
+      "count": 35
+    },
+    {
+      "token": "<CAPTPL_158>",
+      "template": "At the end: there are 2 peaks, the time series has a sharp downward trend.",
+      "count": 34
+    },
+    {
+      "token": "<CAPTPL_159>",
+      "template": "At the beginning: there are 2 peaks, the time series drop obviously.",
+      "count": 33
+    },
+    {
+      "token": "<CAPTPL_160>",
+      "template": "At the beginning: there are 2 peaks, the time series going up rapidly.",
+      "count": 32
+    },
+    {
+      "token": "<CAPTPL_161>",
+      "template": "At the middle: there are 2 peaks, the time series drop obviously.",
+      "count": 32
+    },
+    {
+      "token": "<CAPTPL_162>",
+      "template": "At the middle: there are 2 peaks, the time series going up rapidly.",
+      "count": 31
+    },
+    {
+      "token": "<CAPTPL_163>",
+      "template": "At the middle: there are 2 peaks, the time series has a sharp upward trend.",
+      "count": 31
+    },
+    {
+      "token": "<CAPTPL_164>",
+      "template": "At the beginning: there are 2 peaks, the time series rise obviously.",
+      "count": 30
+    },
+    {
+      "token": "<CAPTPL_165>",
+      "template": "At the middle: there are 2 peaks, the time series rise obviously.",
+      "count": 30
+    },
+    {
+      "token": "<CAPTPL_166>",
+      "template": "At the beginning: there are 2 peaks, the time series has a sharp upward trend.",
+      "count": 30
+    },
+    {
+      "token": "<CAPTPL_167>",
+      "template": "At the end: there are 2 peaks, the time series has a sharp upward trend.",
+      "count": 30
+    },
+    {
+      "token": "<CAPTPL_168>",
+      "template": "At the end: there are 2 peaks, the time series rise obviously.",
+      "count": 27
+    },
+    {
+      "token": "<CAPTPL_169>",
+      "template": "At the middle: there are 2 peaks, the time series going down rapidly.",
+      "count": 26
+    },
+    {
+      "token": "<CAPTPL_170>",
+      "template": "At the middle: there are 2 peaks, the time series has a sharp downward trend.",
+      "count": 26
+    },
+    {
+      "token": "<CAPTPL_171>",
+      "template": "At the beginning: there are 2 peaks, the time series going down rapidly.",
+      "count": 22
+    }
+  ]
+}
