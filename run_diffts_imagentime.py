@@ -98,8 +98,7 @@ def main(args):
 
         # --- train model ---
         best_score = float('inf')  # marginal score for long-range metrics, dice score for short-range metrics
-        # eval_split = getattr(args, "eval_split", "train")
-        eval_split = "train"
+        eval_split = getattr(args, "eval_split", "train")
         for epoch in range(1, args.epochs):
             handler.model.train()
             handler.epoch = epoch
