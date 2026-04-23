@@ -138,6 +138,15 @@ def strip_tokenizer_control_tokens(text: str, tokenizer) -> str:
     return re.sub(r"\s+", " ", cleaned).strip()
 
 
+def decode_special_token_sequence(tokenized_text: str, token_to_template: Dict[str, str]) -> str:
+    if not tokenized_text:
+        return tokenized_text
+    decoded_units = []
+    for unit in tokenized_text.split():
+        decoded_units.append(token_to_template.get(unit, unit))
+    return "\n".join(decoded_units)
+
+
 def main():
     args = parse_args()
     cfg = OmegaConf.to_container(OmegaConf.load(args.config), resolve=True)
@@ -164,6 +173,12 @@ def main():
     ckpt = torch.load(args.checkpoint, map_location="cpu")
     model.load_state_dict(ckpt["model"], strict=True)
     model.to(device).eval()
+    token_to_template = {}
+    if use_ve_model and isinstance(model, Stage1LatentCaptionModelVE):
+        token_to_template = {
+            row["token"]: row["template"]
+            for row in model.vocab_expansion_summary.get("token_to_template", [])
+        }
 
     dataset_root = cfg["data"]["dataset_root"]
     prompt = cfg["data"]["prompt_template"]
@@ -231,12 +246,21 @@ def main():
             for local_idx, prediction in enumerate(cleaned_predictions):
                 sample_id = start + local_idx
                 ground_truth_raw = captions[sample_id]
-                ground_truth_for_metrics = (
+                ground_truth_tokenized = (
                     model.encode_caption_with_special_tokens(ground_truth_raw)
                     if use_ve_model and isinstance(model, Stage1LatentCaptionModelVE)
                     else ground_truth_raw
                 )
-                metrics = compute_text_metrics(prediction, ground_truth_for_metrics)
+                prediction_tokenized = prediction
+
+                if use_ve_model:
+                    prediction_for_metrics = decode_special_token_sequence(prediction_tokenized, token_to_template)
+                    ground_truth_for_metrics = decode_special_token_sequence(ground_truth_tokenized, token_to_template)
+                else:
+                    prediction_for_metrics = prediction_tokenized
+                    ground_truth_for_metrics = ground_truth_tokenized
+
+                metrics = compute_text_metrics(prediction_for_metrics, ground_truth_for_metrics)
                 num_exact += int(metrics["exact_match"])
                 num_case_exact += int(metrics["case_insensitive_exact_match"])
                 similarity_sum += float(metrics["char_similarity"])
@@ -245,8 +269,10 @@ def main():
                     "split": args.split,
                     "sample_id": sample_id,
                     "prompt": prompt,
-                    "prediction": prediction,
+                    "prediction": prediction_for_metrics,
+                    "prediction_tokenized": prediction_tokenized,
                     "ground_truth": ground_truth_for_metrics,
+                    "ground_truth_tokenized": ground_truth_tokenized,
                     "ground_truth_raw": ground_truth_raw,
                     "metrics": metrics,
                 }
@@ -267,7 +293,7 @@ def main():
             "temperature": args.temperature,
             "top_p": args.top_p,
         },
-        "compare_mode": "tokenized_caption_space" if use_ve_model else "raw_caption_space",
+        "compare_mode": "template_text_space" if use_ve_model else "raw_caption_space",
         "metrics": {
             "exact_match_rate": num_exact / total if total else 0.0,
             "case_insensitive_exact_match_rate": num_case_exact / total if total else 0.0,
