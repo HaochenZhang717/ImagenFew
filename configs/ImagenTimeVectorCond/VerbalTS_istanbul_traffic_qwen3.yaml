@@ -23,14 +23,16 @@ guidance_scale: 1.5
 ft_method: all
 
 # conditioning:
-verbalts_context_suffix: my_qwen3_4b
+verbalts_context_suffix: qwen3_4b
+#verbalts_context_suffix: my_qwen3_4b
 
 # logging:
 logging_iter: 100
 eval_metrics: [disc, contextFID, pred, vaeFID]
 fid_vae_ckpt_root: /playpen-shared/haochenz/ImagenFew/fid_vae_ckpts
 tags: [vector-cond, qwen3]
-run_dir: ImagenTimeVectorCond/VerbalTS_istanbul_traffic_qwen3_my_caps/
+run_dir: ImagenTimeVectorCond/VerbalTS_istanbul_traffic_qwen3/
+#run_dir: ImagenTimeVectorCond/VerbalTS_istanbul_traffic_qwen3_my_caps/
 
 # Data
 datasets_dir: ./data/
