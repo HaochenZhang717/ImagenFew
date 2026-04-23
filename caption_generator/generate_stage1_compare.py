@@ -147,6 +147,15 @@ def decode_special_token_sequence(tokenized_text: str, token_to_template: Dict[s
     return "\n".join(decoded_units)
 
 
+def load_saved_vocab_expansion_summary(checkpoint_path: str) -> Dict | None:
+    checkpoint_dir = os.path.dirname(os.path.abspath(checkpoint_path))
+    summary_path = os.path.join(checkpoint_dir, "vocab_expansion_summary.json")
+    if not os.path.exists(summary_path):
+        return None
+    with open(summary_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 def main():
     args = parse_args()
     cfg = OmegaConf.to_container(OmegaConf.load(args.config), resolve=True)
@@ -156,9 +165,17 @@ def main():
     amp_dtype = getattr(torch, model_dtype_name) if use_amp else None
 
     use_ve_model = should_use_ve_model(cfg)
+    saved_ve_summary = load_saved_vocab_expansion_summary(args.checkpoint) if use_ve_model else None
+
+    tokenizer_source = cfg["model"]["llm_name"]
+    if use_ve_model:
+        checkpoint_dir = os.path.dirname(os.path.abspath(args.checkpoint))
+        tokenizer_ve_dir = os.path.join(checkpoint_dir, "tokenizer_ve")
+        if os.path.isdir(tokenizer_ve_dir):
+            tokenizer_source = tokenizer_ve_dir
 
     tokenizer = AutoTokenizer.from_pretrained(
-        cfg["model"]["llm_name"],
+        tokenizer_source,
         trust_remote_code=cfg["model"].get("trust_remote_code", False),
         use_fast=cfg["model"].get("use_fast_tokenizer", True),
     )
@@ -175,6 +192,21 @@ def main():
     model.to(device).eval()
     token_to_template = {}
     if use_ve_model and isinstance(model, Stage1LatentCaptionModelVE):
+        if saved_ve_summary is not None and saved_ve_summary.get("token_to_template"):
+            model.vocab_expansion_summary = saved_ve_summary
+            model._template_to_token = {
+                row["template"]: row["token"] for row in saved_ve_summary["token_to_template"]
+            }
+            if "preserve_peak_count" in saved_ve_summary:
+                model._preserve_peak_count = bool(saved_ve_summary["preserve_peak_count"])
+            else:
+                # Backward compatibility for old summaries generated before preserve_peak_count was added.
+                has_num_peak_template = any(
+                    "<NUM> peaks" in row.get("template", "")
+                    for row in saved_ve_summary.get("token_to_template", [])
+                )
+                model._preserve_peak_count = not has_num_peak_template
+
         token_to_template = {
             row["token"]: row["template"]
             for row in model.vocab_expansion_summary.get("token_to_template", [])
