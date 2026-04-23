@@ -76,6 +76,51 @@ class PipelineV2CaptionModel(nn.Module):
     def trainable_parameters(self):
         return self.soft_prompt.parameters()
 
+    @staticmethod
+    def _unpack_image_features(image_feature_outputs):
+        def get_first(mapping, keys):
+            for key in keys:
+                if key in mapping and mapping[key] is not None:
+                    return mapping[key]
+            return None
+
+        if isinstance(image_feature_outputs, dict):
+            image_embeds = get_first(image_feature_outputs, ("image_embeds", "image_features"))
+            deepstack_image_embeds = get_first(
+                image_feature_outputs,
+                ("deepstack_image_embeds", "deepstack_visual_embeds", "deepstack_features"),
+            )
+            if image_embeds is None or deepstack_image_embeds is None:
+                raise ValueError(
+                    "Unsupported get_image_features dict output. Expected image and deepstack feature entries."
+                )
+            return image_embeds, deepstack_image_embeds
+
+        if not isinstance(image_feature_outputs, (tuple, list)):
+            raise ValueError(
+                "Unsupported get_image_features output type: "
+                f"{type(image_feature_outputs).__name__}. Expected tuple/list or dict."
+            )
+
+        if len(image_feature_outputs) == 2:
+            return image_feature_outputs
+
+        if len(image_feature_outputs) > 2:
+            image_embeds = image_feature_outputs[0]
+            if isinstance(image_feature_outputs[1], (tuple, list)):
+                deepstack_image_embeds = image_feature_outputs[1]
+            else:
+                deepstack_image_embeds = list(image_feature_outputs[1:])
+            return image_embeds, deepstack_image_embeds
+
+        raise ValueError("get_image_features returned no features.")
+
+    def _split_image_embeds_if_needed(self, image_embeds: torch.Tensor, image_grid_thw: torch.Tensor):
+        if not torch.is_tensor(image_embeds):
+            return image_embeds
+        split_sizes = (image_grid_thw.prod(-1) // self.vlm.model.visual.spatial_merge_size**2).tolist()
+        return torch.split(image_embeds, split_sizes)
+
     def _compose_inputs(
         self,
         input_ids: torch.Tensor,
@@ -85,7 +130,9 @@ class PipelineV2CaptionModel(nn.Module):
         labels: Optional[torch.Tensor] = None,
     ):
         inputs_embeds = self.vlm.get_input_embeddings()(input_ids)
-        image_embeds, deepstack_image_embeds = self.vlm.model.get_image_features(pixel_values, image_grid_thw)
+        image_feature_outputs = self.vlm.model.get_image_features(pixel_values, image_grid_thw)
+        image_embeds, deepstack_image_embeds = self._unpack_image_features(image_feature_outputs)
+        image_embeds = self._split_image_embeds_if_needed(image_embeds, image_grid_thw)
         image_embeds = torch.cat(image_embeds, dim=0).to(inputs_embeds.device, inputs_embeds.dtype)
 
         image_mask, _ = self.vlm.model.get_placeholder_mask(
