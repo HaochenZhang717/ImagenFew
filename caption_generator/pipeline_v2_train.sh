@@ -6,6 +6,7 @@ export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
 
 #python prepare_pipeline_v2_dataset.py --config configs/synthetic_u_pipeline_v2_qwen3vl.yaml
 #python prepare_pipeline_v2_dataset_segments.py --config configs/synthetic_u_pipeline_v2_qwen3vl_segments.yaml
+#python prepare_pipeline_v2_dataset_segments.py --config configs/istanbul_traffic_pipeline_v2_qwen3vl_segments.yaml
 
 # test render image
 

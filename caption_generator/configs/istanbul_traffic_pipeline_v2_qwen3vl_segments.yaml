@@ -1,0 +1,56 @@
+seed: 42
+device: auto
+output_dir: ./logs/caption_generator/istanbul_traffic_pipeline_v2_qwen3vl
+
+wandb:
+  enabled: false
+  project: caption_generator
+  entity:
+  name: istanbul_traffic_pipeline_v2_qwen3vl
+  tags: [pipeline_v2, istanbul_traffic, qwen3-vl]
+  notes:
+  mode: online
+  resume: allow
+
+data:
+  dataset_root: ../data/VerbalTSDatasets/istanbul_traffic
+  prerendered_image_root: ../data/VerbalTSDatasets/istanbul_traffic/pipeline_v2_images_400x100_segments
+  use_prerendered_images: true
+  prerender_num_workers: 8
+  prerender_chunksize: 16
+  prerender_parallel_backend: auto
+  instruction_prompt: Generate a structured caption describing the time series.
+  eval_split: valid
+  normalize_before_render: false
+  num_workers: 0
+
+renderer:
+  image_size: 100
+  background_color: 255
+  line_color: 0
+  line_width: 2
+  padding: 8
+  panel_gap: 4
+  normalization: per_sample_minmax
+  fixed_y_min: -3.0
+  fixed_y_max: 3.0
+
+model:
+  vlm_name: Qwen/Qwen3-VL-8B-Instruct
+  trust_remote_code: true
+  torch_dtype: bfloat16
+  low_cpu_mem_usage: true
+  soft_prompt_tokens: 128
+  soft_prompt_init_std: 0.02
+
+training:
+  num_epochs: 10
+  batch_size: 32
+  eval_batch_size: 32
+  grad_accum_steps: 1
+  learning_rate: 2.0e-4
+  weight_decay: 0.0
+  warmup_ratio: 0.03
+  max_grad_norm: 1.0
+  use_amp: true
+  amp_dtype: bfloat16
