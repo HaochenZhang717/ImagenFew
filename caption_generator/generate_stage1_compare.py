@@ -243,6 +243,8 @@ def main():
             model._template_to_token = {
                 row["template"]: row["token"] for row in saved_ve_summary["token_to_template"]
             }
+            if "dataset_template_strategy" in saved_ve_summary:
+                model._dataset_template_strategy = str(saved_ve_summary["dataset_template_strategy"]).strip().lower()
             if "preserve_peak_count" in saved_ve_summary:
                 model._preserve_peak_count = bool(saved_ve_summary["preserve_peak_count"])
             else:

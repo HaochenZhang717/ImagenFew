@@ -282,6 +282,7 @@ class Stage1LatentCaptionModelVE(Stage1LatentCaptionModel):
         self._dataset_template_strategy = "generic"
         self._preserve_peak_count = True
         super().__init__(cfg)
+        self._initialize_template_strategy_from_cfg()
         if tokenizer is not None:
             self.setup_vocab_expansion(tokenizer)
 
@@ -311,6 +312,23 @@ class Stage1LatentCaptionModelVE(Stage1LatentCaptionModel):
         raise NotImplementedError(
             "Stage1LatentCaptionModelVE currently supports only ETTm1. "
             "Please set vocab_expansion.dataset_strategy='ETTm1' or point data.dataset_root to ETTm1."
+        )
+
+    def _initialize_template_strategy_from_cfg(self) -> None:
+        ve_cfg = dict(self.cfg.get("vocab_expansion", {}))
+        if not ve_cfg:
+            ve_cfg = dict(self.cfg.get("model", {}).get("vocab_expansion", {}))
+
+        self._preserve_peak_count = bool(ve_cfg.get("preserve_peak_count", True))
+
+        data_cfg = self.cfg.get("data", {})
+        dataset_root = data_cfg.get("dataset_root")
+        if dataset_root is None and not ve_cfg.get("dataset_strategy"):
+            return
+
+        self._dataset_template_strategy = self._resolve_template_strategy(
+            dataset_root=dataset_root or "",
+            ve_cfg=ve_cfg,
         )
 
     @classmethod
