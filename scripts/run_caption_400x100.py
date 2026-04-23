@@ -16,7 +16,7 @@ from qwen_vl_utils import process_vision_info
 # ==============================
 model_name = "Qwen/Qwen3-VL-8B-Instruct"
 device = "cuda" if torch.cuda.is_available() else "cpu"
-DEFAULT_MAX_NEW_TOKENS = 64
+DEFAULT_MAX_NEW_TOKENS = 512
 
 # MIN_PIXELS = 16 * 14 * 14
 MIN_PIXELS = 0
