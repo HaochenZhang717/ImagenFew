@@ -14,13 +14,13 @@ USE_INSTRUCT="${USE_INSTRUCT:-0}"
 USE_FLASH_ATTN="${USE_FLASH_ATTN:-0}"
 USE_FP16="${USE_FP16:-0}"
 OUTPUT_SUFFIX="${OUTPUT_SUFFIX:-qwen3_4b}"
-NPY_NAME="${NPY_NAME:-text_caps}"
+NPY_NAME="${NPY_NAME:-my_text_caps}"
 
 DATASETS=(
-  "synthetic_u"
-  "synthetic_m"
+#  "synthetic_u"
+#  "synthetic_m"
   "istanbul_traffic"
-  "ETTm1"
+#  "ETTm1"
 #  "Weather"
 #  "BlindWays"
 )
