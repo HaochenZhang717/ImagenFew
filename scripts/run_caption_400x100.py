@@ -299,7 +299,7 @@ def main():
     if args.save_dir is None:
         args.save_dir = os.path.join("logs", "finetune_captions_400x100", args.dataset_name)
     if args.output_npy is None:
-        args.output_npy = os.path.join(args.dataset_root, f"{args.split}_text_caps.npy")
+        args.output_npy = os.path.join(args.dataset_root, f"{args.split}_my_text_caps.npy")
 
     os.makedirs(args.save_dir, exist_ok=True)
     output_jsonl = f"{args.save_dir}/{args.split}_caps_{args.part_id}_{args.num_parts}.jsonl"
@@ -372,9 +372,9 @@ def main():
                         max_new_tokens=args.max_new_tokens,
                         do_sample=args.do_sample,
                     )
-                    if not args.quiet:
-                        print(f"[INFO] Processing {img_path}")
-                        print(caption)
+                    # if not args.quiet:
+                    print(f"[INFO] Processing {img_path}")
+                    print(caption)
                     record = {
                         "image": img_name,
                         "image_path": img_path,
