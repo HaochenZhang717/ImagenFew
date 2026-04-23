@@ -94,6 +94,15 @@ def move_batch_to_device(batch: Dict, device: torch.device) -> Dict:
     return output
 
 
+def get_config_value(cfg: Dict, path: str, default):
+    current = cfg
+    for key in path.split("."):
+        if not isinstance(current, dict) or key not in current:
+            return default
+        current = current[key]
+    return default if current is None else current
+
+
 @torch.no_grad()
 def evaluate(model, dataloader, device, use_amp: bool, amp_dtype) -> Dict[str, float]:
     model.eval()
@@ -171,9 +180,12 @@ def main():
     train_dataset, eval_dataset, collator, stats = build_datasets(cfg, model)
     save_json(stats, os.path.join(cfg["output_dir"], "train_stats.json"))
 
+    train_batch_size = int(get_config_value(cfg, "training.batch_size", 1))
+    eval_batch_size = int(get_config_value(cfg, "training.eval_batch_size", train_batch_size))
+
     train_loader = DataLoader(
         train_dataset,
-        batch_size=int(cfg["training"]["batch_size"]),
+        batch_size=train_batch_size,
         shuffle=True,
         num_workers=int(cfg["data"].get("num_workers", 0)),
         collate_fn=collator,
@@ -181,7 +193,7 @@ def main():
     )
     eval_loader = DataLoader(
         eval_dataset,
-        batch_size=int(cfg["training"].get("eval_batch_size", cfg["training"]["batch_size"])),
+        batch_size=eval_batch_size,
         shuffle=False,
         num_workers=int(cfg["data"].get("num_workers", 0)),
         collate_fn=collator,

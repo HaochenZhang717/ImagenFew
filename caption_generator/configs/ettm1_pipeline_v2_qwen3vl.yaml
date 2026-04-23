@@ -46,7 +46,7 @@ model:
 training:
   num_epochs: 10
   batch_size: 32
-  eval_batch_size:
+  eval_batch_size: 32
   grad_accum_steps: 1
   learning_rate: 2.0e-4
   weight_decay: 0.0
