@@ -606,6 +606,7 @@ class DriftDiT(nn.Module):
             segments = [seg.strip() for seg in segments if seg.strip()]
             return segments
 
+        breakpoint()
         batch_segments = [split_segments(t) for t in text_list]
         num_segments = [len(segs) for segs in batch_segments]
         max_segments = max(num_segments)
