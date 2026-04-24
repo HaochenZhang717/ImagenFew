@@ -7,13 +7,13 @@ text:
   num_stages: 3
 
   # cliptextmodel
-  pretrain_model_path: ./save/Longclip
+  pretrain_model_path: /playpen-shared/haochenz/long_clip
   pretrain_model_dim: 768
   textemb_hidden_dim: 512
   text_emb: 64
   output_type: all
 
   # transformer encoder
-  tokenizer_path: ./save/Longclip
+  tokenizer_path: /playpen-shared/haochenz/long_clip
   word_size: 49408
   text_emb: 64
