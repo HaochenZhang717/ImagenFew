@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import List, Optional, Tuple, Union
 from transformers import AutoModel, AutoTokenizer
+import re
 
 
 class RMSNorm(nn.Module):
@@ -589,55 +590,67 @@ class DriftDiT(nn.Module):
 
         breakpoint()
 
-        if text_condition is not None:
-            if isinstance(text_condition, str) or (
-                isinstance(text_condition, list) and (len(text_condition) == 0 or isinstance(text_condition[0], str))
-            ):
-                if self.text_encoder is None:
-                    raise ValueError("String text_condition provided but text encoder is disabled.")
-                text_list = [text_condition] if isinstance(text_condition, str) else text_condition
-                if len(text_list) == 1 and B > 1:
-                    text_list = text_list * B
-                if len(text_list) != B:
-                    raise ValueError(
-                        f"String text_condition batch mismatch: got {len(text_list)} texts for batch size {B}"
-                    )
-                encoded_tokens, _, attention_mask = self.text_encoder.encode_texts(text_list, device=x.device)
-                context_mask = attention_mask.to(torch.bool)
-                context_tokens = self.context_proj(encoded_tokens.to(torch.float32))
-            elif isinstance(text_condition, tuple):
-                if len(text_condition) != 2:
-                    raise ValueError("Expected text_condition tuple as (input_ids, attention_mask).")
-                input_ids, attention_mask = text_condition
-                if self.text_encoder is None:
-                    raise ValueError("Token-id condition provided but text encoder is disabled.")
-                context_mask = attention_mask.to(x.device).to(torch.bool)
-                encoded_tokens = self.text_encoder(
-                    input_ids=input_ids.to(x.device),
-                    attention_mask=attention_mask.to(x.device),
-                ).to(torch.float32)
-                context_tokens = self.context_proj(encoded_tokens)
-            else:
-                text_condition = text_condition.to(torch.float32)
-                if text_condition.ndim == 2:
-                    text_condition = text_condition.unsqueeze(1)
-                if text_condition.ndim != 3:
-                    raise ValueError(
-                        f"Expected token-level conditioning with shape (B, N_ctx, D_ctx) or (B, D_ctx), got {tuple(text_condition.shape)}"
-                    )
-                context_tokens = self.context_proj(text_condition)
-                context_mask = torch.ones(
-                    text_condition.shape[0], text_condition.shape[1], device=text_condition.device, dtype=torch.bool
-                )
 
-            if self.training and self.condition_dropout > 0:
-                if force_drop_ids is None:
-                    drop_ids = torch.rand(context_tokens.shape[0], device=context_tokens.device) < self.condition_dropout
-                else:
-                    drop_ids = force_drop_ids.to(context_tokens.device).bool()
-                context_tokens = context_tokens.masked_fill(drop_ids[:, None, None], 0.0)
-                if context_mask is not None:
-                    context_mask = context_mask.masked_fill(drop_ids[:, None], False)
+        text_list = [text_condition] if isinstance(text_condition, str) else text_condition
+
+        if len(text_list) != B:
+            raise ValueError(f"Mismatch: {len(text_list)} texts vs batch {B}")
+
+        # =========================
+        # ⭐ STEP 1: split segments
+        # =========================
+
+        def split_segments(text: str):
+            # 按 [Segment k]: 分割
+            segments = re.split(r"\[Segment \d+\]:", text)
+            segments = [seg.strip() for seg in segments if seg.strip()]
+            return segments
+
+        batch_segments = [split_segments(t) for t in text_list]
+        num_segments = [len(segs) for segs in batch_segments]
+        max_segments = max(num_segments)
+
+        # pad segments（保证batch一致）
+        padded_segments = []
+        segment_mask = []
+
+        for segs in batch_segments:
+            pad_len = max_segments - len(segs)
+            padded = segs + [""] * pad_len
+            mask = [1] * len(segs) + [0] * pad_len
+
+            padded_segments.append(padded)
+            segment_mask.append(mask)
+
+        # flatten 成 (B * num_segments)
+        flat_segments = [seg for segs in padded_segments for seg in segs]
+
+        # =========================
+        # ⭐ STEP 2: encode
+        # =========================
+        encoded_tokens, _, attention_mask = self.text_encoder.encode_texts(
+            flat_segments, device=x.device
+        )
+        # (B*num_segments, L, D)
+
+        # =========================
+        # ⭐ STEP 3: reshape
+        # =========================
+        L = encoded_tokens.shape[1]
+        D = encoded_tokens.shape[2]
+
+        encoded_tokens = encoded_tokens.view(B, max_segments, L, D)
+        attention_mask = attention_mask.view(B, max_segments, L)
+
+        # 合并 segment 和 token 维度
+        context_tokens = encoded_tokens.reshape(B, max_segments * L, D)
+        context_mask = attention_mask.reshape(B, max_segments * L).to(torch.bool)
+
+        # =========================
+        # ⭐ STEP 4: projection
+        # =========================
+        context_tokens = self.context_proj(context_tokens.to(torch.float32))
+
         if self.use_style_embed:
             c = c + self.style_embed(B, device)
 
