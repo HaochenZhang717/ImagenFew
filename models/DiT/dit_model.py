@@ -419,6 +419,12 @@ class StyleEmbedder(nn.Module):
         style = embeddings.sum(dim=1)  # (B, D)
         return style
 
+def split_segments(text: str):
+    # 按 [Segment k]: 分割
+    segments = re.split(r"\[Segment \d+\]:", text)
+    segments = [seg.strip() for seg in segments if seg.strip()]
+    return segments
+
 
 class DriftDiT(nn.Module):
     """
@@ -600,13 +606,8 @@ class DriftDiT(nn.Module):
         # ⭐ STEP 1: split segments
         # =========================
 
-        def split_segments(text: str):
-            # 按 [Segment k]: 分割
-            segments = re.split(r"\[Segment \d+\]:", text)
-            segments = [seg.strip() for seg in segments if seg.strip()]
-            return segments
 
-        breakpoint()
+
         batch_segments = [split_segments(t) for t in text_list]
         num_segments = [len(segs) for segs in batch_segments]
         max_segments = max(num_segments)
