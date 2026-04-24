@@ -392,8 +392,11 @@ class FrozenTextEncoder(nn.Module):
         )
         input_ids = encoded["input_ids"].to(device=device, dtype=torch.long)
         attention_mask = encoded["attention_mask"].to(device=device, dtype=torch.long)
-        token_embeddings = self.forward(input_ids=input_ids, attention_mask=attention_mask)
-        return token_embeddings, input_ids, attention_mask
+        model_output = self.forward(input_ids=input_ids, attention_mask=attention_mask)
+        sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
+        sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
+
+        return sentence_embeddings
 
 
 class StyleEmbedder(nn.Module):
@@ -602,30 +605,18 @@ class DriftDiT(nn.Module):
         batch_segments = [split_segments(t) for t in text_list]
         num_segments = [len(segs) for segs in batch_segments]
         max_segments = max(num_segments)
-        breakpoint()
-
-        # pad segments（保证batch一致）
-        padded_segments = []
-        segment_mask = []
-
-        for segs in batch_segments:
-            pad_len = max_segments - len(segs)
-            padded = segs + [""] * pad_len
-            mask = [1] * len(segs) + [0] * pad_len
-
-            padded_segments.append(padded)
-            segment_mask.append(mask)
 
         # flatten 成 (B * num_segments)
-        flat_segments = [seg for segs in padded_segments for seg in segs]
+        flat_segments = [seg for segs in batch_segments for seg in segs]
 
         # =========================
         # ⭐ STEP 2: encode
         # =========================
-        encoded_tokens, _, attention_mask = self.text_encoder.encode_texts(
+        encoded_tokens = self.text_encoder.encode_texts(
             flat_segments, device=x.device
         )
-        # (B*num_segments, L, D)
+        breakpoint()
+        # (B*num_segments, D)
 
         # =========================
         # ⭐ STEP 3: reshape
