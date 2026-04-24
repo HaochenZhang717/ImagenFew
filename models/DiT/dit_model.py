@@ -250,7 +250,6 @@ class DiTBlock(nn.Module):
         rope_cos: Optional[torch.Tensor] = None,
         rope_sin: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        breakpoint()
         # Get modulation parameters
         modulation = self.adaLN_modulation(c).chunk(7, dim=1)
         shift_msa, scale_msa, gate_msa, gate_xattn, shift_mlp, scale_mlp, gate_mlp = modulation
