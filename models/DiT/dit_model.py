@@ -591,12 +591,6 @@ class DriftDiT(nn.Module):
         # Conditioning
         c = self.alpha_embed(alpha)
 
-        context_tokens = None
-        context_mask = None
-
-        breakpoint()
-
-
         text_list = [text_condition] if isinstance(text_condition, str) else text_condition
 
         if len(text_list) != B:
@@ -605,12 +599,10 @@ class DriftDiT(nn.Module):
         # =========================
         # ⭐ STEP 1: split segments
         # =========================
-
-
-
         batch_segments = [split_segments(t) for t in text_list]
         num_segments = [len(segs) for segs in batch_segments]
         max_segments = max(num_segments)
+        breakpoint()
 
         # pad segments（保证batch一致）
         padded_segments = []
