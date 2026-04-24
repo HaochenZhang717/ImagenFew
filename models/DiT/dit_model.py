@@ -615,21 +615,9 @@ class DriftDiT(nn.Module):
         encoded_tokens = self.text_encoder.encode_texts(
             flat_segments, device=x.device
         )
-        breakpoint()
+
         # (B*num_segments, D)
-
-        # =========================
-        # ⭐ STEP 3: reshape
-        # =========================
-        L = encoded_tokens.shape[1]
-        D = encoded_tokens.shape[2]
-
-        encoded_tokens = encoded_tokens.view(B, max_segments, L, D)
-        attention_mask = attention_mask.view(B, max_segments, L)
-
-        # 合并 segment 和 token 维度
-        context_tokens = encoded_tokens.reshape(B, max_segments * L, D)
-        context_mask = attention_mask.reshape(B, max_segments * L).to(torch.bool)
+        context_tokens = encoded_tokens.view(B, max_segments, -1)
 
         # =========================
         # ⭐ STEP 4: projection
@@ -645,7 +633,7 @@ class DriftDiT(nn.Module):
                 x,
                 c,
                 context=context_tokens,
-                context_mask=context_mask,
+                context_mask=None,
                 rope_cos=rope_cos,
                 rope_sin=rope_sin,
             )
