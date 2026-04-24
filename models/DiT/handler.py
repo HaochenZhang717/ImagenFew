@@ -130,7 +130,8 @@ class Handler(generativeHandler):
         for _, data in enumerate(train_dataloader, 1):
             self.optimizer.zero_grad()
 
-            x_ts, condition_vectors = self._split_train_batch(data)
+            x_ts, condition_text = self._split_train_batch(data)
+            breakpoint()
             x_ts = x_ts.to(self.args.device, dtype=torch.float32)
             condition_vectors = self._prepare_condition_vectors(condition_vectors, n_samples=x_ts.shape[0])
 
