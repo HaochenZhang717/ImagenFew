@@ -1,0 +1,56 @@
+# training:
+epochs: 4001
+batch_size: 512
+learning_rate: 0.0001
+weight_decay: 0.00001
+
+# transform:
+use_stft: false
+delay: 10
+embedding: 16
+
+# model:
+handler: models.DiT.handler
+img_resolution: 16
+diffusion_steps: 36
+ema: true
+ema_warmup: 100
+label_dropout: 0.1
+guidance_scale: 1.0
+ft_method: all
+
+# DiT backbone:
+dit_patch_size: 4
+dit_hidden_size: 256
+dit_depth: 6
+dit_num_heads: 4
+dit_mlp_ratio: 4.0
+dit_num_register_tokens: 8
+dit_use_style_embed: false
+dit_use_text_encoder: true
+dit_use_fp16: false
+
+# text conditioning (online, frozen encoder):
+text_encoder_model_name: sentence-transformers/all-MiniLM-L6-v2
+text_max_length: 128
+verbalts_text_npy_name: my_text_caps
+condition_dim: 384
+
+# logging:
+logging_iter: 100
+eval_metrics: [disc, contextFID, pred, vaeFID]
+fid_vae_ckpt_root: /playpen-shared/haochenz/ImagenFew/fid_vae_ckpts
+tags: [vector-cond, dit, minilm]
+run_dir: dit_minilm/VerbalTS_istanbul_traffic/
+
+# Data
+datasets_dir: ./data/
+seq_len: 144
+pretrain: false
+eval_split: test
+datasets:
+  - name: istanbul_traffic
+    data: verbal_ts
+    rel_path: VerbalTSDatasets/istanbul_traffic
+train_on_datasets:
+  - istanbul_traffic

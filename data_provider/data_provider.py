@@ -1,6 +1,6 @@
 from data_provider.datasets import ETTh, ETTm, Custom, UEA, GLUONTS, Sine, Stock, Energy, Mujoco, PSM, MSL, SMAP, SMD, SWAT, AirQuality, AIREADI, AIREADICalorie, AIREADIGlucose, VerbalTS
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import DataLoader, Subset, TensorDataset
+from torch.utils.data import DataLoader, Dataset, Subset, TensorDataset
 from .multi_dataloader_iter import MultiDataloaderIter
 import functools
 import torch
@@ -8,11 +8,38 @@ import os
 import numpy as np
 
 
+class VerbalTSTextDataset(Dataset):
+    """Dataset wrapper for (time_series_tensor, raw_text_string)."""
+
+    def __init__(self, primary_tensor, texts):
+        if not torch.is_tensor(primary_tensor):
+            raise TypeError(f"Expected primary_tensor to be torch.Tensor, got {type(primary_tensor)}")
+        if len(primary_tensor) != len(texts):
+            raise ValueError(
+                f"Primary tensor count ({len(primary_tensor)}) does not match text count ({len(texts)})."
+            )
+        self.primary_tensor = primary_tensor
+        self.texts = list(texts)
+
+    def __len__(self):
+        return int(self.primary_tensor.shape[0])
+
+    def __getitem__(self, idx):
+        return self.primary_tensor[idx], self.texts[idx]
+
+    def subset(self, n):
+        return VerbalTSTextDataset(self.primary_tensor[:n], self.texts[:n])
+
+
 def _get_primary_tensor(dataset):
+    if isinstance(dataset, VerbalTSTextDataset):
+        return dataset.primary_tensor
     return dataset.tensors[0] if isinstance(dataset, TensorDataset) else dataset
 
 
 def _replace_primary_tensor(dataset, primary_tensor):
+    if isinstance(dataset, VerbalTSTextDataset):
+        return VerbalTSTextDataset(primary_tensor, dataset.texts)
     if isinstance(dataset, TensorDataset):
         return TensorDataset(primary_tensor, *dataset.tensors[1:])
     return primary_tensor
@@ -40,6 +67,11 @@ def _should_load_verbalts_context(args, config):
         or "ImagenFewCrossAttention" in handler
         or "ImagenTimeVectorCond" in handler
     )
+
+
+def _should_load_verbalts_tokens(args, config):
+    handler = str(getattr(args, "handler", ""))
+    return config.get("data") == "verbal_ts" and "models.DiT" in handler
 
 
 def _attach_verbalts_context(args, config, split, dataset):
@@ -78,6 +110,49 @@ def _attach_verbalts_context(args, config, split, dataset):
         args.context_dim = int(embeds.shape[-1])
 
     return TensorDataset(primary_tensor, embeds)
+
+
+def _load_caption_texts(dataset_dir, split, npy_name):
+    caps_path = os.path.join(dataset_dir, f"{split}_{npy_name}.npy")
+    if not os.path.exists(caps_path):
+        fallback_path = os.path.join(dataset_dir, f"{split}_text_caps.npy")
+        if os.path.exists(fallback_path):
+            caps_path = fallback_path
+        else:
+            raise FileNotFoundError(f"Caption file not found: {caps_path}")
+    caps = np.load(caps_path, allow_pickle=True)
+    texts = []
+    for cap in caps:
+        if isinstance(cap, np.ndarray) and cap.ndim > 0:
+            texts.append(str(cap[0]))
+        elif isinstance(cap, (list, tuple)):
+            texts.append(str(cap[0]))
+        else:
+            texts.append(str(cap))
+    return texts
+
+
+def _attach_verbalts_tokens(args, config, split, dataset):
+    if not _should_load_verbalts_tokens(args, config):
+        return dataset
+
+    dataset_dir = os.path.join(config["datasets_dir"], config["rel_path"])
+    npy_name = getattr(args, "verbalts_text_npy_name", "my_text_caps")
+
+    texts = _load_caption_texts(dataset_dir, split, npy_name)
+
+    index_order = getattr(args, "_verbalts_index_order", {}).get((config["name"], split))
+    if index_order is not None:
+        texts = [texts[int(i)] for i in index_order]
+
+    primary_tensor = _get_primary_tensor(dataset)
+    if len(primary_tensor) != len(texts):
+        raise ValueError(
+            f"Split '{split}' time-series count ({len(primary_tensor)}) does not match "
+            f"caption count ({len(texts)}) for dataset {config['name']}."
+        )
+
+    return VerbalTSTextDataset(primary_tensor, texts)
 
 data_dict = {
     'ETTh1': ETTh,
@@ -163,8 +238,12 @@ def data_provider(args):
         args._verbalts_index_order[(config["name"], "train")] = _resolve_subset_indices(trainset)
         args._verbalts_index_order[(config["name"], "test")] = _resolve_subset_indices(testset)
         trainset, testset = dataset_to_tensor(trainset, args), dataset_to_tensor(testset, args)
-        trainset = _attach_verbalts_context(args, config, "train", trainset)
-        testset = _attach_verbalts_context(args, config, "test", testset)
+        if _should_load_verbalts_tokens(args, config):
+            trainset = _attach_verbalts_tokens(args, config, "train", trainset)
+            testset = _attach_verbalts_tokens(args, config, "test", testset)
+        else:
+            trainset = _attach_verbalts_context(args, config, "train", trainset)
+            testset = _attach_verbalts_context(args, config, "test", testset)
 
         caption_embeddings_path = getattr(args, "caption_embeddings_path", None)
         if caption_embeddings_path and config["name"] in args.train_on_datasets:
@@ -177,12 +256,13 @@ def data_provider(args):
                 raise ValueError(
                     f"Expected caption embeddings with shape (N, C, D), got {tuple(caption_embeddings.shape)}"
                 )
-            if caption_embeddings.shape[0] != trainset.shape[0]:
+            train_primary = _get_primary_tensor(trainset)
+            if caption_embeddings.shape[0] != train_primary.shape[0]:
                 raise ValueError(
                     f"Caption embedding count ({caption_embeddings.shape[0]}) does not match "
-                    f"train set size ({trainset.shape[0]}) for dataset {config['name']}."
+                    f"train set size ({train_primary.shape[0]}) for dataset {config['name']}."
                 )
-            trainset = TensorDataset(trainset, caption_embeddings.to(torch.float32))
+            trainset = TensorDataset(train_primary, caption_embeddings.to(torch.float32))
 
         if args.finetune:
             train_seq_tensor = _get_primary_tensor(trainset)

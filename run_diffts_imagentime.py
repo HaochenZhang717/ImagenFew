@@ -19,6 +19,8 @@ from importlib import import_module
 
 
 def _extract_real_tensor(dataset):
+    if hasattr(dataset, "primary_tensor"):
+        return dataset.primary_tensor
     if hasattr(dataset, "tensors"):
         return dataset.tensors[0]
     if isinstance(dataset, (tuple, list)):
@@ -27,6 +29,10 @@ def _extract_real_tensor(dataset):
 
 
 def _slice_eval_dataset(dataset, eval_n):
+    if hasattr(dataset, "subset"):
+        return dataset.subset(eval_n)
+    if hasattr(dataset, "primary_tensor") and hasattr(dataset, "texts"):
+        return type(dataset)(dataset.primary_tensor[:eval_n], dataset.texts[:eval_n])
     if hasattr(dataset, "tensors"):
         return type(dataset)(*(tensor[:eval_n] for tensor in dataset.tensors))
     return dataset[:eval_n]
