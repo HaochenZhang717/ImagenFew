@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=verbalts_istanbul
-#SBATCH --partition=blackwell
+#SBATCH --partition=all
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -91,3 +91,4 @@ printf ' %q' "${CMD[@]}"
 printf '\n'
 
 "${CMD[@]}"
+# CONDA_ENV=vlm sbatch ./scripts/istanbul_traffic/train_slurm.sh
