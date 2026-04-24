@@ -380,18 +380,10 @@ class FrozenTextEncoder(nn.Module):
         self,
         texts: Union[str, List[str]],
         device: torch.device,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        if isinstance(texts, str):
-            texts = [texts]
-        encoded = self.tokenizer(
-            list(texts),
-            padding="max_length",
-            truncation=True,
-            max_length=self.max_length,
-            return_tensors="pt",
-        )
-        encoded_input = self.tokenizer(texts, padding=True, truncation=True, return_tensors='pt')
+    ) -> torch.Tensor:
 
+        encoded_input = self.tokenizer(texts, padding=True, truncation=True, return_tensors='pt')
+        encoded_input = {k: v.to(device) for k, v in encoded_input.items()}
         # Compute token embeddings
         with torch.no_grad():
             model_output = self.model(**encoded_input)
