@@ -25,6 +25,7 @@ class Handler(generativeHandler):
 
     def _split_train_batch(self, data):
         sample = data[0]
+        breakpoint()
         if isinstance(sample, (tuple, list)):
             x_ts = sample[0]
             if len(sample) <= 1:
