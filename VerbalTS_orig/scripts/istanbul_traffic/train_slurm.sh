@@ -92,3 +92,5 @@ printf '\n'
 
 "${CMD[@]}"
 # CONDA_ENV=vlm sbatch ./scripts/istanbul_traffic/train_slurm.sh
+# ls /playpen-shared/haochenz/logs/slurm
+# cat /playpen-shared/haochenz/logs/slurm/verbalts_istanbul_7769.err

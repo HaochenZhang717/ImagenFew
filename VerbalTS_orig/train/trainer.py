@@ -6,7 +6,7 @@ from torch.optim import Adam
 from data import GenerationDataset
 from evaluation.base_evaluator import BaseEvaluator
 import wandb
-
+import copy
 
 class Trainer:
     """
