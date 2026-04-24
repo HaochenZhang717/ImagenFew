@@ -1,0 +1,17 @@
+python run.py \
+    --cond_modal simple_text \
+    --training_stage finetune \
+    --save_folder ./save/synth-u_eval/text2ts_msmdiffmv \
+    --model_diff_config_path /playpen-shared/haochenz/sweep_text2ts/synth_u/orig_verbalts_orig_cap_precompute_embed-lr1e-3_bs512_multistep/0/model_diff_configs.yaml \
+    --model_cond_config_path /playpen-shared/haochenz/sweep_text2ts/synth_u/orig_verbalts_orig_cap_precompute_embed-lr1e-3_bs512_multistep/0/model_cond_configs.yaml \
+    --train_config_path /playpen-shared/haochenz/sweep_text2ts/synth_u/orig_verbalts_orig_cap_precompute_embed-lr1e-3_bs512_multistep/0/train_configs.yaml \
+    --evaluate_config_path /playpen-shared/haochenz/sweep_text2ts/synth_u/orig_verbalts_orig_cap_precompute_embed-lr1e-3_bs512_multistep/0/eval_configs.yaml \
+    --data_folder ../data/VerbalTSDatasets/synthetic_u \
+    --clip_folder "" \
+    --multipatch_num 3 \
+    --L_patch_len 2 \
+    --base_patch 4 \
+    --epochs 700 \
+    --batch_size 512 \
+    --clip_cache_path ./cache/synth-m \
+    --only_evaluate true

@@ -124,8 +124,18 @@ def main(args):
                 handler.save_model(_checkpoint_path_for_epoch(args, epoch))
                 if not args.no_test_model:
                     scores_mean = {}
+                    test_loss_values = []
                     for dataset in args.train_on_datasets:
                         args.dataset = dataset
+                        loss_testset, _ = dataset_loader.gen_dataloader(dataset)
+                        if args.subset_n is not None:
+                            loss_eval_n = min(int(args.subset_n), len(loss_testset))
+                            loss_testset = _slice_eval_dataset(loss_testset, loss_eval_n)
+                        handler.model.eval()
+                        test_loss = handler.evaluate_loss(loss_testset)
+                        test_loss_values.append(test_loss)
+                        logger.log(f'test_loss/{dataset}_karras loss', test_loss, epoch)
+
                         if eval_split == "train":
                             testset = trainsets[dataset]
                             class_label = dataset_list.index(dataset)
@@ -162,6 +172,8 @@ def main(args):
                         for key, value in scores.items():
                             logger.log(f'{eval_split}/{dataset}_{key}', value, epoch)
                     if is_main_process():
+                        if test_loss_values:
+                            logger.log('test_loss/karras loss', np.mean(test_loss_values), epoch)
                         for key, values in scores_mean.items():
                             logger.log(f'{eval_split}/{key}', np.mean(values), epoch)
 

@@ -6,6 +6,7 @@ import os
 import torch
 import logging
 from torch.utils.data import TensorDataset
+from contextlib import nullcontext
 
 
 class Handler(generativeHandler):
@@ -123,6 +124,13 @@ class Handler(generativeHandler):
             return int(condition_batch[0].shape[0])
         return int(condition_batch.shape[0])
 
+    def _compute_batch_loss(self, x_ts, condition_text):
+        x_ts = x_ts.to(self.args.device, dtype=torch.float32)
+        x_img = self.model.ts_to_img(x_ts)
+        output, weight = self.model(x_img, text_condition=condition_text)
+        time_loss = (output - x_img).square()
+        return (weight * time_loss).mean()
+
     def train_iter(self, train_dataloader, logger):
         epoch = getattr(self, "epoch", None)
         train_loss = 0.0
@@ -131,12 +139,7 @@ class Handler(generativeHandler):
             self.optimizer.zero_grad()
 
             x_ts, condition_text = self._split_train_batch(data)
-            x_ts = x_ts.to(self.args.device, dtype=torch.float32)
-
-            x_img = self.model.ts_to_img(x_ts)
-            output, weight = self.model(x_img, text_condition=condition_text)
-            time_loss = (output - x_img).square()
-            loss = (weight * time_loss).mean()
+            loss = self._compute_batch_loss(x_ts, condition_text)
             train_loss += loss.item()
             num_batches += 1
 
@@ -146,6 +149,32 @@ class Handler(generativeHandler):
             self.model.on_train_batch_end()
 
         logger.log("train/karras loss", train_loss / num_batches, step=epoch)
+
+    def evaluate_loss(self, eval_data, batch_size=None, use_ema=True):
+        x_ts_bank, condition_bank = self._split_condition_data(eval_data)
+        n_samples = int(x_ts_bank.shape[0])
+        if n_samples == 0:
+            raise ValueError("Cannot evaluate loss on an empty dataset.")
+
+        eval_batch_size = int(batch_size or getattr(self.args, "batch_size", n_samples))
+        condition_bank = self._prepare_condition_vectors(condition_bank, n_samples=n_samples)
+
+        total_loss = 0.0
+        total_count = 0
+        ema_ctx = self._model.ema_scope() if use_ema and hasattr(self._model, "ema_scope") else nullcontext()
+
+        with torch.no_grad():
+            with ema_ctx:
+                for start in range(0, n_samples, eval_batch_size):
+                    end = min(start + eval_batch_size, n_samples)
+                    x_ts = x_ts_bank[start:end]
+                    condition_batch = self._slice_condition_batch(condition_bank, start, end)
+                    loss = self._compute_batch_loss(x_ts, condition_batch)
+                    batch_count = end - start
+                    total_loss += float(loss.item()) * batch_count
+                    total_count += batch_count
+
+        return total_loss / max(total_count, 1)
 
     def sample(self, n_samples, class_label, class_metadata, test_data=None):
         generated_set = []
