@@ -19,9 +19,9 @@ else
   WORK_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 fi
 
-if [[ -d "$WORK_DIR/VerbalTS" ]]; then
-  PROJECT_DIR="$WORK_DIR/VerbalTS"
-elif [[ "$(basename "$WORK_DIR")" == "VerbalTS" ]]; then
+if [[ -d "$WORK_DIR/VerbalTS_orig" ]]; then
+  PROJECT_DIR="$WORK_DIR/VerbalTS_orig"
+elif [[ "$(basename "$WORK_DIR")" == "VerbalTS_orig" ]]; then
   PROJECT_DIR="$WORK_DIR"
 else
   echo "Could not infer VerbalTS project directory from WORK_DIR=$WORK_DIR" >&2
