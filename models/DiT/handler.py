@@ -25,13 +25,12 @@ class Handler(generativeHandler):
 
     def _split_train_batch(self, data):
         sample = data[0]
-        breakpoint()
         if isinstance(sample, (tuple, list)):
             x_ts = sample[0]
             if len(sample) <= 1:
                 condition_vectors = None
             elif len(sample) == 2:
-                condition_vectors = sample[1]
+                condition_vectors = list(sample[1])
             else:
                 condition_vectors = tuple(sample[1:])
         else:
@@ -132,12 +131,10 @@ class Handler(generativeHandler):
             self.optimizer.zero_grad()
 
             x_ts, condition_text = self._split_train_batch(data)
-            breakpoint()
             x_ts = x_ts.to(self.args.device, dtype=torch.float32)
-            condition_vectors = self._prepare_condition_vectors(condition_vectors, n_samples=x_ts.shape[0])
 
             x_img = self.model.ts_to_img(x_ts)
-            output, weight = self.model(x_img, text_condition=condition_vectors)
+            output, weight = self.model(x_img, text_condition=condition_text)
             time_loss = (output - x_img).square()
             loss = (weight * time_loss).mean()
             train_loss += loss.item()

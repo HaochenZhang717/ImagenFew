@@ -551,7 +551,7 @@ class DriftDiT(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        text_condition: Optional[Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor], List[str], str]],
+        text_condition:  List[str],
         alpha: torch.Tensor,
         force_drop_ids: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
@@ -560,8 +560,7 @@ class DriftDiT(nn.Module):
 
         Args:
             x: Noisy input image, shape (B, C, H, W)
-            text_condition: Conditioning token vectors, shape (B, N_ctx, D_ctx) or (B, D_ctx),
-                or token ids tuple (input_ids, attention_mask)
+            text_condition: list of string
             alpha: Noise embedding scalar, shape (B,)
             force_drop_ids: Force condition dropout for specific samples
 

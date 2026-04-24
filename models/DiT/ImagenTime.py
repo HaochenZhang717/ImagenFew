@@ -64,7 +64,7 @@ class ImagenTime(nn.Module):
     def img_to_ts(self, img):
         return self.ts_img.img_to_ts(img)
 
-    def forward(self, x, text_condition=None):
+    def forward(self, x, text_condition):
         rnd_normal = torch.randn([x.shape[0], 1, 1, 1], device=x.device)
         sigma = (rnd_normal * self.P_std + self.P_mean).exp()
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
