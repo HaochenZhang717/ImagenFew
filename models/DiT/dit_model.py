@@ -393,7 +393,7 @@ class FrozenTextEncoder(nn.Module):
         input_ids = encoded["input_ids"].to(device=device, dtype=torch.long)
         attention_mask = encoded["attention_mask"].to(device=device, dtype=torch.long)
         model_output = self.forward(input_ids=input_ids, attention_mask=attention_mask)
-        sentence_embeddings = self.mean_pooling(model_output, encoded_input['attention_mask'])
+        sentence_embeddings = self.mean_pooling(model_output, attention_mask)
         sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
 
         return sentence_embeddings
