@@ -5,7 +5,6 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:1
-#SBATCH --mem=96G
 #SBATCH --time=2-00:00:00
 #SBATCH --output=/playpen-shared/haochenz/logs/slurm/%x_%j.out
 #SBATCH --error=/playpen-shared/haochenz/logs/slurm/%x_%j.err
