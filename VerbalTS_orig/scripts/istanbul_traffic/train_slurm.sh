@@ -73,7 +73,6 @@ CMD=(
   --evaluate_config_path configs/istanbul_traffic/evaluate.yaml
   --data_folder ../data/VerbalTSDatasets/istanbul_traffic
   --clip_folder ""
-  --only_evaluate True
   --multipatch_num 3
   --L_patch_len 3
   --base_patch 4
