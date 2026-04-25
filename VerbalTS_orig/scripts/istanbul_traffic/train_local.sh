@@ -1,0 +1,17 @@
+python run.py \
+  --cond_modal text \
+  --training_stage finetune \
+  --save_folder ./logs/istanbul_traffic/text2ts_msmdiffmv \
+  --model_diff_config_path configs/istanbul_traffic/diff/model_text2ts_dep.yaml \
+  --model_cond_config_path configs/istanbul_traffic/cond/text_msmdiffmv.yaml \
+  --train_config_path configs/istanbul_traffic/train.yaml \
+  --evaluate_config_path configs/istanbul_traffic/evaluate.yaml \
+  --data_folder ../data/VerbalTSDatasets/istanbul_traffic \
+  --clip_folder "" \
+  --only_evaluate True \
+  --multipatch_num 3 \
+  --L_patch_len 3 \
+  --base_patch 4 \
+  --epochs 1000 \
+  --batch_size 512 \
+  --clip_cache_path ""
