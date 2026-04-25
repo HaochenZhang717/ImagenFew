@@ -32,7 +32,7 @@ class DDIMSampler(BaseSampler):
         Eq.12 in the DDIM paper.
         """
         pred_x0 = self.predict_x0(xt, pred_noise, t)
-        
+        pred_x0 = pred_x0.clamp(-3, 3)
         mask = (t == 0).unsqueeze(-1).unsqueeze(-1)
 
         coef1 = self.alpha_bar_sqrt[t-1]

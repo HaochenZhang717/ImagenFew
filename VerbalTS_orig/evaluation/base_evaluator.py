@@ -175,10 +175,10 @@ class BaseEvaluator:
             gen_sig=all_samples,
             dataset="istanbul_traffic",
             device="cuda" if torch.cuda.is_available() else "cpu",
-            eval_metrics=['disc', 'vae_fid'],
+            eval_metrics=['disc', 'vaeFID'],
             metric_iteration=10,
             base_path=None,
             vae_ckpt_root="/playpen-shared/haochenz/ImagenFew/fid_vae_ckpts"
         )
-        breakpoint()
-        return res_dict
+
+        return metrics

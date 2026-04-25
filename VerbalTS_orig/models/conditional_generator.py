@@ -127,7 +127,6 @@ class ConditionalGenerator(nn.Module):
                 if "text" in self.cond_configs["cond_modal"] and "diffstep" in self.cond_configs["text"]["text_projector"]:
                     attr_emb = self.cond_projector(attr_emb_raw, t)
                 pred_noise, _ = self.generator.predict_noise(x, tp, attr_emb, t)
-                pred_noise = pred_noise.clamp(min=-10, max=10)
                 if sampler == "ddpm":
                     x = self.generator.ddpm.reverse(x, pred_noise, t, noise)
                 else:
