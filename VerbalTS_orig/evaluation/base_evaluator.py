@@ -159,7 +159,6 @@ class BaseEvaluator:
                         "Batch Time {:.2f}s".format(end_time-start_time))
 
 
-        cttp /= sample_num
         print("Done!")
         res_dict = {
             "tensorboard":{},
