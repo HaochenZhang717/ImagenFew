@@ -156,7 +156,7 @@ class Trainer:
         avg_loss_valid = 0
         with torch.no_grad():
             for batch_no, valid_batch in enumerate(self.valid_loader):
-                loss_dict = self.model(valid_batch, is_train=False)
+                loss_dict = self.ema_model(valid_batch, is_train=False)
                 avg_loss_valid += loss_dict["all"].item()
 
         avg_loss_valid = avg_loss_valid/len(self.valid_loader)
@@ -181,4 +181,3 @@ class Trainer:
             "ema_model": self.ema_model.state_dict(),
             "comment": comment,
         }, path)
-
