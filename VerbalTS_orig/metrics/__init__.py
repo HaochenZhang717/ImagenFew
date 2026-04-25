@@ -1,6 +1,6 @@
 from metrics.discriminative_torch import discriminative_score_metrics
-from .context_fid import Context_FID
-from .vae_fid import VAE_FID
+from metrics.context_fid import Context_FID
+from metrics.vae_fid import VAE_FID
 import numpy as np
 import torch
 from tqdm import tqdm
