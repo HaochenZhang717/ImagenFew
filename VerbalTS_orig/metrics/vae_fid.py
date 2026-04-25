@@ -8,8 +8,8 @@ from scipy.linalg import sqrtm
 
 
 def _load_fid_vae_class():
-    module_path = Path(__file__).resolve().parents[1] / "fid_vae.py"
-    spec = importlib.util.spec_from_file_location("verbalts_fid_vae", module_path)
+    # module_path = Path(__file__).resolve().parents[1] / "VerbalTS" / "fid_vae.py"
+    # spec = importlib.util.spec_from_file_location("verbalts_fid_vae", module_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Unable to load FIDVAE from {module_path}")
     module = importlib.util.module_from_spec(spec)
@@ -17,8 +17,8 @@ def _load_fid_vae_class():
     return module.FIDVAE
 
 
-FIDVAE = _load_fid_vae_class()
-
+# FIDVAE = _load_fid_vae_class()
+from fid_vae import FIDVAE
 
 _DEFAULT_CKPT_DIR_CANDIDATES = (
     os.getenv("FID_VAE_CKPT_ROOT"),
