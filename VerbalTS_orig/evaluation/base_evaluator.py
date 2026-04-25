@@ -151,7 +151,8 @@ class BaseEvaluator:
                 cap_tokens = batch["cap"]
 
                 all_real.append(ts.detach().cpu())
-                all_samples.append(pred.detach().cpu())
+                # all_samples.append(pred.detach().cpu())
+                all_samples.append(multi_preds[0].detach().cpu())
 
                 end_time = time.time()
                 if (batch_no+1)%self.display_epoch_interval == 0:
@@ -167,6 +168,7 @@ class BaseEvaluator:
 
         all_real = torch.cat(all_real)
         all_samples = torch.cat(all_samples)
+        print(f"all_samples max, min: {all_samples.max(), all_samples.min()}")
 
         metrics = evaluate_model_uncond(
             real_sig=all_real,
