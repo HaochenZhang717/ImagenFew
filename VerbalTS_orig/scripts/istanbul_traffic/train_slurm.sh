@@ -74,6 +74,7 @@ CMD=(
   --evaluate_config_path configs/istanbul_traffic/evaluate.yaml
   --data_folder ../data/VerbalTSDatasets/istanbul_traffic
   --clip_folder ""
+  --only_evaluate True
   --multipatch_num 3
   --L_patch_len 3
   --base_patch 4
@@ -93,4 +94,4 @@ printf '\n'
 "${CMD[@]}"
 # CONDA_ENV=vlm sbatch ./scripts/istanbul_traffic/train_slurm.sh
 # ls /playpen-shared/haochenz/logs/slurm
-# cat /playpen-shared/haochenz/logs/slurm/verbalts_istanbul_7769.err
+# cat /playpen-shared/haochenz/logs/slurm/verbalts_istanbul_7776.err

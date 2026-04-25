@@ -110,7 +110,7 @@ class BaseEvaluator:
         self.model = model
         if self.model_path != "":
             print("Loading pretrained model from {}".format(self.model_path))
-            self.model.load_state_dict(torch.load(self.model_path))
+            self.model.load_state_dict(torch.load(self.model_path)['ema_model'])
 
     def _init_data(self, dataset):
         self.dataset = dataset
