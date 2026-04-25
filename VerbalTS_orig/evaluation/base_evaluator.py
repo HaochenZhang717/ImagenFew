@@ -149,7 +149,6 @@ class BaseEvaluator:
                 ts = batch["ts"].to(self.model.device).float()
                 ts_len = batch["ts_len"].to(self.model.device).int()
                 cap_tokens = batch["cap"]
-                cap_emb = self.clip.get_text_coemb(cap_tokens, None)
 
                 all_real.append(ts.detach().cpu())
                 all_samples.append(pred.detach().cpu())
