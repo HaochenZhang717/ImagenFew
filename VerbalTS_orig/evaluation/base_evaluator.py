@@ -8,6 +8,8 @@ import tqdm
 import numpy as np
 from scipy import linalg
 import random
+from metrics import evaluate_model_uncond
+
 
 def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
 
@@ -133,6 +135,10 @@ class BaseEvaluator:
         cttp = 0
         sample_num = 0
 
+
+        all_real = []
+        all_samples = []
+
         with torch.no_grad():
             for batch_no, batch in enumerate(self.test_loader):
                 start_time = time.time()
@@ -140,47 +146,41 @@ class BaseEvaluator:
                 multi_preds = multi_preds.permute(0,1,3,2)
                 pred = multi_preds.median(dim=0).values
 
-                breakpoint()
                 ts = batch["ts"].to(self.model.device).float()
                 ts_len = batch["ts_len"].to(self.model.device).int()
                 cap_tokens = batch["cap"]
                 cap_emb = self.clip.get_text_coemb(cap_tokens, None)
 
+                all_real.append(ts.detach().cpu())
+                all_samples.append(pred.detach().cpu())
 
                 end_time = time.time()
                 if (batch_no+1)%self.display_epoch_interval == 0:
                     print("Batch", batch_no, 
                         "Batch Time {:.2f}s".format(end_time-start_time))
+
+
         cttp /= sample_num
         print("Done!")
         res_dict = {
             "tensorboard":{},
             "df":{},
         }
-        if "clip_config_path" in self.configs.keys():
-            res_dict["tensorboard"].update({"cttp": cttp})
-            res_dict["df"].update({"cttp": cttp})
-            fid = None
-            jftsd = None
-            tsgen_emb = []
-            joint_emb = []
 
-            all_tsgen_emb = torch.cat(all_tsgen_emb, dim=0).cpu().numpy()
-            tsgen_mean = np.mean(all_tsgen_emb, axis=0)
-            tsgen_var = np.cov(all_tsgen_emb, rowvar=False)
-            fid = calculate_frechet_distance(self.ts_mean, self.ts_cov, tsgen_mean, tsgen_var)
-            all_joint_emb = torch.cat(all_joint_emb, dim=0).cpu().numpy()
-            joint_mean = np.mean(all_joint_emb, axis=0)
-            joint_var = np.cov(all_joint_emb, rowvar=False)
-            jftsd = calculate_frechet_distance(self.joint_mean, self.joint_cov, joint_mean, joint_var)
-            
-            res_dict["tensorboard"].update({"fid":fid})
-            res_dict["df"].update({"fid":fid})
-            res_dict["tensorboard"].update({"jftsd":jftsd})
-            res_dict["df"].update({"jftsd":jftsd})
-            
-            print("FID: ", fid)
-            print("JFTSD: ", jftsd)
-            print("CTTP ", cttp)
+        all_real = torch.cat(all_real)
+        all_samples = torch.cat(all_samples)
+        print(f"all_real max, min: {all_real.max(), all_real.min()}")
+        print(f"all_samples max, min: {all_samples.max(), all_samples.min()}")
 
+        metrics = evaluate_model_uncond(
+            real_sig=all_real,
+            gen_sig=all_samples,
+            dataset="istanbul_traffic",
+            device="cuda" if torch.cuda.is_available() else "cpu",
+            eval_metrics=['disc', 'vae_fid'],
+            metric_iteration=10,
+            base_path=None,
+            vae_ckpt_root="/playpen-shared/haochenz/ImagenFew/fid_vae_ckpts"
+        )
+        breakpoint()
         return res_dict
