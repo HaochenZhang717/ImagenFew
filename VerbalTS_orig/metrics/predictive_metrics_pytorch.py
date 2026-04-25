@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from utils.utils import extract_time
+from utils import extract_time
 
 
 class PostHocGRUPredictor(nn.Module):
