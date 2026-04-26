@@ -1,7 +1,7 @@
 python run.py \
   --cond_modal text \
   --training_stage finetune \
-  --save_folder ./logs/istanbul_traffic/text2ts_msmdiffmv \
+  --save_folder ./logs/istanbul_traffic_0425/text2ts_msmdiffmv \
   --model_diff_config_path configs/istanbul_traffic/diff/model_text2ts_dep.yaml \
   --model_cond_config_path configs/istanbul_traffic/cond/text_msmdiffmv.yaml \
   --train_config_path configs/istanbul_traffic/train.yaml \
