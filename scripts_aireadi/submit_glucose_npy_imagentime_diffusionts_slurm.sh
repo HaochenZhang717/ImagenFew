@@ -44,12 +44,25 @@ set -euo pipefail
 cd "$ROOT_DIR"
 source ~/.zshrc >/dev/null 2>&1 || true
 
-if [[ -n "$CONDA_ENV" ]]; then
+if [[ -n "\$CONDA_ENV" ]]; then
+  CONDA_BIN=""
   if command -v conda >/dev/null 2>&1; then
-    eval "\$(conda shell.bash hook)"
-    conda activate "$CONDA_ENV"
+    CONDA_BIN="\$(command -v conda)"
+  elif [[ -x "/playpen/haochenz/miniconda3/bin/conda" ]]; then
+    CONDA_BIN="/playpen/haochenz/miniconda3/bin/conda"
+  elif [[ -x "/playpen-shared/haochenz/miniconda3/bin/conda" ]]; then
+    CONDA_BIN="/playpen-shared/haochenz/miniconda3/bin/conda"
+  elif [[ -x "\$HOME/miniconda3/bin/conda" ]]; then
+    CONDA_BIN="\$HOME/miniconda3/bin/conda"
+  elif [[ -x "\$HOME/anaconda3/bin/conda" ]]; then
+    CONDA_BIN="\$HOME/anaconda3/bin/conda"
+  fi
+
+  if [[ -n "\$CONDA_BIN" ]]; then
+    eval "\$("\$CONDA_BIN" shell.bash hook)"
+    conda activate "\$CONDA_ENV"
   else
-    echo "CONDA_ENV is set to '$CONDA_ENV', but conda is not available in PATH." >&2
+    echo "CONDA_ENV is set to '\$CONDA_ENV', but no usable conda binary was found." >&2
     exit 1
   fi
 fi
