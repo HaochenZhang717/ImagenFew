@@ -32,7 +32,7 @@ class Dataset_NpyTimeSeries(Dataset):
         self.flag = flag
         self.scale = scale
         self.dataset_dir = os.path.join(root_path, rel_path)
-        self.scaler = StandardScaler()
+        self.scaler = None
 
         split = self.SPLIT_MAP[flag]
         train_data = self._load_array("train_ts.npy")
@@ -51,14 +51,43 @@ class Dataset_NpyTimeSeries(Dataset):
             raise ValueError(f"Expected {path} to have shape (N, T, C) or (N, T), got {data.shape}")
         return torch.from_numpy(data).to(torch.float32)
 
+    def _scale_mode(self):
+        if self.scale is True:
+            return "standard"
+        if self.scale is False or self.scale is None:
+            return "none"
+        return str(self.scale).lower()
+
     def _scale_data(self, train_data, current_data):
-        if not self.scale:
+        mode = self._scale_mode()
+        if mode in {"none", "false", "0"}:
             return current_data
 
         num_features = train_data.shape[-1]
-        self.scaler.fit(train_data.reshape(-1, num_features).cpu().numpy())
+        train_np = train_data.reshape(-1, num_features).cpu().numpy()
         current_np = current_data.reshape(-1, num_features).cpu().numpy()
-        scaled = self.scaler.transform(current_np)
+
+        if mode in {"standard", "standardize", "zscore", "true", "1"}:
+            self.scaler = StandardScaler()
+            self.scaler.fit(train_np)
+            scaled = self.scaler.transform(current_np)
+        elif mode in {"minmax", "minmax11", "minus_one_one", "-1,1", "[-1,1]"}:
+            data_min = train_np.min(axis=0, keepdims=True)
+            data_max = train_np.max(axis=0, keepdims=True)
+            denom = data_max - data_min
+            denom = np.where(denom == 0, 1.0, denom)
+            scaled = 2.0 * ((current_np - data_min) / denom) - 1.0
+            self.scaler = {
+                "mode": "minmax",
+                "min": data_min.astype(np.float32),
+                "max": data_max.astype(np.float32),
+            }
+        else:
+            raise ValueError(
+                f"Unsupported scale mode '{self.scale}'. "
+                "Use false, true/standard, or minmax for [-1, 1] scaling."
+            )
+
         return torch.from_numpy(scaled.reshape(current_data.shape)).to(torch.float32)
 
     def __getitem__(self, index):
@@ -76,7 +105,17 @@ class Dataset_NpyTimeSeries(Dataset):
         else:
             data_np = np.asarray(data)
 
-        restored = self.scaler.inverse_transform(data_np.reshape(-1, num_features)).reshape(original_shape)
+        flat = data_np.reshape(-1, num_features)
+        mode = self._scale_mode()
+        if mode in {"standard", "standardize", "zscore", "true", "1"}:
+            restored = self.scaler.inverse_transform(flat).reshape(original_shape)
+        elif mode in {"minmax", "minmax11", "minus_one_one", "-1,1", "[-1,1]"}:
+            data_min = self.scaler["min"]
+            data_max = self.scaler["max"]
+            restored = ((flat + 1.0) / 2.0) * (data_max - data_min) + data_min
+            restored = restored.reshape(original_shape)
+        else:
+            restored = data_np
         if torch.is_tensor(data):
             return torch.from_numpy(restored).to(data.dtype)
         return restored

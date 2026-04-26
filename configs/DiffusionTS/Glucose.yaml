@@ -50,6 +50,6 @@ datasets:
   - name: AIREADIGlucose
     data: npy_ts
     rel_path: glucose
-    scale: true
+    scale: minmax
 train_on_datasets:
   - AIREADIGlucose

@@ -190,4 +190,7 @@ class BaseEvaluator:
             vae_ckpt_root="/playpen-shared/haochenz/ImagenFew/fid_vae_ckpts"
         )
 
+        for k, v in metrics.items():
+            print(f"{k}: {v}")
+
         return metrics
