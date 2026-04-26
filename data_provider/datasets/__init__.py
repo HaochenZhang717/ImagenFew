@@ -17,6 +17,7 @@ from .mujoco import Mujoco
 from .air_quality import AirQuality
 from .aireadi import AIREADI, AIREADICalorie, AIREADIGlucose
 from .verbal_ts import VerbalTS
+from .npy_ts import NpyTimeSeries
 
 from .MSL import MSL
 from .PSM import PSM

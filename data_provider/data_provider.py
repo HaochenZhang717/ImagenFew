@@ -1,4 +1,4 @@
-from data_provider.datasets import ETTh, ETTm, Custom, UEA, GLUONTS, Sine, Stock, Energy, Mujoco, PSM, MSL, SMAP, SMD, SWAT, AirQuality, AIREADI, AIREADICalorie, AIREADIGlucose, VerbalTS
+from data_provider.datasets import ETTh, ETTm, Custom, UEA, GLUONTS, Sine, Stock, Energy, Mujoco, PSM, MSL, SMAP, SMD, SWAT, AirQuality, AIREADI, AIREADICalorie, AIREADIGlucose, VerbalTS, NpyTimeSeries
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader, Dataset, Subset, TensorDataset
 from .multi_dataloader_iter import MultiDataloaderIter
@@ -176,6 +176,7 @@ data_dict = {
     'AIREADICalorie': AIREADICalorie,
     'AIREADIGlucose': AIREADIGlucose,
     'verbal_ts': VerbalTS,
+    'npy_ts': NpyTimeSeries,
 }
 
 def random_permute(trainset, testset):

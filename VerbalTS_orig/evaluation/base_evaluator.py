@@ -170,6 +170,11 @@ class BaseEvaluator:
         all_samples = torch.cat(all_samples)
         print(f"all_samples max, min: {all_samples.max(), all_samples.min()}")
         print(f"all real max, min: {all_real.max(), all_real.min()}")
+
+        print("real mean/std:", all_real.mean(), all_real.std())
+        print("sample mean/std:", all_samples.mean(), all_samples.std())
+
+
         metrics = evaluate_model_uncond(
             real_sig=all_real,
             gen_sig=all_samples,
