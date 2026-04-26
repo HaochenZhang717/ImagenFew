@@ -174,6 +174,8 @@ class BaseEvaluator:
         print("real mean/std:", all_real.mean(), all_real.std())
         print("sample mean/std:", all_samples.mean(), all_samples.std())
 
+        flat_real = all_real.flatten()
+        flat_sample = all_samples.flatten()
         print("real quantiles:", torch.quantile(flat_real, torch.tensor([0.001, 0.01, 0.5, 0.99, 0.999])))
         print("sample quantiles:", torch.quantile(flat_sample, torch.tensor([0.001, 0.01, 0.5, 0.99, 0.999])))
 
