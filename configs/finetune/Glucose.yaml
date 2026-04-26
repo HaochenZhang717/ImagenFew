@@ -21,6 +21,8 @@ ema_warmup: 100
 
 # logging:
 logging_iter: 100
+eval_metrics: [vaeFID]
+fid_vae_ckpt_root: /playpen-shared/haochenz/ImagenFew/fid_vae_ckpts
 tags: []
 run_dir: ImagenFew/glucose_npy/
 

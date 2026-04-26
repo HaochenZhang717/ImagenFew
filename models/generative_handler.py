@@ -38,5 +38,8 @@ class generativeHandler(ABC):
     def sample(self, n_samples, class_label, class_metadata, test_data=None):
         pass
 
+    def sample_variants(self, n_samples, class_label, class_metadata, test_data=None):
+        return {"posterior": self.sample(n_samples, class_label, class_metadata, test_data)}
+
     def save_model(self, ckpt_dir):
         torch.save(self._model.state_dict(), ckpt_dir)

@@ -44,6 +44,8 @@ datasets_dir: ./data/
 epochs: 1000
 seq_len: 128
 logging_iter: 100
+eval_metrics: [vaeFID]
+fid_vae_ckpt_root: /playpen-shared/haochenz/Drift/fid_vae_ckpts
 run_dir: DiffusionTS/glucose_npy/
 
 datasets:
