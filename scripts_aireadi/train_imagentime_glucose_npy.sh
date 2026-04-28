@@ -53,7 +53,7 @@ echo "SUBSET_P=$SUBSET_P"
 echo "USE_WANDB=$USE_WANDB"
 
 CMD=(
-  python run.py
+  python run_diffts_imagentime.py
   --config "$CONFIG"
   --subset_p "$SUBSET_P"
 )

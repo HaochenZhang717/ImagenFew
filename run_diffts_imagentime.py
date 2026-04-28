@@ -104,7 +104,7 @@ def main(args):
 
         # --- train model ---
         best_score = float('inf')  # marginal score for long-range metrics, dice score for short-range metrics
-        eval_split = getattr(args, "eval_split", "train")
+        eval_split = getattr(args, "eval_split", None) or "test"
         for epoch in range(1, args.epochs):
             handler.model.train()
             handler.epoch = epoch
@@ -127,14 +127,15 @@ def main(args):
                     test_loss_values = []
                     for dataset in args.train_on_datasets:
                         args.dataset = dataset
-                        loss_testset, _ = dataset_loader.gen_dataloader(dataset)
-                        if args.subset_n is not None:
-                            loss_eval_n = min(int(args.subset_n), len(loss_testset))
-                            loss_testset = _slice_eval_dataset(loss_testset, loss_eval_n)
-                        handler.model.eval()
-                        test_loss = handler.evaluate_loss(loss_testset)
-                        test_loss_values.append(test_loss)
-                        logger.log(f'test_loss/{dataset}_karras loss', test_loss, epoch)
+                        if hasattr(handler, "evaluate_loss"):
+                            loss_testset, _ = dataset_loader.gen_dataloader(dataset)
+                            if args.subset_n is not None:
+                                loss_eval_n = min(int(args.subset_n), len(loss_testset))
+                                loss_testset = _slice_eval_dataset(loss_testset, loss_eval_n)
+                            handler.model.eval()
+                            test_loss = handler.evaluate_loss(loss_testset)
+                            test_loss_values.append(test_loss)
+                            logger.log(f'test_loss/{dataset}_karras loss', test_loss, epoch)
 
                         if eval_split == "train":
                             testset = trainsets[dataset]
@@ -168,9 +169,9 @@ def main(args):
                             vae_ckpt_root=getattr(args, "fid_vae_ckpt_root", None),
                         )
                         for key, value in scores.items():
-                            scores_mean.setdefault(key, []).append(value)
-                        for key, value in scores.items():
-                            logger.log(f'{eval_split}/{dataset}_{key}', value, epoch)
+                            if value != -1:
+                                scores_mean.setdefault(key, []).append(value)
+                                logger.log(f'{eval_split}/{dataset}_{key}', value, epoch)
                     if is_main_process():
                         if test_loss_values:
                             logger.log('test_loss/karras loss', np.mean(test_loss_values), epoch)
@@ -178,9 +179,10 @@ def main(args):
                             logger.log(f'{eval_split}/{key}', np.mean(values), epoch)
 
                         # --- save checkpoint ---
-                        disc_mean = np.mean(scores_mean['disc_mean'])
-                        if disc_mean < best_score:
-                            best_score = disc_mean
+                        score_key = 'disc_mean' if scores_mean.get('disc_mean') else 'vae_fid'
+                        current_score = np.mean(scores_mean[score_key])
+                        if current_score < best_score:
+                            best_score = current_score
                             handler.save_model(args.log_dir)
                 else:
                     handler.save_model(args.log_dir)

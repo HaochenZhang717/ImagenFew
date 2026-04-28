@@ -70,7 +70,7 @@ def main(args):
         start_epoch = getattr(handler, 'resume_epoch', 0) + 1
         if start_epoch > 1:
             logging.info(f"Resuming training from epoch {start_epoch}")
-        eval_split = getattr(args, "eval_split", "test")
+        eval_split = getattr(args, "eval_split", None) or "test"
         for epoch in range(start_epoch, args.epochs):
             handler.model.train()
             handler.epoch = epoch
@@ -127,30 +127,40 @@ def main(args):
                                 base_path=args.ts2vec_dir,
                                 vae_ckpt_root=getattr(args, "fid_vae_ckpt_root", None),
                             )
-                            scores_mean[variant_name]['disc_mean'].append(scores[f'disc_mean'])
-                            scores_mean[variant_name]['disc_std'].append(scores[f'disc_std'])
-                            scores_mean[variant_name]['pred_mean'].append(scores[f'pred_mean'])
-                            scores_mean[variant_name]['pred_std'].append(scores[f'pred_std'])
-                            scores_mean[variant_name]['context_fid'].append(scores[f'context_fid'])
+                            if 'disc' in args.eval_metrics:
+                                scores_mean[variant_name]['disc_mean'].append(scores[f'disc_mean'])
+                                scores_mean[variant_name]['disc_std'].append(scores[f'disc_std'])
+                            if 'pred' in args.eval_metrics:
+                                scores_mean[variant_name]['pred_mean'].append(scores[f'pred_mean'])
+                                scores_mean[variant_name]['pred_std'].append(scores[f'pred_std'])
+                            if 'contextFID' in args.eval_metrics:
+                                scores_mean[variant_name]['context_fid'].append(scores[f'context_fid'])
                             if 'vae_fid' in scores:
                                 scores_mean[variant_name].setdefault('vae_fid', []).append(scores['vae_fid'])
                             for key, value in scores.items():
-                                logger.log(f'{eval_split}/{variant_name}/{dataset}_{key}', value, step=epoch)
+                                if value != -1:
+                                    logger.log(f'{eval_split}/{variant_name}/{dataset}_{key}', value, step=epoch)
                     if is_main_process():
                         for variant_name, variant_scores in scores_mean.items():
-                            logger.log(f'{eval_split}/{variant_name}/disc_mean', np.mean(variant_scores['disc_mean']), step=epoch)
-                            logger.log(f'{eval_split}/{variant_name}/disc_std', np.mean(variant_scores['disc_std']), step=epoch)
-                            logger.log(f'{eval_split}/{variant_name}/pred_mean', np.mean(variant_scores['pred_mean']), step=epoch)
-                            logger.log(f'{eval_split}/{variant_name}/pred_std', np.mean(variant_scores['pred_std']), step=epoch)
-                            logger.log(f'{eval_split}/{variant_name}/context_fid', np.mean(variant_scores['context_fid']), step=epoch)
+                            if variant_scores.get('disc_mean'):
+                                logger.log(f'{eval_split}/{variant_name}/disc_mean', np.mean(variant_scores['disc_mean']), step=epoch)
+                            if variant_scores.get('disc_std'):
+                                logger.log(f'{eval_split}/{variant_name}/disc_std', np.mean(variant_scores['disc_std']), step=epoch)
+                            if variant_scores.get('pred_mean'):
+                                logger.log(f'{eval_split}/{variant_name}/pred_mean', np.mean(variant_scores['pred_mean']), step=epoch)
+                            if variant_scores.get('pred_std'):
+                                logger.log(f'{eval_split}/{variant_name}/pred_std', np.mean(variant_scores['pred_std']), step=epoch)
+                            if variant_scores.get('context_fid'):
+                                logger.log(f'{eval_split}/{variant_name}/context_fid', np.mean(variant_scores['context_fid']), step=epoch)
                             if 'vae_fid' in variant_scores:
                                 logger.log(f'{eval_split}/{variant_name}/vae_fid', np.mean(variant_scores['vae_fid']), step=epoch)
 
                         # --- save checkpoint ---
                         save_variant = "prior" if "prior" in scores_mean else next(iter(scores_mean))
-                        disc_mean = np.mean(scores_mean[save_variant]['disc_mean'])
-                        if disc_mean < best_score:
-                            best_score = disc_mean
+                        score_key = 'disc_mean' if scores_mean[save_variant].get('disc_mean') else 'vae_fid'
+                        current_score = np.mean(scores_mean[save_variant][score_key])
+                        if current_score < best_score:
+                            best_score = current_score
                             handler.best_score = best_score
                             handler.save_model(args.log_dir)
                 else:
