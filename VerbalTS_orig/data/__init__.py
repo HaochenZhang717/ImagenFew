@@ -1,9 +1,10 @@
 from torch.utils.data import DataLoader
 
-from .data import CustomDataset
+from .data import CustomDataset, ParaphrasedCaptionDataset
 
 datasets = {
-    "custom": CustomDataset
+    "custom": CustomDataset,
+    "custom_paraphrased": ParaphrasedCaptionDataset,
 }
 
 class GenerationDataset:

@@ -205,3 +205,58 @@ class CustomSplit(Dataset):
 
     def __len__(self):
         return self.n_samples
+
+
+class ParaphrasedCaptionDataset(CustomDataset):
+    def get_split(self, split, *args):
+        return ParaphrasedCaptionSplit(self, self.folder, split)
+
+
+class ParaphrasedCaptionSplit(CustomSplit):
+    def _load_data(self):
+        ts = np.load(os.path.join(self.folder, self.split + "_ts.npy"))
+        attrs = np.load(os.path.join(self.folder, self.split + "_attrs_idx.npy"))
+
+        caps = np.load(
+            os.path.join(self.folder, self.split + "_my_text_caps_paraphrased.npy"),
+            allow_pickle=True
+        )
+
+        if ts.ndim == 2:
+            ts = ts[:, :, None]
+
+        ts = ts.astype(np.float32)
+        ts = self.dataset.transform(ts)
+
+        self.ts = ts
+        self.attrs = attrs
+        self.caps = caps
+
+        self.n_samples = ts.shape[0]
+        self.n_steps = ts.shape[1]
+        self.n_attrs = attrs.shape[1]
+
+        self.time_point = np.arange(self.n_steps)
+
+    def _select_caption(self, cap_item):
+        cap_item = np.asarray(cap_item)
+        n_variants, n_segments = cap_item.shape
+        segments = [
+            cap_item[random.randint(0, n_variants - 1), segment_id]
+            for segment_id in range(n_segments)
+        ]
+        return "\n".join(
+            f"[Segment {idx + 1}]: {str(segment).strip()}"
+            for idx, segment in enumerate(segments)
+        )
+
+    def __getitem__(self, idx):
+        tmp_ts = self.ts[idx]
+
+        return {
+            "ts": tmp_ts,
+            "ts_len": tmp_ts.shape[0],
+            "attrs": self.attrs[idx],
+            "cap": self._select_caption(self.caps[idx]),
+            "tp": self.time_point
+        }

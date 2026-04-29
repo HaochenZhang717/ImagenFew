@@ -1,6 +1,6 @@
 ### Dataset ###
 data:
-  name: custom
+  name: custom_paraphrased
   folder: ../data/VerbalTSDatasets/istanbul_traffic
 
 ### Pretrain ###
