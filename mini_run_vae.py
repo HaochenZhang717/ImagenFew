@@ -302,6 +302,96 @@ def export_vae_latents(
     return saved_paths
 
 
+@torch.no_grad()
+def visualize_test_reconstructions(
+    model,
+    datasets_dir,
+    rel_path,
+    save_dir,
+    num_samples,
+    device,
+    scale=True,
+):
+    """Save original-vs-reconstruction plots for a few test samples."""
+
+    os.makedirs(save_dir, exist_ok=True)
+    mpl_cache_dir = os.path.join(save_dir, ".matplotlib")
+    os.makedirs(mpl_cache_dir, exist_ok=True)
+    os.environ.setdefault("MPLCONFIGDIR", mpl_cache_dir)
+    os.environ.setdefault("XDG_CACHE_HOME", mpl_cache_dir)
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    model.eval()
+
+    dataset = Dataset_VerbalTS(
+        root_path=datasets_dir,
+        rel_path=rel_path,
+        flag="test",
+        scale=scale,
+    )
+    num_samples = min(num_samples, len(dataset))
+    if num_samples <= 0:
+        return []
+
+    x = torch.stack([dataset[idx] for idx in range(num_samples)], dim=0).to(
+        device=device,
+        dtype=torch.float32,
+    )
+    if x.ndim == 2:
+        x = x.unsqueeze(-1)
+
+    x_model = x.transpose(1, 2).contiguous()
+    mu, _ = model.encoder(x_model)
+    recon = model.decoder(mu.permute(0, 2, 1))
+    recon = _match_recon_length(recon, x_model).transpose(1, 2).contiguous()
+
+    x_plot = x.detach().cpu()
+    recon_plot = recon.detach().cpu()
+    if scale:
+        x_plot = dataset.inverse_transform(x_plot)
+        recon_plot = dataset.inverse_transform(recon_plot)
+
+    x_np = x_plot.numpy()
+    recon_np = recon_plot.numpy()
+
+    saved_paths = []
+    for sample_idx in range(num_samples):
+        num_channels = x_np.shape[-1]
+        rows = min(num_channels, 4)
+        fig, axes = plt.subplots(
+            rows,
+            1,
+            figsize=(10, 2.6 * rows),
+            squeeze=False,
+            sharex=True,
+        )
+
+        for row in range(rows):
+            ax = axes[row][0]
+            ax.plot(x_np[sample_idx, :, row], label="original", linewidth=1.8)
+            ax.plot(recon_np[sample_idx, :, row], label="reconstruction", linewidth=1.5, linestyle="--")
+            ax.set_ylabel(f"ch {row}")
+            ax.grid(True, alpha=0.25)
+            if row == 0:
+                ax.legend(loc="best")
+
+        axes[-1][0].set_xlabel("time")
+        fig.suptitle(f"Test reconstruction sample {sample_idx}")
+        fig.tight_layout()
+
+        save_path = os.path.join(save_dir, f"test_reconstruction_{sample_idx:03d}.png")
+        fig.savefig(save_path, dpi=160)
+        plt.close(fig)
+        saved_paths.append(save_path)
+        print(f"Saved reconstruction plot: {save_path}")
+
+    return saved_paths
+
+
 def train_vae(
     datasets_dir="./data/",
     rel_path="VerbalTSDatasets/istanbul_traffic",
@@ -321,6 +411,9 @@ def train_vae(
     use_wandb=True,
     export_latents=True,
     latent_save_dir=None,
+    visualize_reconstructions=True,
+    num_recon_plots=8,
+    recon_save_dir=None,
 ):
     """Train TimeSeriesVAE on a VerbalTSDatasets split and save the best validation checkpoint."""
 
@@ -402,6 +495,9 @@ def train_vae(
         "device": str(device),
         "export_latents": export_latents,
         "latent_save_dir": latent_save_dir,
+        "visualize_reconstructions": visualize_reconstructions,
+        "num_recon_plots": num_recon_plots,
+        "recon_save_dir": recon_save_dir,
     }
 
     wandb_run = None
@@ -476,13 +572,15 @@ def train_vae(
         )
 
     latent_paths = {}
-    if export_latents:
+    recon_plot_paths = []
+    if export_latents or visualize_reconstructions:
         if not os.path.exists(best_ckpt_path):
             raise FileNotFoundError(f"Best checkpoint not found: {best_ckpt_path}")
 
         best_checkpoint = torch.load(best_ckpt_path, map_location=device, weights_only=False)
         model.load_state_dict(best_checkpoint["model"])
 
+    if export_latents:
         latent_paths = export_vae_latents(
             model=model,
             datasets_dir=datasets_dir,
@@ -498,6 +596,30 @@ def train_vae(
             for split, path in latent_paths.items():
                 wandb.save(path)
 
+    if visualize_reconstructions:
+        recon_plot_paths = visualize_test_reconstructions(
+            model=model,
+            datasets_dir=datasets_dir,
+            rel_path=rel_path,
+            save_dir=recon_save_dir or os.path.join(save_dir, "reconstructions"),
+            num_samples=num_recon_plots,
+            device=device,
+            scale=scale,
+        )
+
+        if wandb_run is not None:
+            import wandb
+
+            wandb.log(
+                {
+                    "test/reconstructions": [
+                        wandb.Image(path) for path in recon_plot_paths
+                    ]
+                }
+            )
+            for path in recon_plot_paths:
+                wandb.save(path)
+
     if wandb_run is not None:
         wandb.finish()
 
@@ -507,6 +629,7 @@ def train_vae(
         "best_ckpt_path": best_ckpt_path,
         "last_ckpt_path": last_ckpt_path,
         "latent_paths": latent_paths,
+        "recon_plot_paths": recon_plot_paths,
     }
 
 
@@ -517,10 +640,10 @@ def get_args():
     parser.add_argument("--rel_path", type=str, default="VerbalTSDatasets/istanbul_traffic")
     parser.add_argument("--save_dir", type=str, default="./logs/mini_vae")
 
-    parser.add_argument("--epochs", type=int, default=200)
-    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--epochs", type=int, default=400)
+    parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--learning_rate", type=float, default=1e-3)
-    parser.add_argument("--weight_decay", type=float, default=0.0)
+    parser.add_argument("--weight_decay", type=float, default=1e-4)
 
     parser.add_argument("--hidden_size", type=int, default=128)
     parser.add_argument("--latent_dim", type=int, default=8)
@@ -540,6 +663,14 @@ def get_args():
         type=str,
         default=None,
         help="Directory for *_mini_vae_latent.npy files. Defaults to the dataset directory.",
+    )
+    parser.add_argument("--no_visualize_reconstructions", action="store_true", help="Skip test reconstruction plots.")
+    parser.add_argument("--num_recon_plots", type=int, default=8, help="Number of test reconstruction plots to save.")
+    parser.add_argument(
+        "--recon_save_dir",
+        type=str,
+        default=None,
+        help="Directory for reconstruction plots. Defaults to save_dir/reconstructions.",
     )
 
     return parser.parse_args()
@@ -567,6 +698,9 @@ def main():
         use_wandb=args.wandb,
         export_latents=not args.no_export_latents,
         latent_save_dir=args.latent_save_dir,
+        visualize_reconstructions=not args.no_visualize_reconstructions,
+        num_recon_plots=args.num_recon_plots,
+        recon_save_dir=args.recon_save_dir,
     )
 
 
