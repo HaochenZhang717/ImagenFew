@@ -5,7 +5,7 @@ export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
 DATASET_ROOT="${DATASET_ROOT:-/playpen-shared/haochenz/ImagenFew/data/VerbalTSDatasets/istanbul_traffic}"
 DATASET_NAME="${DATASET_NAME:-istanbul_traffic}"
 SPLITS=(${SPLITS:-train valid test})
-BATCH_SIZE="${BATCH_SIZE:-32}"
+BATCH_SIZE="${BATCH_SIZE:-64}"
 NUM_PARTS="${NUM_PARTS:-1}"
 PART_ID="${PART_ID:-0}"
 

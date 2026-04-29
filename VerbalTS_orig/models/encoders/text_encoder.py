@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import re
 from transformers import GPT2Config, GPT2Model, GPT2Tokenizer, BertConfig, BertModel
 from transformers import AutoTokenizer, CLIPTextModelWithProjection, CLIPTextConfig
 
@@ -16,7 +17,7 @@ class CLIPTextEncoder(nn.Module):
         self.configs = configs
         self.device = configs["device"]
         self.emb_dim = configs["text_emb"]
-        if "Longclip" in configs["pretrain_model_path"]:
+        if "longclip" in configs["pretrain_model_path"].lower() or "long_clip" in configs["pretrain_model_path"].lower():
             clip_config = CLIPTextConfig.from_pretrained(configs["pretrain_model_path"])
             clip_config.max_position_embeddings = 248
             self.model = CLIPTextModelWithProjection.from_pretrained(configs["pretrain_model_path"], config=clip_config)
@@ -79,3 +80,71 @@ class TextEncoder(nn.Module):
             text_emb += self.pe[:, :text_emb.shape[1], :].to(text_emb.device)
         text_emb = self.trans_layer(text_emb)
         return text_emb
+
+
+class CLIPTextEncoderToken(nn.Module):
+    def __init__(self, configs):
+        super().__init__()
+        self.configs = configs
+        self.device = configs["device"]
+        self.emb_dim = configs["text_emb"]
+        if "longclip" in configs["pretrain_model_path"].lower() or "long_clip" in configs["pretrain_model_path"].lower():
+            clip_config = CLIPTextConfig.from_pretrained(configs["pretrain_model_path"])
+            clip_config.max_position_embeddings = 248
+            self.model = CLIPTextModelWithProjection.from_pretrained(configs["pretrain_model_path"], config=clip_config)
+            self.tokenizer = AutoTokenizer.from_pretrained(configs["pretrain_model_path"])
+        else:
+            self.model = CLIPTextModelWithProjection.from_pretrained(configs["pretrain_model_path"])
+            self.tokenizer = AutoTokenizer.from_pretrained(configs["pretrain_model_path"])
+        self.max_length = self.model.config.max_position_embeddings
+
+        for i, (name, param) in enumerate(self.model.named_parameters()):
+            param.requires_grad = False
+
+        self.text_enc = nn.Sequential(
+            nn.Linear(configs["pretrain_model_dim"], configs["textemb_hidden_dim"]),
+            nn.LayerNorm(configs["textemb_hidden_dim"]),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(configs["textemb_hidden_dim"], configs["text_emb"])
+        )
+
+    def _split_segments(self, text):
+        if isinstance(text, np.ndarray):
+            text = text.tolist()
+        if isinstance(text, (list, tuple)):
+            if len(text) == 1:
+                text = text[0]
+            else:
+                return [str(t).strip() for t in text if str(t).strip()]
+
+        text = str(text)
+        pieces = re.split(r"(?:^|\n)\s*\[Segment\s+\d+\]\s*:\s*", text)
+        segments = [piece.strip() for piece in pieces if piece.strip()]
+        return segments if segments else [text.strip()]
+
+    def forward(self, text):
+        batch_segments = [self._split_segments(item) for item in text]
+        max_segments = max(len(segments) for segments in batch_segments)
+        flat_segments = [
+            segment
+            for segments in batch_segments
+            for segment in segments
+        ]
+
+        inputs = self.tokenizer(
+            flat_segments,
+            padding=True,
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt",
+        )["input_ids"].to(self.device)
+        text_emb = self.model(input_ids=inputs).text_embeds
+        text_emb = self.text_enc(text_emb)
+
+        text_co_emb = text_emb.new_zeros(len(batch_segments), max_segments, self.emb_dim)
+        start = 0
+        for batch_id, segments in enumerate(batch_segments):
+            end = start + len(segments)
+            text_co_emb[batch_id, :len(segments)] = text_emb[start:end]
+            start = end
+        return text_co_emb
