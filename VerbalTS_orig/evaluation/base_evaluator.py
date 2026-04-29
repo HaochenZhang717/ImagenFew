@@ -159,38 +159,62 @@ class BaseEvaluator:
             if sample_i.ndim == 1:
                 sample_i = sample_i[:, None]
 
-            vmin = float(np.nanmin([np.nanmin(real_i), np.nanmin(sample_i)]))
-            vmax = float(np.nanmax([np.nanmax(real_i), np.nanmax(sample_i)]))
             mean_real = real_i.mean(axis=-1)
             mean_sample = sample_i.mean(axis=-1)
+            n_vars = real_i.shape[-1]
+            time_axis = np.arange(real_i.shape[0])
 
             fig, axes = plt.subplots(
                 1,
                 3,
                 figsize=(18, 5),
                 dpi=140,
-                gridspec_kw={"width_ratios": [1.1, 1.1, 1.4]},
+                sharey=True,
             )
             wrapped_cap = textwrap.fill(str(all_caps[idx]), width=120)
             fig.suptitle(f"Verbal condition #{idx}\n{wrapped_cap}", fontsize=10, y=1.04)
 
-            im0 = axes[0].imshow(real_i.T, aspect="auto", origin="lower", vmin=vmin, vmax=vmax)
+            for var_idx in range(n_vars):
+                label = f"var {var_idx}" if n_vars <= 8 else None
+                axes[0].plot(time_axis, real_i[:, var_idx], linewidth=1.6, alpha=0.85, label=label)
+                axes[1].plot(time_axis, sample_i[:, var_idx], linewidth=1.6, alpha=0.85, label=label)
+                axes[2].plot(
+                    time_axis,
+                    real_i[:, var_idx],
+                    color="tab:blue",
+                    linewidth=1.0,
+                    alpha=0.25 if n_vars > 1 else 0.75,
+                )
+                axes[2].plot(
+                    time_axis,
+                    sample_i[:, var_idx],
+                    color="tab:orange",
+                    linewidth=1.0,
+                    alpha=0.25 if n_vars > 1 else 0.75,
+                )
+
+            if n_vars > 1:
+                axes[0].plot(time_axis, mean_real, color="black", linewidth=2.4, label="mean")
+                axes[1].plot(time_axis, mean_sample, color="black", linewidth=2.4, label="mean")
+                axes[2].plot(time_axis, mean_real, color="tab:blue", linewidth=2.4, label="real mean")
+                axes[2].plot(time_axis, mean_sample, color="tab:orange", linewidth=2.4, label="generated mean")
+            else:
+                axes[2].plot(time_axis, mean_real, color="tab:blue", linewidth=2.4, label="real TS")
+                axes[2].plot(time_axis, mean_sample, color="tab:orange", linewidth=2.4, label="generated TS")
+
             axes[0].set_title("real TS")
             axes[0].set_xlabel("time")
-            axes[0].set_ylabel("variable")
-            fig.colorbar(im0, ax=axes[0], fraction=0.046, pad=0.04)
-
-            im1 = axes[1].imshow(sample_i.T, aspect="auto", origin="lower", vmin=vmin, vmax=vmax)
+            axes[0].set_ylabel("value")
             axes[1].set_title("generated TS")
             axes[1].set_xlabel("time")
-            axes[1].set_ylabel("variable")
-            fig.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04)
-
-            axes[2].plot(mean_real, label="real mean over variables", linewidth=2)
-            axes[2].plot(mean_sample, label="generated mean over variables", linewidth=2)
-            axes[2].set_title("mean trajectory")
+            axes[2].set_title("real vs generated")
             axes[2].set_xlabel("time")
-            axes[2].grid(alpha=0.25)
+
+            for ax in axes:
+                ax.grid(alpha=0.25)
+            if n_vars <= 8:
+                axes[0].legend(loc="best")
+                axes[1].legend(loc="best")
             axes[2].legend(loc="best")
 
             fig.tight_layout()
