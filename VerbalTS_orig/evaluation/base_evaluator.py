@@ -147,8 +147,8 @@ class BaseEvaluator:
                 pred = multi_preds.median(dim=0).values
 
                 ts = batch["ts"].to(self.model.device).float()
-                ts_len = batch["ts_len"].to(self.model.device).int()
-                cap_tokens = batch["cap"]
+                # ts_len = batch["ts_len"].to(self.model.device).int()
+                # cap_tokens = batch["cap"]
 
                 all_real.append(ts.detach().cpu())
                 # all_samples.append(pred.detach().cpu())
@@ -184,7 +184,8 @@ class BaseEvaluator:
             gen_sig=all_samples,
             dataset="istanbul_traffic",
             device="cuda" if torch.cuda.is_available() else "cpu",
-            eval_metrics=['disc', 'vaeFID'],
+            # eval_metrics=['disc', 'vaeFID'],
+            eval_metrics=['vaeFID'],
             metric_iteration=10,
             base_path=None,
             vae_ckpt_root="/playpen-shared/haochenz/ImagenFew/fid_vae_ckpts"
