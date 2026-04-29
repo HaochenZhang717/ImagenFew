@@ -11,7 +11,7 @@ PART_ID="${PART_ID:-0}"
 
 for split in "${SPLITS[@]}"; do
   echo "Running Qwen3-VL caption paraphrases for ${DATASET_NAME} split=${split}"
-  python scripts/paraphrase_captions_qwen3vl.py \
+  python paraphrase_captions_qwen3vl.py \
     --input-npy "/playpen-shared/haochenz/ImagenFew/data/VerbalTSDatasets/${DATASET_ROOT}/${split}_my_text_caps.npy" \
     --output-npy "/playpen-shared/haochenz/ImagenFew/data/VerbalTSDatasets/${DATASET_ROOT}/${split}_my_text_caps_paraphrased.npy" \
     --save-dir "/playpen-shared/haochenz/ImagenFew/data/VerbalTSDatasets/${DATASET_NAME}" \
