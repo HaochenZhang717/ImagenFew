@@ -55,7 +55,26 @@ def get_generation_kwargs(max_new_tokens: int, do_sample: bool) -> Dict:
     if do_sample:
         generation_kwargs["temperature"] = 0.8
         generation_kwargs["top_p"] = 0.95
+        generation_kwargs["top_k"] = 50
     return generation_kwargs
+
+
+def configure_model_and_processor(
+    model: Qwen3VLForConditionalGeneration,
+    processor: AutoProcessor,
+) -> None:
+    tokenizer = getattr(processor, "tokenizer", None)
+    if tokenizer is not None:
+        tokenizer.padding_side = "left"
+        if tokenizer.pad_token_id is None and tokenizer.eos_token_id is not None:
+            tokenizer.pad_token = tokenizer.eos_token
+
+    generation_config = getattr(model, "generation_config", None)
+    if generation_config is not None:
+        generation_config.do_sample = False
+        generation_config.temperature = None
+        generation_config.top_p = None
+        generation_config.top_k = None
 
 
 def split_range(total: int, part_id: int, num_parts: int) -> Tuple[int, int]:
@@ -398,6 +417,7 @@ def main():
             device_map=None,
         ).eval().to(device)
         processor = AutoProcessor.from_pretrained(args.model_name)
+        configure_model_and_processor(model, processor)
         print(f"[INFO] Model loaded on {device}.")
 
         fout = open(output_jsonl, "a", encoding="utf-8")
