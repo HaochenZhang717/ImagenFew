@@ -30,7 +30,6 @@ class ImageUnConditionalGenerator(nn.Module):
         noise = torch.randn_like(x)
         noisy_x = self.ddpm.forward(x, t, noise)
         pred_noise, loss_dict = self.predict_noise(noisy_x, tp, attr_emb, t)
-        breakpoint()
         residual = noise - pred_noise
         loss_dict["noise_loss"] = (residual ** 2).mean()
         all_loss = torch.zeros_like(loss_dict["noise_loss"])
