@@ -148,5 +148,4 @@ class CLIPTextEncoderToken(nn.Module):
             text_co_emb[batch_id, :len(segments)] = text_emb[start:end]
             start = end
 
-        breakpoint()
         return text_co_emb

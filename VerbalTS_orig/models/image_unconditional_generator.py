@@ -19,6 +19,7 @@ class ImageUnConditionalGenerator(nn.Module):
         input_dim = configs.get("n_var", 1)
         configs["device"] = self.device
         if configs["type"] == "Text2Ts":
+            breakpoint()
             self.diff_model = DiT_Tiny(configs, input_dim).to(self.device)
         
         self.num_steps = configs["num_steps"]
