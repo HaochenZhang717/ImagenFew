@@ -8,6 +8,7 @@ import tqdm
 import numpy as np
 from scipy import linalg
 import random
+import textwrap
 from metrics import evaluate_model_uncond
 
 
@@ -107,6 +108,98 @@ class BaseEvaluator:
         self.n_samples = self.configs["n_samples"]
         self.display_epoch_interval = self.configs["display_interval"]
         self.model_path = self.configs["model_path"]
+        self.visual_debug_dir = os.path.abspath(
+            self.configs.get(
+                "visual_debug_dir",
+                os.path.join(self.configs.get("cache_folder", "."), "verbal_conditional_ts_debug"),
+            )
+        )
+        self.n_visual_debug_samples = self.configs.get("n_visual_debug_samples", 12)
+        self.visual_debug_inverse_transform = self.configs.get("visual_debug_inverse_transform", True)
+
+    def _inverse_transform_for_visual_debug(self, ts):
+        if not self.visual_debug_inverse_transform:
+            return ts
+        if hasattr(self.dataset, "dataset") and hasattr(self.dataset.dataset, "inverse_transform"):
+            return self.dataset.dataset.inverse_transform(ts)
+        if hasattr(self.dataset, "inverse_transform"):
+            return self.dataset.inverse_transform(ts)
+        return ts
+
+    def _visualize_verbal_conditional_generation(self, all_real, all_samples, all_caps):
+        if self.n_visual_debug_samples <= 0:
+            return
+
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        os.makedirs(self.visual_debug_dir, exist_ok=True)
+
+        real = all_real.detach().cpu().numpy()
+        samples = all_samples.detach().cpu().numpy()
+        real = self._inverse_transform_for_visual_debug(real)
+        samples = self._inverse_transform_for_visual_debug(samples)
+
+        n_items = min(len(real), len(samples), len(all_caps), self.n_visual_debug_samples)
+        if n_items == 0:
+            print("[Visual Debug] No samples available for visualization.")
+            return
+
+        caption_path = os.path.join(self.visual_debug_dir, "caption_index.txt")
+        with open(caption_path, "w") as f:
+            for idx in range(n_items):
+                f.write(f"[{idx}] {all_caps[idx]}\n\n")
+
+        for idx in range(n_items):
+            real_i = np.asarray(real[idx])
+            sample_i = np.asarray(samples[idx])
+            if real_i.ndim == 1:
+                real_i = real_i[:, None]
+            if sample_i.ndim == 1:
+                sample_i = sample_i[:, None]
+
+            vmin = float(np.nanmin([np.nanmin(real_i), np.nanmin(sample_i)]))
+            vmax = float(np.nanmax([np.nanmax(real_i), np.nanmax(sample_i)]))
+            mean_real = real_i.mean(axis=-1)
+            mean_sample = sample_i.mean(axis=-1)
+
+            fig, axes = plt.subplots(
+                1,
+                3,
+                figsize=(18, 5),
+                dpi=140,
+                gridspec_kw={"width_ratios": [1.1, 1.1, 1.4]},
+            )
+            wrapped_cap = textwrap.fill(str(all_caps[idx]), width=120)
+            fig.suptitle(f"Verbal condition #{idx}\n{wrapped_cap}", fontsize=10, y=1.04)
+
+            im0 = axes[0].imshow(real_i.T, aspect="auto", origin="lower", vmin=vmin, vmax=vmax)
+            axes[0].set_title("real TS")
+            axes[0].set_xlabel("time")
+            axes[0].set_ylabel("variable")
+            fig.colorbar(im0, ax=axes[0], fraction=0.046, pad=0.04)
+
+            im1 = axes[1].imshow(sample_i.T, aspect="auto", origin="lower", vmin=vmin, vmax=vmax)
+            axes[1].set_title("generated TS")
+            axes[1].set_xlabel("time")
+            axes[1].set_ylabel("variable")
+            fig.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04)
+
+            axes[2].plot(mean_real, label="real mean over variables", linewidth=2)
+            axes[2].plot(mean_sample, label="generated mean over variables", linewidth=2)
+            axes[2].set_title("mean trajectory")
+            axes[2].set_xlabel("time")
+            axes[2].grid(alpha=0.25)
+            axes[2].legend(loc="best")
+
+            fig.tight_layout()
+            out_path = os.path.join(self.visual_debug_dir, f"sample_{idx:03d}.png")
+            fig.savefig(out_path, bbox_inches="tight")
+            plt.close(fig)
+
+        print(f"[Visual Debug] Saved {n_items} verbal-conditional TS plots to {self.visual_debug_dir}")
+        print(f"[Visual Debug] Caption index: {caption_path}")
 
     def _init_model(self, model):
         self.model = model
@@ -138,6 +231,7 @@ class BaseEvaluator:
 
         all_real = []
         all_samples = []
+        all_caps = []
 
         with torch.no_grad():
             for batch_no, batch in enumerate(self.test_loader):
@@ -153,6 +247,7 @@ class BaseEvaluator:
                 all_real.append(ts.detach().cpu())
                 # all_samples.append(pred.detach().cpu())
                 all_samples.append(multi_preds[0].detach().cpu())
+                all_caps.extend([str(cap) for cap in batch["cap"]])
 
                 end_time = time.time()
                 if (batch_no+1)%self.display_epoch_interval == 0:
@@ -173,7 +268,9 @@ class BaseEvaluator:
 
         print("real mean/std:", all_real.mean(), all_real.std())
         print("sample mean/std:", all_samples.mean(), all_samples.std())
-
+        self._visualize_verbal_conditional_generation(all_real, all_samples, all_caps)
+        breakpoint()
+        
         flat_real = all_real.flatten()
         flat_sample = all_samples.flatten()
         print("real quantiles:", torch.quantile(flat_real, torch.tensor([0.001, 0.01, 0.5, 0.99, 0.999])))
