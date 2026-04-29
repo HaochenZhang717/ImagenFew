@@ -262,8 +262,7 @@ class BaseEvaluator:
         with torch.no_grad():
             for batch_no, batch in enumerate(self.test_loader):
                 start_time = time.time()
-                # multi_preds = self.model.generate(batch, self.n_samples, sampler)
-                multi_preds = self.model.generate(batch, n_samples, sampler)
+                multi_preds = self.model.generate(batch, self.n_samples, sampler)
                 multi_preds = multi_preds.permute(0,1,3,2)
                 pred = multi_preds.median(dim=0).values
 
@@ -280,7 +279,6 @@ class BaseEvaluator:
                 if (batch_no+1)%self.display_epoch_interval == 0:
                     print("Batch", batch_no, 
                         "Batch Time {:.2f}s".format(end_time-start_time))
-                break
 
         print("Done!")
         res_dict = {
