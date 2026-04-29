@@ -11,5 +11,4 @@ python run_image.py \
   --patch_size 2 \
   --epochs 1000 \
   --batch_size 512 \
-  --n_runs 1 \
-  --only_evaluate True
+  --n_runs 1
