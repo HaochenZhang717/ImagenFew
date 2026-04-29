@@ -807,9 +807,9 @@ def DiT_Tiny(configs, in_channels):
     """DriftDiT-Tiny: depth=6, hidden_dim=256, heads=4 -> ~5M params"""
     return DriftDiT(
         num_steps=configs["num_steps"],
-        seq_len=configs['diffusion']['seq_len'],
+        seq_len=configs['seq_len'],
         img_size=12,
-        patch_size=2,
+        patch_size=configs['patch_size'],
         in_channels=in_channels,
         condition_dim=128,
         hidden_size=128,
