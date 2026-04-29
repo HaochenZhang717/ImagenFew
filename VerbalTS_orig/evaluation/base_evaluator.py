@@ -233,8 +233,8 @@ class BaseEvaluator:
 
     def _init_data(self, dataset):
         self.dataset = dataset
-        # self.test_loader = dataset.get_loader(split="test", batch_size=self.batch_size, shuffle=False, include_self=False)
-        self.test_loader = dataset.get_loader(split="train", batch_size=self.batch_size, shuffle=False, include_self=False)
+        self.test_loader = dataset.get_loader(split="test", batch_size=self.batch_size, shuffle=False, include_self=False)
+        # self.test_loader = dataset.get_loader(split="train", batch_size=self.batch_size, shuffle=False, include_self=False)
 
     """
     Evaluate.
