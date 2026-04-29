@@ -808,7 +808,7 @@ def DiT_Tiny(configs, in_channels):
     return DriftDiT(
         num_steps=configs["num_steps"],
         seq_len=configs['seq_len'],
-        img_size=12,
+        img_size=configs['img_size'],
         patch_size=configs['patch_size'],
         in_channels=in_channels,
         condition_dim=128,
@@ -824,7 +824,7 @@ def DiT_Small(configs, in_channels):
     return DriftDiT(
         num_steps=configs["num_steps"],
         seq_len=configs['seq_len'],
-        img_size=12,
+        img_size=configs['img_size'],
         patch_size=configs['patch_size'],
         in_channels=in_channels,
         condition_dim=128,

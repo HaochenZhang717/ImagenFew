@@ -7,8 +7,8 @@ python run_image.py \
   --train_config_path configs/istanbul_traffic/train.yaml \
   --evaluate_config_path configs/istanbul_traffic/evaluate.yaml \
   --data_folder ../data/VerbalTSDatasets/istanbul_traffic \
-  --img_size 32 \
+  --img_size 14 \
   --patch_size 2 \
   --epochs 1000 \
-  --batch_size 32 \
+  --batch_size 512 \
   --n_runs 1
