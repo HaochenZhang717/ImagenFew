@@ -111,7 +111,7 @@ class BaseEvaluator:
         self.visual_debug_dir = os.path.abspath(
             self.configs.get(
                 "visual_debug_dir",
-                os.path.join(self.configs.get("cache_folder", "."), "verbal_conditional_ts_debug"),
+                "verbal_conditional_ts_debug",
             )
         )
         self.n_visual_debug_samples = self.configs.get("n_visual_debug_samples", 12)
