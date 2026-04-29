@@ -19,7 +19,6 @@ class ImageUnConditionalGenerator(nn.Module):
         input_dim = configs.get("n_var", 1)
         configs["device"] = self.device
         if configs["type"] == "Text2Ts":
-            breakpoint()
             self.diff_model = DiT_Tiny(configs, input_dim).to(self.device)
         
         self.num_steps = configs["num_steps"]
@@ -29,6 +28,7 @@ class ImageUnConditionalGenerator(nn.Module):
     def _noise_estimation_loss(self, x, tp, attr_emb, t):        
         noise = torch.randn_like(x)
         noisy_x = self.ddpm.forward(x, t, noise)
+        breakpoint()
         pred_noise, loss_dict = self.predict_noise(noisy_x, tp, attr_emb, t)
         residual = noise - pred_noise
         loss_dict["noise_loss"] = (residual ** 2).mean()

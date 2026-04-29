@@ -813,7 +813,7 @@ def DiT_Tiny(configs, in_channels):
         in_channels=in_channels,
         condition_dim=128,
         hidden_size=128,
-        depth=6,
+        depth=4,
         num_heads=4,
         mlp_ratio=4.0,
         device=configs.get("device", None),
