@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -254,6 +255,53 @@ def _run_vae_epoch(model, dataloader, device, optimizer=None):
     return {key: value / num_batches for key, value in totals.items()}
 
 
+@torch.no_grad()
+def export_vae_latents(
+    model,
+    datasets_dir,
+    rel_path,
+    save_dir,
+    batch_size,
+    num_workers,
+    device,
+    scale=True,
+):
+    """Encode train/valid/test splits with the VAE encoder and save posterior means."""
+
+    model.eval()
+    os.makedirs(save_dir, exist_ok=True)
+
+    saved_paths = {}
+    for split in ("train", "valid", "test"):
+        dataset = Dataset_VerbalTS(
+            root_path=datasets_dir,
+            rel_path=rel_path,
+            flag=split,
+            scale=scale,
+        )
+        dataloader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            pin_memory=device.type == "cuda",
+        )
+
+        latent_chunks = []
+        for batch in dataloader:
+            x = _as_vae_input(batch, device)
+            mu, _ = model.encoder(x)
+            latent_chunks.append(mu.detach().cpu().numpy())
+
+        latents = np.concatenate(latent_chunks, axis=0)
+        save_path = os.path.join(save_dir, f"{split}_mini_vae_latent.npy")
+        np.save(save_path, latents.astype(np.float32))
+        saved_paths[split] = save_path
+        print(f"Saved {split} latents: {save_path} {latents.shape}")
+
+    return saved_paths
+
+
 def train_vae(
     datasets_dir="./data/",
     rel_path="VerbalTSDatasets/istanbul_traffic",
@@ -271,6 +319,8 @@ def train_vae(
     wandb_project="MiniTimeSeriesVAE",
     wandb_run_name=None,
     use_wandb=True,
+    export_latents=True,
+    latent_save_dir=None,
 ):
     """Train TimeSeriesVAE on a VerbalTSDatasets split and save the best validation checkpoint."""
 
@@ -316,9 +366,9 @@ def train_vae(
     scaler_state = None
     if scale:
         scaler_state = {
-            "mean": train_dataset.scaler.mean_,
-            "scale": train_dataset.scaler.scale_,
-            "var": train_dataset.scaler.var_,
+            "mean": train_dataset.scaler.mean_.tolist(),
+            "scale": train_dataset.scaler.scale_.tolist(),
+            "var": train_dataset.scaler.var_.tolist(),
         }
 
     model = TimeSeriesVAE(
@@ -350,6 +400,8 @@ def train_vae(
         "seq_len": seq_len,
         "scale": scale,
         "device": str(device),
+        "export_latents": export_latents,
+        "latent_save_dir": latent_save_dir,
     }
 
     wandb_run = None
@@ -423,6 +475,29 @@ def train_vae(
             f"best_val_loss={best_val_loss:.6f}"
         )
 
+    latent_paths = {}
+    if export_latents:
+        if not os.path.exists(best_ckpt_path):
+            raise FileNotFoundError(f"Best checkpoint not found: {best_ckpt_path}")
+
+        best_checkpoint = torch.load(best_ckpt_path, map_location=device, weights_only=False)
+        model.load_state_dict(best_checkpoint["model"])
+
+        latent_paths = export_vae_latents(
+            model=model,
+            datasets_dir=datasets_dir,
+            rel_path=rel_path,
+            save_dir=latent_save_dir or os.path.join(datasets_dir, rel_path),
+            batch_size=batch_size,
+            num_workers=num_workers,
+            device=device,
+            scale=scale,
+        )
+
+        if wandb_run is not None:
+            for split, path in latent_paths.items():
+                wandb.save(path)
+
     if wandb_run is not None:
         wandb.finish()
 
@@ -431,6 +506,7 @@ def train_vae(
         "best_val_loss": best_val_loss,
         "best_ckpt_path": best_ckpt_path,
         "last_ckpt_path": last_ckpt_path,
+        "latent_paths": latent_paths,
     }
 
 
@@ -441,13 +517,13 @@ def get_args():
     parser.add_argument("--rel_path", type=str, default="VerbalTSDatasets/istanbul_traffic")
     parser.add_argument("--save_dir", type=str, default="./logs/mini_vae")
 
-    parser.add_argument("--epochs", type=int, default=100)
+    parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--learning_rate", type=float, default=1e-3)
     parser.add_argument("--weight_decay", type=float, default=0.0)
 
     parser.add_argument("--hidden_size", type=int, default=128)
-    parser.add_argument("--latent_dim", type=int, default=64)
+    parser.add_argument("--latent_dim", type=int, default=8)
     parser.add_argument("--beta", type=float, default=0.001)
 
     parser.add_argument("--num_workers", type=int, default=0)
@@ -457,6 +533,14 @@ def get_args():
     parser.add_argument("--wandb", action="store_true", help="Enable Weights & Biases logging.")
     parser.add_argument("--wandb_project", type=str, default="MiniTimeSeriesVAE")
     parser.add_argument("--wandb_run_name", type=str, default=None)
+
+    parser.add_argument("--no_export_latents", action="store_true", help="Skip exporting train/valid/test VAE latents.")
+    parser.add_argument(
+        "--latent_save_dir",
+        type=str,
+        default=None,
+        help="Directory for *_mini_vae_latent.npy files. Defaults to the dataset directory.",
+    )
 
     return parser.parse_args()
 
@@ -481,6 +565,8 @@ def main():
         wandb_project=args.wandb_project,
         wandb_run_name=args.wandb_run_name,
         use_wandb=args.wandb,
+        export_latents=not args.no_export_latents,
+        latent_save_dir=args.latent_save_dir,
     )
 
 
