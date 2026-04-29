@@ -235,13 +235,12 @@ class ParaphrasedCaptionSplit(CustomSplit):
         self.n_samples = ts.shape[0]
         self.n_steps = ts.shape[1]
         self.n_attrs = attrs.shape[1]
-        breakpoint()
         self.time_point = np.arange(self.n_steps)
 
     def _select_caption(self, cap_item):
         cap_item = np.asarray(cap_item)
         n_variants, n_segments = cap_item.shape
-        breakpoint()
+        print(f"n_variants={n_variants}, n_segments={n_segments}")
         segments = [
             cap_item[random.randint(0, n_variants - 1), segment_id]
             for segment_id in range(n_segments)
