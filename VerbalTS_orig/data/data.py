@@ -235,7 +235,7 @@ class ParaphrasedCaptionSplit(CustomSplit):
         self.n_samples = ts.shape[0]
         self.n_steps = ts.shape[1]
         self.n_attrs = attrs.shape[1]
-
+        breakpoint()
         self.time_point = np.arange(self.n_steps)
 
     def _select_caption(self, cap_item):
