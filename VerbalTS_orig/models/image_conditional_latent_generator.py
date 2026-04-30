@@ -50,7 +50,6 @@ class ImageConditionalLatentGenerator(nn.Module):
         x, tp, attrs = self._unpack_data_cond_gen(batch)
         attr_emb_raw = self.attr_en(attrs)
         attr_emb = attr_emb_raw
-        print(f"x.shape: {x.shape}")
         B = x.shape[0]
         if is_train:
             t = torch.randint(0, self.generator.num_steps, [B], device=self.device)
@@ -95,6 +94,7 @@ class ImageConditionalLatentGenerator(nn.Module):
     @torch.no_grad()
     def generate_text(self, batch, n_samples, sampler="ddim"):
         ts, tp, attrs = self._unpack_data_cond_gen(batch)
+        ts, original_hw = self.generator._pad_to_square(ts)
         attr_emb_raw = self.attr_en(attrs)
         attr_emb = attr_emb_raw
 
@@ -110,11 +110,12 @@ class ImageConditionalLatentGenerator(nn.Module):
                     x = self.generator._ddpm_reverse(x, pred_noise, t, noise)
                 else:
                     x = self.generator._ddim_reverse(x, pred_noise, t, noise, is_determin=True)
-            samples.append(x)
+            samples.append(self.generator._unpad_from_square(x, original_hw))
         return torch.stack(samples)
     
     def generate_constraint(self, batch, n_samples, sampler="ddim"):
         ts, tp, attrs = self._unpack_data_cond_gen(batch)
+        ts, original_hw = self.generator._pad_to_square(ts)
         samples = []
         B = ts.shape[0]
         for i in range(n_samples):
@@ -136,5 +137,5 @@ class ImageConditionalLatentGenerator(nn.Module):
                         negative_cttp.backward()
                     pred_noise -= self.cond_configs["constraint"]["guide_w"] * self.generator.ddim.one_minus_alpha_bar_sqrt[t] * x0.grad.permute(0,2,1)
                     x = self.generator._ddim_reverse(x, pred_noise, t, noise, is_determin=True)
-            samples.append(x)
+            samples.append(self.generator._unpad_from_square(x, original_hw))
         return torch.stack(samples)

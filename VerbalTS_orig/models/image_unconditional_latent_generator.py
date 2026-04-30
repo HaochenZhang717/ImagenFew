@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import math
 
 from models.diffusion.DiT_image import DiT_Tiny
 
@@ -18,6 +20,17 @@ class ImageUnconditionalLatentGenerator(nn.Module):
     def _init_diff(self, configs):
         input_dim = configs.get("n_var", 1)
         configs["device"] = self.device
+        img_size = int(configs["img_size"])
+        patch_size = int(configs["patch_size"])
+        if img_size % patch_size != 0:
+            padded_img_size = int(math.ceil(img_size / patch_size) * patch_size)
+            print(
+                f"[LatentPad] Adjust img_size from {img_size} to {padded_img_size} "
+                f"so it is divisible by patch_size={patch_size}."
+            )
+            img_size = padded_img_size
+            configs["img_size"] = img_size
+        self.img_size = img_size
 
         if configs["type"] == "Text2Ts":
             self.diff_model = DiT_Tiny(configs, input_dim).to(self.device)
@@ -30,6 +43,29 @@ class ImageUnconditionalLatentGenerator(nn.Module):
         while coef.dim() < x.dim():
             coef = coef.unsqueeze(-1)
         return coef
+
+    def _pad_to_square(self, x):
+        if x.dim() != 4:
+            return x, x.shape[-2:]
+
+        height, width = x.shape[-2:]
+        if height > self.img_size or width > self.img_size:
+            raise ValueError(
+                f"Latent shape {height}x{width} is larger than configured img_size={self.img_size}."
+            )
+
+        pad_height = self.img_size - height
+        pad_width = self.img_size - width
+        if pad_height == 0 and pad_width == 0:
+            return x, (height, width)
+
+        return F.pad(x, (0, pad_width, 0, pad_height)), (height, width)
+
+    def _unpad_from_square(self, x, original_hw):
+        height, width = original_hw
+        if x.dim() != 4:
+            return x
+        return x[..., :height, :width]
 
     def _ddpm_forward(self, x0, t, noise):
         alpha_bar_sqrt = self._expand_to_x(self.ddpm.alpha_bar_sqrt[t], x0)
@@ -67,11 +103,12 @@ class ImageUnconditionalLatentGenerator(nn.Module):
         x_prev = coef1 * pred_x0 + coef2 * pred_noise + coef3 * noise
         return mask * pred_x0 + (~mask) * x_prev
     
-    def _noise_estimation_loss(self, x, tp, attr_emb, t):        
+    def _noise_estimation_loss(self, x, tp, attr_emb, t):
+        x, original_hw = self._pad_to_square(x)
         noise = torch.randn_like(x)
         noisy_x = self._ddpm_forward(x, t, noise)
         pred_noise, loss_dict = self.predict_noise(noisy_x, tp, attr_emb, t)
-        residual = noise - pred_noise
+        residual = self._unpad_from_square(noise - pred_noise, original_hw)
         loss_dict["noise_loss"] = (residual ** 2).mean()
         all_loss = torch.zeros_like(loss_dict["noise_loss"])
         for k in loss_dict.keys():
@@ -107,7 +144,7 @@ class ImageUnconditionalLatentGenerator(nn.Module):
     def _unpack_data_uncond_gen(self, batch):
         ts = batch["ts"].to(self.device).float()
         tp = batch["tp"].to(self.device).float()
-        ts = ts.permute(0, 2, 1)
+        ts = ts.unsqueeze(1)
         return ts, tp
 
     """
@@ -116,6 +153,7 @@ class ImageUnconditionalLatentGenerator(nn.Module):
     @torch.no_grad()
     def generate(self, batch, n_samples, sampler="ddim"):
         ts, tp = self._unpack_data_uncond_gen(batch)
+        ts, original_hw = self._pad_to_square(ts)
         samples = []
         B = ts.shape[0]
         for i in range(n_samples):
@@ -128,7 +166,7 @@ class ImageUnconditionalLatentGenerator(nn.Module):
                     x = self._ddpm_reverse(x, pred_noise, t, noise)
                 else:
                     x = self._ddim_reverse(x, pred_noise, t, noise, is_determin=True)
-            samples.append(x)
+            samples.append(self._unpad_from_square(x, original_hw))
         return torch.stack(samples)
 
     def predict_noise(self, xt, tp, attr_emb, t):

@@ -664,7 +664,6 @@ class DriftDiT(nn.Module):
         # Final layer and unpatchify
         x_img = self.final_layer(x_img, c)
         x_img = self.unpatchify(x_img)
-        breakpoint()
         return x_img, {}
 
 
