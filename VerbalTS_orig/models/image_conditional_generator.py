@@ -79,6 +79,8 @@ class ImageConditionalGenerator(nn.Module):
             attrs = batch["cap"]
         elif self.cond_configs["cond_modal"] == "attr":
             attrs = batch["attrs"].to(self.device).long()
+
+        breakpoint()
         ts = ts.permute(0, 2, 1)
         return ts, tp, attrs
 
