@@ -51,7 +51,6 @@ class ImageConditionalLatentGenerator(nn.Module):
         attr_emb_raw = self.attr_en(attrs)
         attr_emb = attr_emb_raw
         print(f"x.shape: {x.shape}")
-        breakpoint()
         B = x.shape[0]
         if is_train:
             t = torch.randint(0, self.generator.num_steps, [B], device=self.device)

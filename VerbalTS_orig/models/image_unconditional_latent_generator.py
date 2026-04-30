@@ -92,5 +92,6 @@ class ImageUnconditionalLatentGenerator(nn.Module):
 
     def predict_noise(self, xt, tp, attr_emb, t):
         # noisy_x = torch.unsqueeze(xt, 1)
+        breakpoint()
         pred_noise, loss_dict = self.diff_model(xt, attr_emb, t)
         return pred_noise, loss_dict
