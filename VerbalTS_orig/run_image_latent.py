@@ -9,7 +9,7 @@ import random
 
 from data import GenerationDataset
 from models.image_conditional_latent_generator import ImageConditionalLatentGenerator as ImageConditionalGenerator
-from models.image_unconditional_latent_generator import ImageUnConditionalLatentGenerator as ImageUnConditionalGenerator
+from models.image_unconditional_latent_generator import ImageUnconditionalLatentGenerator as ImageUnConditionalGenerator
 
 
 def save_configs(configs, path):
