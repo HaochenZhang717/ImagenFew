@@ -638,6 +638,7 @@ class DriftDiT(nn.Module):
         condition_tokens: torch.Tensor,
         diffusion_step: torch.Tensor,
     ) -> torch.Tensor:
+        breakpoint()
         x_img = x
         B = x_img.shape[0]
         device = x_img.device
