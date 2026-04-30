@@ -4,13 +4,13 @@ import torch.nn as nn
 from models.encoders.attr_encoder import AttributeEncoder
 from models.encoders.text_encoder import TextEncoder, CLIPTextEncoderToken
 from models.encoders.cond_projector import TextProjectorMVarMScaleMStep, AttrProjectorAvg
-from models.image_unconditional_generator import ImageUnConditionalGenerator
+from models.image_unconditional_latent_generator import ImageUnconditionalLatentGenerator
 from models.cttp.cttp_model import CTTP
 import time
 import random
 import yaml
 
-class ImageConditionalGenerator(nn.Module):
+class ImageConditionalLatentGenerator(nn.Module):
     def __init__(self, diff_configs, cond_configs):
         super().__init__()
         self.device = diff_configs["device"]
@@ -79,7 +79,8 @@ class ImageConditionalGenerator(nn.Module):
             attrs = batch["cap"]
         elif self.cond_configs["cond_modal"] == "attr":
             attrs = batch["attrs"].to(self.device).long()
-        ts = ts.permute(0, 2, 1)
+
+        ts = ts.unsqueeze(1)
         return ts, tp, attrs
 
     def generate(self, batch, n_samples, sampler="ddim"):

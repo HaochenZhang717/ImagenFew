@@ -1,4 +1,4 @@
-python run_image.py \
+python run_image_latent.py \
   --cond_modal text \
   --training_stage finetune \
   --save_folder ./logs/istanbul_traffic_image_latent_augmented/text2ts_segment \
