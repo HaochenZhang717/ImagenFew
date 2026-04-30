@@ -260,3 +260,109 @@ class ParaphrasedCaptionSplit(CustomSplit):
             "cap": self._select_caption(self.caps[idx]),
             "tp": self.time_point
         }
+
+
+class ParaphrasedCaptionLatentDataset:
+    """Dataset wrapper for mini-VAE latents.
+
+    The mini-VAE latents are already the VAE posterior variables. We therefore
+    intentionally do not fit or apply any StandardScaler here.
+    """
+
+    def __init__(self, folder, **kwargs):
+        super().__init__()
+        self.folder = folder
+        self.scale = False
+        self.scaler = None
+        self._load_meta()
+
+    def _load_meta(self):
+        self.meta = json.load(open(os.path.join(self.folder, "meta.json")))
+        self.attr_list = self.meta["attr_list"]
+        n_attr = len(self.attr_list)
+        self.attr_ids = np.arange(n_attr)
+        self.attr_n_ops = np.array(self.meta["attr_n_ops"])
+
+    def transform(self, ts):
+        return ts
+
+    def inverse_transform(self, ts):
+        return ts
+
+    def get_split(self, split, *args):
+        return ParaphrasedCaptionLatentSplit(self.folder, split)
+
+
+class ParaphrasedCaptionLatentSplit(Dataset):
+    """A split backed by *_mini_vae_latent.npy and paraphrased captions."""
+
+    def __init__(self, folder, split="train"):
+        super().__init__()
+        assert split in ("train", "valid", "test"), "Please specify a valid split."
+        self.folder = folder
+        self.split = split
+        self._load_data()
+
+        print(f"Latent split: {self.split}, total samples {self.n_samples}.")
+
+    def _load_data(self):
+        latent_path = os.path.join(self.folder, self.split + "_mini_vae_latent.npy")
+        attrs_path = os.path.join(self.folder, self.split + "_attrs_idx.npy")
+        caps_path = os.path.join(self.folder, self.split + "_my_text_caps_paraphrased.npy")
+
+        latents = np.load(latent_path)
+        attrs = np.load(attrs_path)
+        caps = np.load(caps_path, allow_pickle=True)
+
+        if latents.ndim == 2:
+            latents = latents[:, :, None]
+        if latents.ndim != 3:
+            raise ValueError(
+                f"Expected {latent_path} to have shape [N, T, C] or [N, T], got {latents.shape}"
+            )
+        if len(latents) != len(attrs) or len(latents) != len(caps):
+            raise ValueError(
+                "Latent, attrs, and captions must have the same number of samples: "
+                f"latents={len(latents)}, attrs={len(attrs)}, caps={len(caps)}"
+            )
+
+        self.ts = latents.astype(np.float32)
+        self.attrs = attrs
+        self.caps = caps
+
+        self.n_samples = self.ts.shape[0]
+        self.n_steps = self.ts.shape[1]
+        self.n_attrs = self.attrs.shape[1]
+        self.time_point = np.arange(self.n_steps)
+
+    def _select_caption(self, cap_item):
+        cap_item = np.asarray(cap_item)
+        if cap_item.ndim == 0:
+            return str(cap_item.item()).strip()
+        if cap_item.ndim == 1:
+            return str(cap_item[random.randint(0, len(cap_item) - 1)]).strip()
+
+        n_variants, n_segments = cap_item.shape[:2]
+        segments = [
+            cap_item[random.randint(0, n_variants - 1), segment_id]
+            for segment_id in range(n_segments)
+        ]
+        return "\n".join(
+            f"[Segment {idx + 1}]: {str(segment).strip()}"
+            for idx, segment in enumerate(segments)
+        )
+
+    def __getitem__(self, idx):
+        tmp_ts = self.ts[idx]
+
+        return {
+            "ts": tmp_ts,
+            "ts_len": tmp_ts.shape[0],
+            "attrs": self.attrs[idx],
+            "cap": self._select_caption(self.caps[idx]),
+            "tp": self.time_point,
+            "indices": idx,
+        }
+
+    def __len__(self):
+        return self.n_samples
