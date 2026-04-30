@@ -19,7 +19,8 @@ def save_configs(configs, path):
 
 
 def update_image_diffusion_shape(model_diff_configs, data_folder, split="train"):
-    ts_path = os.path.join(data_folder, f"{split}_ts.npy")
+    latent_path = os.path.join(data_folder, f"{split}_mini_vae_latent.npy")
+    ts_path = latent_path if os.path.exists(latent_path) else os.path.join(data_folder, f"{split}_ts.npy")
     if not os.path.exists(ts_path):
         return
 

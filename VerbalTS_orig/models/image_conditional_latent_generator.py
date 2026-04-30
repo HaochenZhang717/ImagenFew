@@ -79,7 +79,7 @@ class ImageConditionalLatentGenerator(nn.Module):
         elif self.cond_configs["cond_modal"] == "attr":
             attrs = batch["attrs"].to(self.device).long()
 
-        ts = ts.unsqueeze(1)
+        ts = ts.permute(0, 2, 1)
         return ts, tp, attrs
 
     def generate(self, batch, n_samples, sampler="ddim"):
@@ -94,7 +94,6 @@ class ImageConditionalLatentGenerator(nn.Module):
     @torch.no_grad()
     def generate_text(self, batch, n_samples, sampler="ddim"):
         ts, tp, attrs = self._unpack_data_cond_gen(batch)
-        ts, original_hw = self.generator._pad_to_square(ts)
         attr_emb_raw = self.attr_en(attrs)
         attr_emb = attr_emb_raw
 
@@ -107,15 +106,14 @@ class ImageConditionalLatentGenerator(nn.Module):
                 t = (torch.ones(B, device=self.device) * t).long()
                 pred_noise, _ = self.generator.predict_noise(x, tp, attr_emb, t)
                 if sampler == "ddpm":
-                    x = self.generator._ddpm_reverse(x, pred_noise, t, noise)
+                    x = self.generator.ddpm.reverse(x, pred_noise, t, noise)
                 else:
-                    x = self.generator._ddim_reverse(x, pred_noise, t, noise, is_determin=True)
-            samples.append(self.generator._unpad_from_square(x, original_hw))
+                    x = self.generator.ddim.reverse(x, pred_noise, t, noise, is_determin=True)
+            samples.append(x)
         return torch.stack(samples)
     
     def generate_constraint(self, batch, n_samples, sampler="ddim"):
         ts, tp, attrs = self._unpack_data_cond_gen(batch)
-        ts, original_hw = self.generator._pad_to_square(ts)
         samples = []
         B = ts.shape[0]
         for i in range(n_samples):
@@ -126,9 +124,9 @@ class ImageConditionalLatentGenerator(nn.Module):
                 with torch.no_grad():
                     pred_noise, _ = self.generator.predict_noise(x, tp, None, t)
                 if sampler == "ddpm":
-                    x = self.generator._ddpm_reverse(x, pred_noise, t, noise)
+                    x = self.generator.ddpm.reverse(x, pred_noise, t, noise)
                 else:
-                    x0 = self.generator._ddim_predict_x0(x, pred_noise, t).permute(0,2,1)
+                    x0 = self.generator.ddim.predict_x0(x, pred_noise, t).permute(0,2,1)
                     with torch.set_grad_enabled(True):
                         x0.requires_grad = True
                         ts_emb = self.cond_guide_model.get_ts_coemb(x0, None)
@@ -136,6 +134,6 @@ class ImageConditionalLatentGenerator(nn.Module):
                         negative_cttp = -torch.mm(ts_emb, text_emb.permute(1,0)).trace()
                         negative_cttp.backward()
                     pred_noise -= self.cond_configs["constraint"]["guide_w"] * self.generator.ddim.one_minus_alpha_bar_sqrt[t] * x0.grad.permute(0,2,1)
-                    x = self.generator._ddim_reverse(x, pred_noise, t, noise, is_determin=True)
-            samples.append(self.generator._unpad_from_square(x, original_hw))
+                    x = self.generator.ddim.reverse(x, pred_noise, t, noise, is_determin=True)
+            samples.append(x)
         return torch.stack(samples)
