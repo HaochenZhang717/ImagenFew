@@ -107,9 +107,9 @@ class ImageConditionalLatentGenerator(nn.Module):
                 t = (torch.ones(B, device=self.device) * t).long()
                 pred_noise, _ = self.generator.predict_noise(x, tp, attr_emb, t)
                 if sampler == "ddpm":
-                    x = self.generator.ddpm.reverse(x, pred_noise, t, noise)
+                    x = self.generator._ddpm_reverse(x, pred_noise, t, noise)
                 else:
-                    x = self.generator.ddim.reverse(x, pred_noise, t, noise, is_determin=True)
+                    x = self.generator._ddim_reverse(x, pred_noise, t, noise, is_determin=True)
             samples.append(x)
         return torch.stack(samples)
     
@@ -125,9 +125,9 @@ class ImageConditionalLatentGenerator(nn.Module):
                 with torch.no_grad():
                     pred_noise, _ = self.generator.predict_noise(x, tp, None, t)
                 if sampler == "ddpm":
-                    x = self.generator.ddpm.reverse(x, pred_noise, t, noise)
+                    x = self.generator._ddpm_reverse(x, pred_noise, t, noise)
                 else:
-                    x0 = self.generator.ddim.predict_x0(x, pred_noise, t).permute(0,2,1)
+                    x0 = self.generator._ddim_predict_x0(x, pred_noise, t).permute(0,2,1)
                     with torch.set_grad_enabled(True):
                         x0.requires_grad = True
                         ts_emb = self.cond_guide_model.get_ts_coemb(x0, None)
@@ -135,6 +135,6 @@ class ImageConditionalLatentGenerator(nn.Module):
                         negative_cttp = -torch.mm(ts_emb, text_emb.permute(1,0)).trace()
                         negative_cttp.backward()
                     pred_noise -= self.cond_configs["constraint"]["guide_w"] * self.generator.ddim.one_minus_alpha_bar_sqrt[t] * x0.grad.permute(0,2,1)
-                    x = self.generator.ddim.reverse(x, pred_noise, t, noise, is_determin=True)
+                    x = self.generator._ddim_reverse(x, pred_noise, t, noise, is_determin=True)
             samples.append(x)
         return torch.stack(samples)
