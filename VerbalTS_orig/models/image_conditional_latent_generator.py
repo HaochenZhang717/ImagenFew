@@ -36,7 +36,7 @@ class ImageConditionalLatentGenerator(nn.Module):
 
     def _init_diff(self, configs):
         configs["device"] = self.device
-        self.generator = ImageUnConditionalGenerator(configs=configs)
+        self.generator = ImageUnconditionalGenerator(configs=configs)
         if configs["generator_pretrain_path"] != "":
             self.generator.load_state_dict(torch.load(configs["generator_pretrain_path"]))
             print("Load the pretrain unconditional generator")
