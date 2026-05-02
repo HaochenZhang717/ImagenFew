@@ -17,8 +17,8 @@ def _load_fid_vae_class():
     return module.FIDVAE
 
 
-# FIDVAE = _load_fid_vae_class()
-from fid_vae import FIDVAE
+FIDVAE = _load_fid_vae_class()
+# from fid_vae import FIDVAE
 
 _DEFAULT_CKPT_DIR_CANDIDATES = (
     os.getenv("FID_VAE_CKPT_ROOT"),
