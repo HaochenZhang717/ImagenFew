@@ -45,11 +45,11 @@ USE_WANDB="${USE_WANDB:-1}"
 IMAGENTIME_LAUNCH_MODE="${IMAGENTIME_LAUNCH_MODE:-submit}"
 
 DEFAULT_CONFIGS=(
-  "./configs/ImagenTime_256/AirQuality.yaml"
+#  "./configs/ImagenTime_256/AirQuality.yaml"
   "./configs/ImagenTime_256/ETTh2.yaml"
-  "./configs/ImagenTime_256/ETTm1.yaml"
-  "./configs/ImagenTime_256/ETTm2.yaml"
-  "./configs/ImagenTime_256/Weather.yaml"
+#  "./configs/ImagenTime_256/ETTm1.yaml"
+#  "./configs/ImagenTime_256/ETTm2.yaml"
+#  "./configs/ImagenTime_256/Weather.yaml"
 )
 
 if [[ -n "${CONFIG:-}" ]]; then
