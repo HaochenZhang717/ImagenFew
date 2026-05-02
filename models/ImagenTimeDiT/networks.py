@@ -13,6 +13,7 @@ import torch
 from utils import persistence
 from torch.nn.functional import silu
 import loralib as lora
+from .DiT_networks import DriftDiT
 
 #----------------------------------------------------------------------------
 # Unified routine for initializing weights and biases.
@@ -238,7 +239,6 @@ class DhariwalUNet(torch.nn.Module):
         out_channels,                       # Number of color channels at output.
         label_dim           = 0,            # Number of class labels, 0 = unconditional.
         augment_dim         = 0,            # Augmentation label dimensionality, 0 = no augmentation.
-
         model_channels      = 192,          # Base multiplier for the number of channels.
         channel_mult        = [1,2,3,4],    # Per-resolution multipliers for the number of channels.
         channel_mult_emb    = 4,            # Multiplier for the dimensionality of the embedding vector.
@@ -247,81 +247,54 @@ class DhariwalUNet(torch.nn.Module):
         dropout             = 0.10,         # List of resolutions with self-attention.
         label_dropout       = 0,            # Dropout probability of class labels for classifier-free guidance.
         lora_rank = None,
-
+        patch_size          = 4,            # Patch size for DiT backbone.
+        hidden_size         = 256,          # Hidden size for DiT backbone.
+        depth               = 6,            # Number of DiT blocks.
+        num_heads           = 4,            # Number of attention heads.
+        mlp_ratio           = 4.0,          # MLP ratio in DiT blocks.
+        num_register_tokens = 8,            # Number of register tokens.
+        use_style_embed     = True,         # Whether to use style embeddings.
     ):
         super().__init__()
-        self.label_dropout = label_dropout
-        emb_channels = model_channels * channel_mult_emb
-        init = dict(init_mode='kaiming_uniform', init_weight=np.sqrt(1/3), init_bias=np.sqrt(1/3))
-        init_zero = dict(init_mode='kaiming_uniform', init_weight=0, init_bias=0)
-        block_kwargs = dict(emb_channels=emb_channels, channels_per_head=64, dropout=dropout, init=init, init_zero=init_zero,r = lora_rank)
+        del channel_mult, channel_mult_emb, num_blocks, attn_resolutions, dropout, model_channels, augment_dim, lora_rank
+        self.label_dim = label_dim
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        num_classes = max(label_dim, 1)
 
-        # Mapping.
-        self.map_noise = PositionalEmbedding(num_channels=model_channels)
-        self.map_augment = Linear(in_features=augment_dim, out_features=model_channels, bias=False, **init_zero) if augment_dim else None
-        self.map_layer0 = Linear(in_features=model_channels, out_features=emb_channels, **init)
-        self.map_layer1 = Linear(in_features=emb_channels, out_features=emb_channels, **init)
-        self.map_label = Linear(in_features=label_dim, out_features=emb_channels, bias=False, init_mode='kaiming_normal', init_weight=np.sqrt(label_dim)) if label_dim else None
-
-        # Encoder.
-        self.enc = torch.nn.ModuleDict()
-        cout = in_channels
-        for level, mult in enumerate(channel_mult):
-            res = img_resolution >> level
-            if level == 0:
-                cin = cout
-                cout = model_channels * mult
-                self.enc[f'{res}x{res}_conv'] = Conv2d(in_channels=cin, out_channels=cout, kernel=3, **init)
-            else:
-                self.enc[f'{res}x{res}_down'] = UNetBlock(in_channels=cout, out_channels=cout, down=True, **block_kwargs)
-            for idx in range(num_blocks):
-                cin = cout
-                cout = model_channels * mult
-                self.enc[f'{res}x{res}_block{idx}'] = UNetBlock(in_channels=cin, out_channels=cout, attention=(res in attn_resolutions), **block_kwargs)
-        skips = [block.out_channels for block in self.enc.values()]
-
-        # Decoder.
-        self.dec = torch.nn.ModuleDict()
-        for level, mult in reversed(list(enumerate(channel_mult))):
-            res = img_resolution >> level
-            if level == len(channel_mult) - 1:
-                self.dec[f'{res}x{res}_in0'] = UNetBlock(in_channels=cout, out_channels=cout, attention=True, **block_kwargs)
-                self.dec[f'{res}x{res}_in1'] = UNetBlock(in_channels=cout, out_channels=cout, **block_kwargs)
-            else:
-                self.dec[f'{res}x{res}_up'] = UNetBlock(in_channels=cout, out_channels=cout, up=True, **block_kwargs)
-            for idx in range(num_blocks + 1):
-                cin = cout + skips.pop()
-                cout = model_channels * mult
-                self.dec[f'{res}x{res}_block{idx}'] = UNetBlock(in_channels=cin, out_channels=cout, attention=(res in attn_resolutions), **block_kwargs)
-        self.out_norm = GroupNorm(num_channels=cout)
-        self.out_conv = Conv2d(in_channels=cout, out_channels=out_channels, kernel=3, **init_zero)
+        self.backbone = DriftDiT(
+            img_size=img_resolution,
+            patch_size=patch_size,
+            in_channels=in_channels,
+            hidden_size=hidden_size,
+            depth=depth,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            num_classes=num_classes,
+            label_dropout=label_dropout,
+            num_register_tokens=num_register_tokens,
+            use_style_embed=use_style_embed,
+        )
+        self.out_proj = None
+        if out_channels != in_channels:
+            self.out_proj = torch.nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
     def forward(self, x, noise_labels, class_labels, augment_labels=None):
-        # Mapping.
-        emb = self.map_noise(noise_labels)
-        if self.map_augment is not None and augment_labels is not None:
-            emb = emb + self.map_augment(augment_labels)
-        emb = silu(self.map_layer0(emb))
-        emb = self.map_layer1(emb)
-        if self.map_label is not None:
-            tmp = class_labels
-            if self.training and self.label_dropout:
-                tmp = tmp * (torch.rand([x.shape[0], 1], device=x.device) >= self.label_dropout).to(tmp.dtype)
-            emb = emb + self.map_label(tmp)
-        emb = silu(emb)
+        del augment_labels
+        batch_size = x.shape[0]
+        device = x.device
 
-        # Encoder.
-        skips = []
-        for block in self.enc.values():
-            x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
-            skips.append(x)
+        if class_labels is None:
+            labels = torch.zeros(batch_size, dtype=torch.long, device=device)
+        elif class_labels.ndim == 1:
+            labels = class_labels.to(device=device, dtype=torch.long)
+        else:
+            labels = class_labels.argmax(dim=1).to(device=device, dtype=torch.long)
 
-        # Decoder.
-        for block in self.dec.values():
-            if x.shape[1] != block.in_channels:
-                x = torch.cat([x, skips.pop()], dim=1)
-            x = block(x, emb)
-        x = self.out_conv(silu(self.out_norm(x)))
+        alpha = noise_labels.to(device=device, dtype=torch.float32).reshape(-1)
+        x = self.backbone(x, labels=labels, alpha=alpha)
+        if self.out_proj is not None:
+            x = self.out_proj(x)
         return x
 
 #----------------------------------------------------------------------------

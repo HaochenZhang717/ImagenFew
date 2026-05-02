@@ -420,6 +420,7 @@ class DiTBlockCrossAttention(nn.Module):
 
         return main
 
+
 class DiTBlockAdaLN(nn.Module):
     """
     DiT Block with adaLN-Zero conditioning.
