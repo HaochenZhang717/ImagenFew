@@ -12,7 +12,8 @@
 
 set -euo pipefail
 
-ROOT_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+# Resolve repo root whether invoked via sbatch or local shell.
+ROOT_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 cd "$ROOT_DIR"
 mkdir -p "$ROOT_DIR/logs/slurm"
 
@@ -43,9 +44,10 @@ WANDB_PROJECT="${WANDB_PROJECT:-ImagenTime256}"
 SUBSET_P="${SUBSET_P:-1.0}"
 USE_WANDB="${USE_WANDB:-1}"
 IMAGENTIME_LAUNCH_MODE="${IMAGENTIME_LAUNCH_MODE:-submit}"
+EVAL_SPLIT="${EVAL_SPLIT:-train}"
 
 DEFAULT_CONFIGS=(
-#  "./configs/ImagenTime_256/ETTh2.yaml"
+  "./configs/ImagenTime_256/ETTh2.yaml"
   "./configs/ImagenTime_256/AirQuality.yaml"
   "./configs/ImagenTime_256/ETTm1.yaml"
   "./configs/ImagenTime_256/ETTm2.yaml"
@@ -65,6 +67,7 @@ echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}"
 echo "WANDB_PROJECT=$WANDB_PROJECT"
 echo "SUBSET_P=$SUBSET_P"
 echo "USE_WANDB=$USE_WANDB"
+echo "EVAL_SPLIT=$EVAL_SPLIT"
 echo "Configs:"
 printf '  %s\n' "${CONFIGS[@]}"
 
@@ -76,6 +79,7 @@ if [[ "$IMAGENTIME_LAUNCH_MODE" != "run" ]]; then
       WANDB_PROJECT="$WANDB_PROJECT" \
       SUBSET_P="$SUBSET_P" \
       USE_WANDB="$USE_WANDB" \
+      EVAL_SPLIT="$EVAL_SPLIT" \
       CONFIG="$config" \
       IMAGENTIME_LAUNCH_MODE="run" \
       sbatch --parsable "$ROOT_DIR/imagen_time_slurm.sh" "$@"
@@ -95,7 +99,7 @@ for config in "${CONFIGS[@]}"; do
     python run_diffts_imagentime.py
     --subset_p "$SUBSET_P"
     --config "$config"
-    --eval_split "train"
+    --eval_split "$EVAL_SPLIT"
   )
 
   if [[ "$USE_WANDB" == "1" ]]; then

@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import torch.multiprocessing
 import logging
+from torch.utils.data import DataLoader, TensorDataset
 from metrics import evaluate_model_uncond
 from utils.loggers import NeptuneLogger, WandbLogger, PrintLogger, CompositeLogger
 from utils.utils import create_model_name_and_dir, print_model_params, log_config_and_tags
@@ -55,6 +56,58 @@ def _save_eval_samples(args, dataset_name, epoch, eval_split, real_set, generate
     torch.save(payload, sample_path)
 
 
+def _replace_primary_tensor(dataset, primary_tensor):
+    if hasattr(dataset, "primary_tensor") and hasattr(dataset, "texts"):
+        return type(dataset)(primary_tensor, dataset.texts)
+    if hasattr(dataset, "tensors"):
+        return TensorDataset(primary_tensor, *dataset.tensors[1:])
+    return primary_tensor
+
+
+def _fit_minmax_stats(train_tensor):
+    data_min = train_tensor.amin(dim=(0, 1))
+    data_max = train_tensor.amax(dim=(0, 1))
+    return data_min, data_max
+
+
+def _apply_minmax_to_minus1_1(ts_tensor, data_min, data_max):
+    denom = torch.clamp(data_max - data_min, min=1e-6)
+    x = torch.clamp((ts_tensor - data_min) / denom, 0.0, 1.0)
+    return x * 2.0 - 1.0
+
+
+def _normalize_train_test_splits(args, dataset_loader, samplers, trainsets):
+    for dataset_name in args.train_on_datasets:
+        train_dataset = trainsets[dataset_name]
+        test_dataset = dataset_loader.testsets[dataset_name]
+
+        train_tensor = _extract_real_tensor(train_dataset).to(torch.float32)
+        data_min, data_max = _fit_minmax_stats(train_tensor)
+
+        norm_train_tensor = _apply_minmax_to_minus1_1(train_tensor, data_min, data_max)
+        norm_test_tensor = _apply_minmax_to_minus1_1(
+            _extract_real_tensor(test_dataset).to(torch.float32), data_min, data_max
+        )
+
+        norm_train_dataset = _replace_primary_tensor(train_dataset, norm_train_tensor)
+        norm_test_dataset = _replace_primary_tensor(test_dataset, norm_test_tensor)
+
+        trainsets[dataset_name] = norm_train_dataset
+        dataset_loader.testsets[dataset_name] = norm_test_dataset
+
+        metadata = dataset_loader.trainloaders[dataset_name][1]
+        train_sampler = samplers.get(dataset_name)
+        norm_train_loader = DataLoader(
+            dataset=norm_train_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            sampler=train_sampler,
+        )
+        dataset_loader.trainloaders[dataset_name] = (norm_train_loader, metadata)
+
+    dataset_loader._lens = [len(dataloader) for _, (dataloader, _) in dataset_loader.trainloaders.items()]
+
+
 def _checkpoint_path_for_epoch(args, epoch):
     ckpt_dir = os.path.join(os.path.dirname(args.log_dir), "checkpoints")
     os.makedirs(ckpt_dir, exist_ok=True)
@@ -89,6 +142,7 @@ def main(args):
 
         # Setup Data
         dataset_loader, samplers, trainsets, metadatas = data_provider(args)
+        _normalize_train_test_splits(args, dataset_loader, samplers, trainsets)
         args.n_classes = dataset_loader.num_datasets
         if len(args.datasets) > 1:
             logging.info(
